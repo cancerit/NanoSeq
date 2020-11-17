@@ -1,5 +1,11 @@
 # CHANGES
 
+## 1.4.0
+
+* Initial public release
+* Updated to htslib 1.11
+* Added licencing information
+
 ## 1.3.1
 
 * Sorted vcf output
