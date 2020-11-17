@@ -1,0 +1,27 @@
+notifications:
+  slack: wtsi-cgpit:ptUMR1tkNyZJYd9TpGoss8WR
+  email: false
+
+sudo: false
+
+language: ruby
+
+services:
+  - docker
+
+script:
+  - set -e
+  - echo 'Build and check docker image'
+  - docker build -t botseq .
+  - docker images | grep -c botseq
+  - echo 'Verify program(s) from this repo'
+  - docker run -t --rm botseq dsa -h
+  - docker run -t --rm botseq  variantcaller -h
+  - docker run -t --rm botseq  bamaddreadbundles -h
+  - docker run -t --rm botseq  gridsearch -h
+  - docker run -t --rm botseq  randomreadinbundle -h
+  - docker run -t --rm botseq  statistics -h
+  - docker run -t --rm botseq  gridsearch_merge.py -h
+  - docker run -t --rm botseq  extract_tags.py -h
+  - docker run -t --rm botseq  variantcaller_merge.py -h
+  - docker run -t --rm botseq  runBotSeq.py -h
