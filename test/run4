@@ -1,0 +1,37 @@
+#!/bin/bash
+
+########## LICENCE ##########
+# Copyright (c) 2020 Genome Research Ltd.
+# 
+# Author: Cancer Genome Project <cgphelp@sanger.ac.uk>
+# 
+# This file is part of NanoSeq.
+# 
+# NanoSeq is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Affero General Public License as published by the Free
+# Software Foundation; either version 3 of the License, or (at your option) any
+# later version.
+# 
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+# details.
+# 
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+###########################
+
+
+echo
+echo -n "Testing randomread... "
+#if PREFIX is not set give it a default value
+BIN_DIR="${PREFIX:-../opt}"
+
+set -e
+$BIN_DIR/bin/randomreadinbundle -I duplex.bam -O test.neat.bam
+if diff <( htsfile -c ./test.neat.bam | grep -v ^@PG ) <( htsfile -c ./duplex.neat.bam | grep -v ^@PG ) >/dev/null ; then
+  echo Ok
+else
+  echo Failed!
+  exit 1
+fi

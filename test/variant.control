@@ -1,0 +1,516 @@
+Mismatches	1	1001120	GGG	0	0	52	1	0	0	14	0	0	0	0	14	0	0	1001110	1001416	75	0	2	0	0	0	3	0	0	0	2	0	0	5	5	5	113	5	5	77	5	14	14	3	2	11	295	11	GGG>T	0
+CallVsQpos	A	5	0	1
+CallVsQpos	A	6	0	3
+CallVsQpos	A	7	0	5
+CallVsQpos	A	8	0	9
+CallVsQpos	A	9	0	2
+CallVsQpos	A	10	0	2
+CallVsQpos	A	11	0	6
+CallVsQpos	A	14	0	6
+CallVsQpos	A	15	0	11
+CallVsQpos	A	16	0	7
+CallVsQpos	A	17	0	1
+CallVsQpos	A	18	1	1
+CallVsQpos	A	19	0	2
+CallVsQpos	A	20	0	1
+CallVsQpos	A	21	0	3
+CallVsQpos	A	22	0	3
+CallVsQpos	A	24	0	6
+CallVsQpos	A	25	0	11
+CallVsQpos	A	26	0	1
+CallVsQpos	A	27	0	7
+CallVsQpos	A	28	0	9
+CallVsQpos	A	29	0	3
+CallVsQpos	A	30	0	4
+CallVsQpos	A	31	0	4
+CallVsQpos	A	32	0	5
+CallVsQpos	A	34	0	1
+CallVsQpos	A	39	0	2
+CallVsQpos	A	40	0	2
+CallVsQpos	A	42	0	4
+CallVsQpos	A	43	0	8
+CallVsQpos	A	44	0	10
+CallVsQpos	A	45	0	4
+CallVsQpos	A	46	0	3
+CallVsQpos	A	47	0	4
+CallVsQpos	A	48	0	2
+CallVsQpos	A	49	0	2
+CallVsQpos	A	50	0	10
+CallVsQpos	A	51	0	6
+CallVsQpos	A	56	0	5
+CallVsQpos	A	57	0	6
+CallVsQpos	A	59	0	3
+CallVsQpos	A	60	0	7
+CallVsQpos	A	61	0	2
+CallVsQpos	A	62	0	3
+CallVsQpos	A	63	0	3
+CallVsQpos	A	65	0	7
+CallVsQpos	A	66	0	9
+CallVsQpos	A	70	0	2
+CallVsQpos	A	72	0	2
+CallVsQpos	A	73	0	7
+CallVsQpos	A	74	0	2
+CallVsQpos	A	75	0	7
+CallVsQpos	A	76	0	3
+CallVsQpos	A	77	0	5
+CallVsQpos	A	78	0	5
+CallVsQpos	A	79	0	4
+CallVsQpos	A	80	0	5
+CallVsQpos	A	81	0	6
+CallVsQpos	A	82	0	4
+CallVsQpos	A	83	0	1
+CallVsQpos	A	84	0	1
+CallVsQpos	A	85	0	3
+CallVsQpos	A	86	0	6
+CallVsQpos	A	87	0	7
+CallVsQpos	A	88	0	5
+CallVsQpos	A	91	0	3
+CallVsQpos	A	92	0	4
+CallVsQpos	A	94	0	2
+CallVsQpos	A	95	0	5
+CallVsQpos	A	98	0	1
+CallVsQpos	A	99	0	1
+CallVsQpos	A	102	0	2
+CallVsQpos	A	103	0	4
+CallVsQpos	A	104	0	4
+CallVsQpos	A	107	0	3
+CallVsQpos	A	108	0	9
+CallVsQpos	A	109	0	4
+CallVsQpos	A	111	0	2
+CallVsQpos	A	112	0	1
+CallVsQpos	A	112	1	2
+CallVsQpos	A	113	0	9
+CallVsQpos	A	114	0	4
+CallVsQpos	A	115	0	2
+CallVsQpos	A	117	0	2
+CallVsQpos	A	119	0	2
+CallVsQpos	A	120	0	4
+CallVsQpos	A	121	0	5
+CallVsQpos	A	122	0	4
+CallVsQpos	A	124	0	4
+CallVsQpos	A	125	0	9
+CallVsQpos	A	126	0	5
+CallVsQpos	A	127	0	3
+CallVsQpos	A	128	0	6
+CallVsQpos	A	129	0	5
+CallVsQpos	A	131	0	4
+CallVsQpos	A	132	0	4
+CallVsQpos	A	133	0	3
+CallVsQpos	A	134	0	7
+CallVsQpos	A	135	0	3
+CallVsQpos	A	137	0	3
+CallVsQpos	A	138	0	4
+CallVsQpos	C	6	0	2
+CallVsQpos	C	7	0	1
+CallVsQpos	C	8	0	6
+CallVsQpos	C	9	0	17
+CallVsQpos	C	10	0	13
+CallVsQpos	C	11	0	8
+CallVsQpos	C	12	0	12
+CallVsQpos	C	13	0	12
+CallVsQpos	C	14	0	5
+CallVsQpos	C	15	0	3
+CallVsQpos	C	16	0	5
+CallVsQpos	C	17	0	5
+CallVsQpos	C	18	0	4
+CallVsQpos	C	19	0	5
+CallVsQpos	C	21	0	5
+CallVsQpos	C	22	0	4
+CallVsQpos	C	23	0	5
+CallVsQpos	C	24	0	4
+CallVsQpos	C	25	0	5
+CallVsQpos	C	26	0	8
+CallVsQpos	C	27	0	5
+CallVsQpos	C	28	0	2
+CallVsQpos	C	28	1	3
+CallVsQpos	C	29	0	1
+CallVsQpos	C	29	1	4
+CallVsQpos	C	30	0	3
+CallVsQpos	C	31	0	1
+CallVsQpos	C	32	0	2
+CallVsQpos	C	33	0	1
+CallVsQpos	C	34	0	6
+CallVsQpos	C	35	0	7
+CallVsQpos	C	36	0	8
+CallVsQpos	C	37	0	13
+CallVsQpos	C	38	0	6
+CallVsQpos	C	39	0	1
+CallVsQpos	C	40	0	2
+CallVsQpos	C	41	0	9
+CallVsQpos	C	42	0	4
+CallVsQpos	C	43	0	1
+CallVsQpos	C	44	0	2
+CallVsQpos	C	45	0	7
+CallVsQpos	C	46	0	7
+CallVsQpos	C	47	0	7
+CallVsQpos	C	48	0	5
+CallVsQpos	C	49	0	6
+CallVsQpos	C	50	0	7
+CallVsQpos	C	51	0	7
+CallVsQpos	C	52	0	3
+CallVsQpos	C	53	0	7
+CallVsQpos	C	54	0	6
+CallVsQpos	C	55	0	1
+CallVsQpos	C	55	1	1
+CallVsQpos	C	56	0	1
+CallVsQpos	C	57	0	1
+CallVsQpos	C	58	0	1
+CallVsQpos	C	59	0	6
+CallVsQpos	C	60	0	9
+CallVsQpos	C	61	0	14
+CallVsQpos	C	62	0	5
+CallVsQpos	C	63	0	3
+CallVsQpos	C	64	0	7
+CallVsQpos	C	64	1	2
+CallVsQpos	C	65	0	1
+CallVsQpos	C	65	1	3
+CallVsQpos	C	66	0	2
+CallVsQpos	C	67	0	3
+CallVsQpos	C	67	1	1
+CallVsQpos	C	68	0	5
+CallVsQpos	C	69	0	2
+CallVsQpos	C	70	0	6
+CallVsQpos	C	71	0	2
+CallVsQpos	C	72	0	5
+CallVsQpos	C	73	0	7
+CallVsQpos	C	74	0	9
+CallVsQpos	C	75	0	5
+CallVsQpos	C	76	0	1
+CallVsQpos	C	77	0	2
+CallVsQpos	C	78	0	5
+CallVsQpos	C	79	0	5
+CallVsQpos	C	80	0	9
+CallVsQpos	C	81	0	5
+CallVsQpos	C	82	0	6
+CallVsQpos	C	83	0	4
+CallVsQpos	C	84	0	1
+CallVsQpos	C	85	0	1
+CallVsQpos	C	86	0	2
+CallVsQpos	C	87	0	6
+CallVsQpos	C	88	0	10
+CallVsQpos	C	89	0	9
+CallVsQpos	C	90	0	8
+CallVsQpos	C	91	0	8
+CallVsQpos	C	92	0	11
+CallVsQpos	C	93	0	10
+CallVsQpos	C	94	0	5
+CallVsQpos	C	95	0	7
+CallVsQpos	C	96	0	12
+CallVsQpos	C	97	0	7
+CallVsQpos	C	98	0	6
+CallVsQpos	C	99	0	6
+CallVsQpos	C	100	0	3
+CallVsQpos	C	101	0	9
+CallVsQpos	C	102	0	9
+CallVsQpos	C	103	0	4
+CallVsQpos	C	104	0	4
+CallVsQpos	C	106	0	1
+CallVsQpos	C	107	0	2
+CallVsQpos	C	109	0	1
+CallVsQpos	C	110	0	4
+CallVsQpos	C	111	0	3
+CallVsQpos	C	112	0	5
+CallVsQpos	C	113	0	2
+CallVsQpos	C	114	0	12
+CallVsQpos	C	115	0	14
+CallVsQpos	C	116	0	15
+CallVsQpos	C	117	0	8
+CallVsQpos	C	121	0	1
+CallVsQpos	C	122	0	3
+CallVsQpos	C	123	0	10
+CallVsQpos	C	124	0	10
+CallVsQpos	C	126	0	5
+CallVsQpos	C	127	0	7
+CallVsQpos	C	128	0	4
+CallVsQpos	C	129	0	1
+CallVsQpos	C	130	0	6
+CallVsQpos	C	131	0	4
+CallVsQpos	C	132	0	3
+CallVsQpos	C	133	0	12
+CallVsQpos	C	134	0	1
+CallVsQpos	C	135	0	7
+CallVsQpos	C	136	0	6
+CallVsQpos	C	138	0	1
+CallVsQpos	C	139	0	1
+CallVsQpos	G	5	0	14
+CallVsQpos	G	6	0	14
+CallVsQpos	G	7	0	10
+CallVsQpos	G	7	1	1
+CallVsQpos	G	10	0	3
+CallVsQpos	G	11	0	1
+CallVsQpos	G	12	0	2
+CallVsQpos	G	13	0	6
+CallVsQpos	G	14	0	7
+CallVsQpos	G	15	0	1
+CallVsQpos	G	16	0	1
+CallVsQpos	G	17	0	2
+CallVsQpos	G	18	0	3
+CallVsQpos	G	19	0	4
+CallVsQpos	G	20	0	10
+CallVsQpos	G	21	0	6
+CallVsQpos	G	22	0	6
+CallVsQpos	G	23	0	5
+CallVsQpos	G	24	0	8
+CallVsQpos	G	25	0	3
+CallVsQpos	G	26	0	10
+CallVsQpos	G	27	0	7
+CallVsQpos	G	28	0	5
+CallVsQpos	G	29	0	5
+CallVsQpos	G	30	0	6
+CallVsQpos	G	31	0	12
+CallVsQpos	G	32	0	12
+CallVsQpos	G	33	0	13
+CallVsQpos	G	34	0	6
+CallVsQpos	G	35	0	2
+CallVsQpos	G	36	0	3
+CallVsQpos	G	36	1	1
+CallVsQpos	G	37	0	6
+CallVsQpos	G	38	0	10
+CallVsQpos	G	39	0	13
+CallVsQpos	G	40	0	8
+CallVsQpos	G	41	0	9
+CallVsQpos	G	42	0	6
+CallVsQpos	G	43	0	1
+CallVsQpos	G	45	0	5
+CallVsQpos	G	46	0	6
+CallVsQpos	G	47	0	7
+CallVsQpos	G	48	0	10
+CallVsQpos	G	49	0	9
+CallVsQpos	G	51	0	3
+CallVsQpos	G	52	0	10
+CallVsQpos	G	53	0	10
+CallVsQpos	G	54	0	5
+CallVsQpos	G	55	0	6
+CallVsQpos	G	56	0	11
+CallVsQpos	G	57	0	8
+CallVsQpos	G	58	0	9
+CallVsQpos	G	59	0	4
+CallVsQpos	G	61	0	2
+CallVsQpos	G	62	0	10
+CallVsQpos	G	63	0	8
+CallVsQpos	G	64	0	8
+CallVsQpos	G	65	0	5
+CallVsQpos	G	66	0	7
+CallVsQpos	G	67	0	12
+CallVsQpos	G	68	0	6
+CallVsQpos	G	69	0	6
+CallVsQpos	G	70	0	6
+CallVsQpos	G	71	0	10
+CallVsQpos	G	72	0	11
+CallVsQpos	G	73	0	3
+CallVsQpos	G	74	0	7
+CallVsQpos	G	75	0	2
+CallVsQpos	G	76	0	10
+CallVsQpos	G	77	0	11
+CallVsQpos	G	78	0	5
+CallVsQpos	G	79	0	4
+CallVsQpos	G	80	0	4
+CallVsQpos	G	81	0	2
+CallVsQpos	G	82	0	2
+CallVsQpos	G	83	0	9
+CallVsQpos	G	84	0	12
+CallVsQpos	G	85	0	13
+CallVsQpos	G	86	0	9
+CallVsQpos	G	87	0	5
+CallVsQpos	G	88	0	3
+CallVsQpos	G	89	0	7
+CallVsQpos	G	90	0	4
+CallVsQpos	G	93	0	2
+CallVsQpos	G	94	0	5
+CallVsQpos	G	96	0	2
+CallVsQpos	G	97	0	8
+CallVsQpos	G	98	0	6
+CallVsQpos	G	99	0	3
+CallVsQpos	G	100	0	10
+CallVsQpos	G	101	0	7
+CallVsQpos	G	102	0	5
+CallVsQpos	G	103	0	4
+CallVsQpos	G	104	0	8
+CallVsQpos	G	104	1	2
+CallVsQpos	G	105	0	7
+CallVsQpos	G	105	1	5
+CallVsQpos	G	106	0	10
+CallVsQpos	G	107	0	8
+CallVsQpos	G	108	0	7
+CallVsQpos	G	109	0	9
+CallVsQpos	G	110	0	10
+CallVsQpos	G	111	0	11
+CallVsQpos	G	111	1	2
+CallVsQpos	G	112	0	2
+CallVsQpos	G	112	1	3
+CallVsQpos	G	114	0	2
+CallVsQpos	G	116	0	2
+CallVsQpos	G	117	0	1
+CallVsQpos	G	118	0	3
+CallVsQpos	G	119	0	9
+CallVsQpos	G	120	0	11
+CallVsQpos	G	121	0	9
+CallVsQpos	G	122	0	6
+CallVsQpos	G	123	0	1
+CallVsQpos	G	124	0	2
+CallVsQpos	G	125	0	2
+CallVsQpos	G	126	0	2
+CallVsQpos	G	127	0	5
+CallVsQpos	G	128	0	2
+CallVsQpos	G	129	0	6
+CallVsQpos	G	130	0	11
+CallVsQpos	G	131	0	5
+CallVsQpos	G	135	0	3
+CallVsQpos	G	136	0	10
+CallVsQpos	G	137	0	13
+CallVsQpos	G	138	0	10
+CallVsQpos	G	139	0	14
+CallVsQpos	T	5	0	4
+CallVsQpos	T	8	0	1
+CallVsQpos	T	11	0	3
+CallVsQpos	T	12	0	5
+CallVsQpos	T	13	0	1
+CallVsQpos	T	15	0	3
+CallVsQpos	T	16	0	5
+CallVsQpos	T	17	0	11
+CallVsQpos	T	18	0	11
+CallVsQpos	T	19	0	8
+CallVsQpos	T	20	0	8
+CallVsQpos	T	21	0	5
+CallVsQpos	T	22	0	6
+CallVsQpos	T	23	0	9
+CallVsQpos	T	24	0	1
+CallVsQpos	T	29	0	4
+CallVsQpos	T	30	0	5
+CallVsQpos	T	31	0	2
+CallVsQpos	T	33	0	5
+CallVsQpos	T	34	0	6
+CallVsQpos	T	35	0	9
+CallVsQpos	T	36	0	5
+CallVsQpos	T	38	0	3
+CallVsQpos	T	39	0	3
+CallVsQpos	T	40	0	5
+CallVsQpos	T	42	0	4
+CallVsQpos	T	43	0	7
+CallVsQpos	T	44	0	6
+CallVsQpos	T	45	0	2
+CallVsQpos	T	46	0	2
+CallVsQpos	T	48	0	1
+CallVsQpos	T	49	0	1
+CallVsQpos	T	50	0	1
+CallVsQpos	T	51	0	2
+CallVsQpos	T	52	0	5
+CallVsQpos	T	54	0	6
+CallVsQpos	T	55	0	9
+CallVsQpos	T	56	0	1
+CallVsQpos	T	57	0	2
+CallVsQpos	T	58	0	8
+CallVsQpos	T	59	0	5
+CallVsQpos	T	63	0	3
+CallVsQpos	T	64	0	1
+CallVsQpos	T	65	1	2
+CallVsQpos	T	68	0	7
+CallVsQpos	T	69	0	10
+CallVsQpos	T	70	0	4
+CallVsQpos	T	71	0	6
+CallVsQpos	T	73	0	1
+CallVsQpos	T	75	0	4
+CallVsQpos	T	76	0	4
+CallVsQpos	T	78	0	2
+CallVsQpos	T	79	0	5
+CallVsQpos	T	81	0	2
+CallVsQpos	T	82	0	4
+CallVsQpos	T	83	0	2
+CallVsQpos	T	84	0	4
+CallVsQpos	T	89	0	2
+CallVsQpos	T	90	0	5
+CallVsQpos	T	91	0	5
+CallVsQpos	T	92	0	2
+CallVsQpos	T	93	0	6
+CallVsQpos	T	94	0	5
+CallVsQpos	T	95	0	4
+CallVsQpos	T	96	0	1
+CallVsQpos	T	97	0	1
+CallVsQpos	T	98	0	3
+CallVsQpos	T	99	0	7
+CallVsQpos	T	100	0	5
+CallVsQpos	T	101	0	2
+CallVsQpos	T	105	0	5
+CallVsQpos	T	106	0	5
+CallVsQpos	T	107	0	4
+CallVsQpos	T	108	0	1
+CallVsQpos	T	109	0	3
+CallVsQpos	T	110	0	4
+CallVsQpos	T	112	0	4
+CallVsQpos	T	113	0	5
+CallVsQpos	T	115	0	1
+CallVsQpos	T	117	0	4
+CallVsQpos	T	118	0	9
+CallVsQpos	T	119	0	4
+CallVsQpos	T	120	0	1
+CallVsQpos	T	122	0	2
+CallVsQpos	T	123	0	1
+CallVsQpos	T	125	0	3
+CallVsQpos	T	126	0	4
+CallVsQpos	T	128	0	3
+CallVsQpos	T	129	0	3
+CallVsQpos	T	132	0	3
+CallVsQpos	T	133	0	1
+CallVsQpos	T	134	0	3
+CallVsQpos	T	139	0	1
+PyrVsMask	ACA	0	32
+PyrVsMask	ACA	1	7
+PyrVsMask	ACC	0	96
+PyrVsMask	ACG	0	21
+PyrVsMask	ACG	1	8
+PyrVsMask	ACT	0	50
+PyrVsMask	ATA	0	2
+PyrVsMask	ATC	0	30
+PyrVsMask	ATG	0	32
+PyrVsMask	ATT	0	9
+PyrVsMask	CCA	0	122
+PyrVsMask	CCC	0	207
+PyrVsMask	CCC	1	7
+PyrVsMask	CCG	0	47
+PyrVsMask	CCG	1	1
+PyrVsMask	CCT	0	200
+PyrVsMask	CTA	0	14
+PyrVsMask	CTC	0	168
+PyrVsMask	CTG	0	149
+PyrVsMask	CTT	0	75
+PyrVsMask	CTT	1	7
+PyrVsMask	GCA	0	95
+PyrVsMask	GCC	0	139
+PyrVsMask	GCG	0	39
+PyrVsMask	GCG	1	1
+PyrVsMask	GCT	0	105
+PyrVsMask	GCT	1	1
+PyrVsMask	GTA	0	9
+PyrVsMask	GTC	0	61
+PyrVsMask	GTG	0	83
+PyrVsMask	GTT	0	33
+PyrVsMask	TCA	0	98
+PyrVsMask	TCC	0	132
+PyrVsMask	TCG	0	16
+PyrVsMask	TCG	1	1
+PyrVsMask	TCT	0	84
+PyrVsMask	TTA	0	18
+PyrVsMask	TTC	0	38
+PyrVsMask	TTG	0	62
+PyrVsMask	TTT	0	15
+ReadBundles	2	2	0	0	168
+ReadBundles	2	2	1	0	1
+ReadBundles	2	3	0	0	278
+ReadBundles	2	3	1	0	5
+ReadBundles	2	7	0	0	107
+ReadBundles	2	7	1	0	2
+ReadBundles	3	2	0	0	171
+ReadBundles	3	2	1	0	1
+ReadBundles	3	3	0	0	743
+ReadBundles	3	3	1	0	11
+ReadBundles	3	4	0	0	260
+ReadBundles	3	4	1	0	4
+ReadBundles	5	4	0	0	260
+ReadBundles	5	4	1	0	4
+ReadBundles	6	3	0	0	260
+ReadBundles	6	3	1	0	4
+ReadBundles	6	6	0	0	34
+ReadBundles	6	6	1	0	1
+Burdens	0	0	2281
+Burdens	1	0	33
+Coverage	644
