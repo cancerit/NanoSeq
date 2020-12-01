@@ -139,7 +139,16 @@ void RandomlySelectOneReadPerBundle::SelectReads() {
   std::map<std::string, std::map<int, int>> seen;
   int last_chr = 0;
   int i_chr = 0; 
-  while (sam_read1(this->in, this->head, b) >= 0) {
+  int ret = 0;
+  while ( 1 ) {
+    ret = sam_read1(this->in, this->head, b);
+    if ( ret == -1 ) break;
+    if ( ret < -1 ) {
+      std::stringstream er;
+      er << "Error: failure while reading input BAM";
+      er << std::endl;
+      throw std::runtime_error(er.str());
+    }
     i_chr = b->core.tid;
     if ( i_chr != last_chr ) {
       seen.clear();

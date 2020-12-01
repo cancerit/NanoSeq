@@ -27,7 +27,13 @@ static int RetrieveAlignments(void *data, bam1_t *b) {
     int ret;
     while (1){
         ret = aux->iter? sam_itr_next(aux->fp, aux->iter, b) : sam_read1(aux->fp, aux->head, b);
-        if ( ret<0 ) break;
+        if ( ret == -1 ) break;
+        if ( ret < -1 ) {
+          std::stringstream er;
+          er << "Error: failure while reading input BAM";
+          er << std::endl;
+          throw std::runtime_error(er.str());
+          }
         //if ( b->core.flag & aux->flags ) continue;
         if ( (int)b->core.qual < aux->min_mapQ ) continue;
         //if ( aux->min_len && bam_cigar2qlen(b->core.n_cigar, bam_get_cigar(b)) < aux->min_len ) continue;
