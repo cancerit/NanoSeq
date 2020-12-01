@@ -5,6 +5,7 @@
 * Initial public release
 * Updated to htslib 1.11
 * Added licencing information
+* Added error checks for truncated input BAMs
 
 ## 1.3.1
 
