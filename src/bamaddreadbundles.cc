@@ -171,8 +171,9 @@ void BamAddReadBundles::WriteOut(bam1_t* b) {
 
 void BamAddReadBundles::FilterAndTagReads() {
   bam1_t *b = bam_init1();
+  int ret;
   while ( 1 ) {
-    ret = sam_read1(this->in, this->head, b)
+    ret = sam_read1(this->in, this->head, b);
     if ( ret == -1 ) break;
     if ( ret < -1 ) {
       std::stringstream er;

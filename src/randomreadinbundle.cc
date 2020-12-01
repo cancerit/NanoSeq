@@ -141,10 +141,8 @@ void RandomlySelectOneReadPerBundle::SelectReads() {
   int i_chr = 0; 
   int ret = 0;
   while ( 1 ) {
-    ret = sam_read1(this->in, this->head, b)
-    if ( ret == -1 ) {
-      break
-    }
+    ret = sam_read1(this->in, this->head, b);
+    if ( ret == -1 ) break;
     if ( ret < -1 ) {
       std::stringstream er;
       er << "Error: failure while reading input BAM";
