@@ -47,7 +47,8 @@ usage = """
       -w                Bin size of precalculation coverage ( 500000 )
       -X                BED file with regions to be excluded
       -H                Exclude chromosomes ( MT,GL000207.1,...)
-      -T                Archive table and variants directories 
+      -T                Archive table and variants directories
+   --no-post            Skip post-analysis steps
    --version            Version of the code
 
      dsa  required parameters:
