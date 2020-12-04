@@ -228,6 +228,7 @@ nCPU = 1
 window =500000
 excludeBED = None
 archive=False
+noPost=False
 excludeChr = "MT,GL000207.1,GL000226.1,GL000229.1,GL000231.1,GL000210.1,GL000239.1,GL000235.1,GL000201.1,GL000247.1,GL000245.1,GL000197.1,GL000203.1,GL000246.1,GL000249.1,GL000196.1,GL000248.1,GL000244.1,GL000238.1,GL000202.1,GL000234.1,GL000232.1,GL000206.1,GL000240.1,GL000236.1,GL000241.1,GL000243.1,GL000242.1,GL000230.1,GL000237.1,GL000233.1,GL000204.1,GL000198.1,GL000208.1,GL000191.1,GL000227.1,GL000228.1,GL000214.1,GL000221.1,GL000209.1,GL000218.1,GL000220.1,GL000213.1,GL000211.1,GL000199.1,GL000217.1,GL000216.1,GL000215.1,GL000205.1,GL000219.1,GL000224.1,GL000223.1,GL000195.1,GL000212.1,GL000222.1,GL000200.1,GL000193.1,GL000194.1,GL000225.1,GL000192.1,NC_007605,hs37d5"
 
 for iopt, iarg in opts:
@@ -290,6 +291,8 @@ for iopt, iarg in opts:
     window = int(iarg)
   elif iopt == '-T':
     archive = True
+  elif iopt == '--no-post':
+    noPost = True 
   elif iopt == '--version':
     print(version)
     sys.exit(0)
@@ -569,6 +572,7 @@ if ( len(ranges) > 0) :
 #construct the command strings to be run in each thread
 jobs = []
 nMarkerFiles = 0
+nTask2Run = 0
 for ii  in dsaIntervals :
   commands = "set -e;"
   for idsa in ii :
@@ -577,11 +581,13 @@ for ii  in dsaIntervals :
     markerFile2 = "%s/variants/tmp/%s.var.done"%(workDir,nMarkerFiles)
     nMarkerFiles += 1
     if ( not os.path.exists( markerFile1 )) :
+      nTask2Run += 1
       #build table step (most time consuming)
       commands += "dsa -A %s -B %s -C %s -D %s -Q %s -M %s -R %s -d %s -r %s -b %s -e %s -O %s/tables/%s.%s.%s.tbl;"%(dsaOpts['-A'], dsaOpts['-B'], dsaOpts['-C'], dsaOpts['-D'], dsaOpts['-Q'],dsaOpts['-M'], dsaOpts['-R'], dsaOpts['-d'], idsa.chr,idsa.beg,idsa.end,workDir,idsa.chr,idsa.beg,idsa.end)
       commands += "touch %s;"%(markerFile1)
 
     if ( not os.path.exists( markerFile2 )) :
+      nTask2Run += 1
       #variantcaller step
       commands +="variantcaller -B %s/tables/%s.%s.%s.tbl.gz -O %s/variants/%s.%s.%s.var -a %s -b %s -c %s -d %s -f %s -i %s -m %s -n %s -p %s -q %s -r %s -v %s -x %s -z %s;"%(workDir,idsa.chr,idsa.beg,idsa.end,workDir,idsa.chr,idsa.beg,idsa.end,varOpts['-a'],varOpts['-b'],varOpts['-c'],varOpts['-d'],varOpts['-f'],varOpts['-i'],varOpts['-m'],varOpts['-n'],varOpts['-p'],varOpts['-q'],varOpts['-r'],varOpts['-v'],varOpts['-x'],varOpts['-z'])
       commands += "touch %s;\n"%(markerFile2)
@@ -597,10 +603,17 @@ else :
   print( jobs[ jobIndex -1] )
   runCommand( jobs[ jobIndex - 1 ] )
 
-#when using job indexes only last job keeps going
+if ( noPost ) :
+  print( "\nCompleted analysis with no-postprocessing option set\n")
+  sys.exit(0)
+
+#when using job indexes only last job must keep running after this
 if ( jobIndex != None ) :
+  if ( nTask2Run == 0 and jobIndex != 1 ) :
+    sys.exit(0)
   if ( len(glob.glob("%s/tables/tmp/*.dsa.done"%(workDir)) ) + len(glob.glob("%s/variants/tmp/*.var.done"%(workDir)) )  != 2* nMarkerFiles ) :
     sys.exit(0)
+
 
 #merge the variantcall results, generate summary
 
