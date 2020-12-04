@@ -44,7 +44,7 @@ usage = """
       -j                job index (one based) for multi CPU jobs
       -s                only do the coverage calculation step
       -R                Reference sequence file (required )
-      -w                Bin size of precalculation coverage ( 500000 )
+      -w                Bin size of precalculation coverage ( 20000 )
       -X                BED file with regions to be excluded
       -H                Exclude chromosomes that contain these substrings ( MT,GL,NC_,hs37d5)
       -T                Archive table and variants directories
@@ -226,7 +226,7 @@ bulkBAM = None
 refFile = None
 minMapQ = 0
 nCPU = 1
-window =500000
+window =20000
 excludeBED = None
 archive=False
 noPost=False
