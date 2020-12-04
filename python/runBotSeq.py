@@ -46,7 +46,7 @@ usage = """
       -R                Reference sequence file (required )
       -w                Bin size of precalculation coverage ( 500000 )
       -X                BED file with regions to be excluded
-      -H                Exclude chromosomes that contain this substring ( MT,GL,NC_,hs37d5)
+      -H                Exclude chromosomes that contain these substrings ( MT,GL,NC_,hs37d5)
       -T                Archive table and variants directories
    --no-post            Skip post-analysis steps
    --version            Version of the code
