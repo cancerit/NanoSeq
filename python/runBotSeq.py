@@ -213,7 +213,7 @@ class GInterval :
       return False
 
 
-opts, args = getopt.getopt(argv, 'hsj:t:A:B:C:D:R:d:Q:M:H:TX:a:c:n:m:o:x:b:f:i:p:q:r:v:w:z:', ['duplexBAM=','bulkBAM=','version'])
+opts, args = getopt.getopt(argv, 'hsj:t:A:B:C:D:R:d:Q:M:H:TX:a:c:n:m:o:x:b:f:i:p:q:r:v:w:z:', ['duplexBAM=','bulkBAM=','no-post','version'])
 #default arguments for dsa
 dsaOpts = { '-d': 2, '-Q': 30, '-M': 0 }
 #variantcaller params from one of Fede's scripts
