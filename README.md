@@ -9,7 +9,7 @@ Note that some of the code might use the term BotSeq or NanoSeq interchangebly d
 ```
 ./setup.sh path_to_install_to
 export PATH=$PATH:path_to_install_to/bin
-Rscript ./build/libInstall.R <default R library path>
+Rscript ./build/libInstall.R <R libraries path>
 ```
 Samtools must be in execution path for use of the wrapper script.
 
