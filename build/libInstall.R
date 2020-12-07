@@ -22,13 +22,41 @@
 ###########################
 
 #install R packages
+#install R packages
+args = commandArgs(T)
+instLib = args[1] 
 r = getOption("repos") # hard code the UK repo for CRAN
 r["CRAN"] = "http://cran.uk.r-project.org"
 options(repos = r)
 rm(r)
 
-install.packages('data.table')
-install.packages('epitools')
-install.packages('gridExtra')
-source("http://bioconductor.org/biocLite.R")
-biocLite("Biostrings")
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg))
+    biocLite(new.pkg, ask=FALSE, lib=instLib, lib.loc=instLib)
+  sapply(pkg, library, character.only = TRUE)
+}
+
+ipak_bioc <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg))
+    BiocManager::install(new.pkg, ask=FALSE, lib=instLib, lib.loc=instLib)
+  sapply(pkg, library, character.only = TRUE)
+}
+
+if( (version$major == 3 && version$minor >=5) || version$major > 3) {
+  # biocmanager versions of R
+  if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+  BiocManager::install(ask=FALSE, lib=instLib, lib.loc=instLib)
+  ipak_bioc(c("data.table"))
+  ipak_bioc(c("epitools"))
+  ipak_bioc(c("gridExtra"))
+  ipak_bioc(c("Biostrings"))
+} else {
+  # OLD versions of R
+  source("http://bioconductor.org/biocLite.R")
+  ipak(c("data.table"))
+  ipak(c("epitools"))
+  ipak(c("gridExtra"))
+  ipak(c("Biostrings"))
+}

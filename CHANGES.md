@@ -1,5 +1,12 @@
 # CHANGES
 
+## 1.5.0
+
+* Updated R library installation script
+* Added option to skip post processing step
+* Simplified excluded chromosome option
+* Reduced default coverage window
+
 ## 1.4.0
 
 * Initial public release
