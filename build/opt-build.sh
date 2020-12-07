@@ -197,7 +197,10 @@ if [ -e $SETUP_DIR/Rlib.success ]; then
   echo " previously installed ...";
 else
   echo
-  Rscript $INIT_DIR/build/libInstall.R
+  export R_LIBS=$INST_PATH/R-lib
+  export R_LIBS_USER=$INST_PATH/R-lib
+  mkdir -p $R_LIBS_USER
+  Rscript $INIT_DIR/build/libInstall.R $R_LIBS_USER
   cd $SETUP_DIR
   touch $SETUP_DIR/Rlib.success
 fi

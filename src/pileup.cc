@@ -347,7 +347,6 @@ std::string Pileup::PositionString(int pos) {
 void Pileup::MultiplePileup() {
   this->gzout << Pileup::Header() << std::endl;
   int pos;
-  bam_mplp_auto(this->mplp, &this->tid, &pos, this->n_plp,this->plp);
   while (bam_mplp_auto(this->mplp, &this->tid, &pos, this->n_plp,
     this->plp) > 0) {
     if ((pos >= opts->beg) && (pos <= opts->end)) {
