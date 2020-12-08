@@ -163,6 +163,7 @@ void Pileup::Initiate(Options *opts) {
       throw std::runtime_error(er.str());
     }
     this->tid = sam_hdr_name2tid(this->data[i]->head, this->opts->rname);
+    if (  this->tid < 0 ) exit(1);
     this->data[i]->iter = sam_itr_queryi(idx, this->tid, opts->beg, opts->end);
     if (this->data[i]->iter == NULL) {
       std::stringstream er;
