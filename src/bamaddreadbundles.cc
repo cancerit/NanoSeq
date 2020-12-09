@@ -75,10 +75,13 @@ void BamAddReadBundles::UpdateHeader(int argc, char **argv) {
   }
   ss << argv[i];
   sam_hdr_t *sh = sam_hdr_parse(this->head->l_text,this->head->text);
+  if (  sh == NULL ) exit(1);
   char pg[]   = "bamaddreadbundles";
-  sam_hdr_add_pg(sh, pg, "VN", "1.0", "CL", ss.str().c_str(), NULL);
+  int rco = sam_hdr_add_pg(sh, pg, "VN", "1.0", "CL", ss.str().c_str(), NULL);
+  if ( rco < 0 ) exit(1);
   free(this->head->text);
-  sam_hdr_rebuild(sh);
+  rco = sam_hdr_rebuild(sh);
+  if ( rco < 0 ) exit(1);
   this->head->text   = strdup(sam_hdr_str(sh));
   this->head->l_text = sam_hdr_length(sh);
   sam_hdr_destroy(sh);
@@ -144,18 +147,26 @@ void BamAddReadBundles::AddAuxTags(bam1_t* b) {
   const char* cstr = str.c_str();
   int len = str.length() + 1;
   uint8_t *data = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(cstr));
-  bam_aux_append(b, "RB", 'Z', len, data);
+  int rco = bam_aux_append(b, "RB", 'Z', len, data);
+  if ( rco < 0 ) exit(1);
 }
 
 
 void BamAddReadBundles::DelAuxTags(bam1_t* b) {
-  bam_aux_del(b, bam_aux_get(b, "mc"));
-  bam_aux_del(b, bam_aux_get(b, "rc"));
-  bam_aux_del(b, bam_aux_get(b, "mb"));
-  bam_aux_del(b, bam_aux_get(b, "rb"));
-  bam_aux_del(b, bam_aux_get(b, "MQ"));
-  bam_aux_del(b, bam_aux_get(b, "ms"));
-  bam_aux_del(b, bam_aux_get(b, "MC"));
+  int rco = bam_aux_del(b, bam_aux_get(b, "mc"));
+  if ( rco < 0 ) exit(1);
+  rco = bam_aux_del(b, bam_aux_get(b, "rc"));
+  if ( rco < 0 ) exit(1);
+  rco = bam_aux_del(b, bam_aux_get(b, "mb"));
+  if ( rco < 0 ) exit(1);
+  rco = bam_aux_del(b, bam_aux_get(b, "rb"));
+  if ( rco < 0 ) exit(1);
+  rco = bam_aux_del(b, bam_aux_get(b, "MQ"));
+  if ( rco < 0 ) exit(1);
+  rco = bam_aux_del(b, bam_aux_get(b, "ms"));
+  if ( rco < 0 ) exit(1);
+  rco = bam_aux_del(b, bam_aux_get(b, "MC"));
+  if ( rco < 0 ) exit(1);
 }
 
 
