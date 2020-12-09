@@ -1,5 +1,9 @@
 # CHANGES
 
+## 1.5.1
+
+* Added more error captures for htslib calls
+
 ## 1.5.0
 
 * Updated R library installation script
