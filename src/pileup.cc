@@ -119,9 +119,12 @@ void Pileup::Initiate(Options *opts) {
   this->n   = 2;
   this->tid = -1;
   this->data = reinterpret_cast<aux_t**>(calloc(this->n, sizeof(aux_t*)));
+  if ( ! this->data ) exit(1);
   for (int i = 0; i < this->n; ++i) {
     // i: bulk = 0, duplex = 1
     this->data[i]     = reinterpret_cast<aux_t*>(calloc(1, sizeof(aux_t)));
+    if ( ! this->data[i] ) exit(1);
+
     this->data[i]->fp = hts_open(this->opts->bams[i],"r");
     if ( i == 1 ) {
       this->data[i]->min_mapQ = this->opts-> min_mapQ;
@@ -177,7 +180,9 @@ void Pileup::Initiate(Options *opts) {
   this->mplp  = bam_mplp_init(n, RetrieveAlignments, reinterpret_cast<void**>
     (this->data));
   this->n_plp = reinterpret_cast<int*>(calloc(n, sizeof(int)));
+  if ( ! this->n_plp ) exit(1);
   this->plp   = (const bam_pileup1_t **)calloc(n, sizeof(void*));
+  if ( ! this->plp ) exit(1);
   bam_mplp_set_maxcnt(this->mplp, this->opts->max_plp_depth);
   }
 
