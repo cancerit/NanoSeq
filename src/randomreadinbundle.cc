@@ -98,10 +98,13 @@ void RandomlySelectOneReadPerBundle::UpdateHeader(int argc, char **argv) {
   }
   ss << argv[i];
   sam_hdr_t *sh = sam_hdr_parse(this->head->l_text, this->head->text);
+  if ( sh == NULL ) exit(1);
   char pg[]   = "randomreadinbundle";
-  sam_hdr_add_pg(sh, pg, "VN", "1.0", "CL", ss.str().c_str(), NULL);
+  int rco = sam_hdr_add_pg(sh, pg, "VN", "1.0", "CL", ss.str().c_str(), NULL);
+  if ( rco < 0 ) exit(1);  
   free(this->head->text);
-  sam_hdr_rebuild(sh);
+  rco = sam_hdr_rebuild(sh);
+  if ( rco < 0 ) exit(1);
   this->head->text   = strdup(sam_hdr_str(sh));
   this->head->l_text = sam_hdr_length(sh);
   sam_hdr_destroy(sh);
