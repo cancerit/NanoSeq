@@ -31,6 +31,7 @@ import math
 import glob
 import shutil
 import time
+import re
 
 version='1.5.1'
 
@@ -46,7 +47,8 @@ usage = """
       -R                Reference sequence file (required )
       -w                Bin size of precalculation coverage ( 20000 )
       -X                BED file with regions to be excluded
-      -H                Exclude chromosomes that contain these substrings ( MT,GL,NC_,hs37d5)
+      -H                List of contigs from the reference to exclude. 
+                          Comma separated using '%' as wildcard.   ( MT,GL%,NC_%,hs37d5 )
       -T                Archive table and variants directories
    --no-post            Skip post-analysis steps
    --version            Version of the code
@@ -230,7 +232,7 @@ window =20000
 excludeBED = None
 archive=False
 noPost=False
-excludeChr = "MT,GL,NC_,hs37d5"
+excludeChr = "MT,GL%,NC_%,hs37d5"
 
 for iopt, iarg in opts:
   if iopt in ('-A','--bulkBAM'):
@@ -364,14 +366,13 @@ if( nCPU == 0 ) :
 
 
 # build the chromosome dictionary, list and intervals
-excludes = excludeChr.split(',')
+excludes = [ re.compile(istr + "$") for istr in excludeChr.replace("%",".+").split(',') ]
 chrList = []
 rnames = {}
 with open(refFile + '.fai','r') as iofile :
   for iline in iofile :
     ichr = iline.split('\t')[0]
-    if any( x in ichr for x in excludes ): continue
-    if ( ichr in excludes ) : continue
+    if any( iregx.match(ichr) for iregx in excludes ): continue
     ilength = iline.split('\t')[1]
     chrList.append(ichr)
     rnames[ichr] = int(ilength)
