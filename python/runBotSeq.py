@@ -40,9 +40,9 @@ usage = """
 
      general paramameters :
 
-      -o                location of outputs and temporary files ( pwd)
+      -o                location of outputs and temporary files ( pwd )
+      -j                one-based job index (array jobs), must set -t to max index value
       -t                number of threads (default 1)
-      -j                job index (one based) for multi CPU jobs
       -s                only do the coverage calculation step
       -R                Reference sequence file (required )
       -w                Bin size of precalculation coverage ( 20000 )
