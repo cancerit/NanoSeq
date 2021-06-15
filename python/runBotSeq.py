@@ -33,7 +33,7 @@ import shutil
 import time
 import re
 
-version='1.5.2'
+version='1.5.3'
 
 usage = """
   runBotSeq.py  [general options] dsa-options variantcall-options

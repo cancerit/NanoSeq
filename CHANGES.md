@@ -1,5 +1,9 @@
 # CHANGES
 
+## 1.5.3
+
+* Fixed bug with last interval for outlier case
+
 ## 1.5.1
 
 * Added more error captures for htslib calls
