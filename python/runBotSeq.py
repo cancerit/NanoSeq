@@ -559,7 +559,7 @@ for ii in range(len(counts)) :
   accumulatedReads += counts[ii]
   if (icpu < nCPU ) : nreads[icpu] += counts[ii]
   ranges.extend( [ jj for jj in gIntervals[ii] ])
-  if ( accumulatedReads  >= (icpu+1)*readsPerCPU ) :
+  if ( accumulatedReads  >= round((icpu+1)*readsPerCPU )) :
     merged = [ ranges[0] ]
     for iranges in ranges :
       merged.extend(merged.pop() + iranges )
