@@ -566,11 +566,15 @@ for ii in range(len(counts)) :
     dsaIntervals[icpu].extend( merged )
     ranges = []
     icpu += 1
+#put all leftover intervals in last job
 if ( len(ranges) > 0) :
-  merged = [ dsaIntervals[-1].pop() ]
+  merged =  [ dsaIntervals[-1].pop() ] if ( dsaIntervals[-1] ) else []
   for iranges in ranges :
-    merged.extend(merged.pop() + iranges )
-  dsaIntervals[icpu-1].extend( merged )
+    if ( merged ) :
+      merged.extend(merged.pop() + iranges )
+    else :
+      merged.append( iranges )
+  dsaIntervals[-1].extend( merged )
 
 #construct the command strings to be run in each thread
 jobs = []
