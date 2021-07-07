@@ -36,7 +36,7 @@ open(IN, "zcat $FILE |") or die( "\nProblem with gunzip $FILE\n" );
 my %complement = ( "C" => "G", "G" => "C", "A" => "T", "T" => "A", "x" => "x", "?" => "?", "-" => "-", "N" => "N" ); 
 
 while(<IN>) {
-	next if(/^#/ || /chrom/); #in case it is receiving multiple csv files!
+	next if(/^#/); #in case it is receiving multiple csv files!
 	chomp;
 
   my($chrom,$chromBeg,$chromEnd,$context,$commonSNP,$shearwater,$bulkASXS,$bulkNM,
