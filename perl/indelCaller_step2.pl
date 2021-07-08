@@ -1,5 +1,25 @@
 #!/usr/bin/perl -w
 
+########## LICENCE ##########
+# Copyright (c) 2020 Genome Research Ltd.
+#
+# Author: Cancer Genome Project <cgphelp@sanger.ac.uk>
+#
+# This file is part of NanoSeq.
+#
+# NanoSeq is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Affero General Public License as published by the Free
+# Software Foundation; either version 3 of the License, or (at your option) any
+# later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+# details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 # * Perl script
 #     * Read all the indels, group by read bundle, mark sites in read bundles where we would believe an indel
 #         * Add for each site if it is masked or not - when a final event overlaps a masked site, remove
