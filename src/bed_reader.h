@@ -43,7 +43,7 @@ class Bed {
 
    std::deque<std::pair<int, int>> intervals;
 
-   void Load(const char* bed_filename, const char* rname, int beg, int end, ogzstream & gzout);
+   void Load(const char* bed_filename, const char* rname, int beg, int end, ogzstream & gzout, bool out2stdout);
 
    bool Intersects(int pos);
 

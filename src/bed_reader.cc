@@ -32,7 +32,7 @@
 
 
 // Load intervals from tabix BED file
-void Bed::Load(const char* bed_filename, const char* rname, int beg, int end, ogzstream & gzout) {
+void Bed::Load(const char* bed_filename, const char* rname, int beg, int end, ogzstream & gzout, bool out2stdout ) {
   htsFile *fp = hts_open(bed_filename, "r");
   if (fp == NULL) {
     std::stringstream er;
@@ -63,13 +63,15 @@ void Bed::Load(const char* bed_filename, const char* rname, int beg, int end, og
     }
   }
   tbx_itr_destroy(itr);
-  gzout << "# ";
-  gzout << intervals.size();
-  gzout << " intervals added from ";
-  gzout << bed_filename;
-  gzout << " ";
-  gzout << region;
-  gzout << std::endl;
+  if ( not out2stdout ) {
+    gzout << "# ";
+    gzout << intervals.size();
+    gzout << " intervals added from ";
+    gzout << bed_filename;
+    gzout << " ";
+    gzout << region;
+    gzout << std::endl;
+  }
 }
 
 

@@ -167,7 +167,7 @@ std::string WriteOut::IdentifierString(bundle *bin) {
 }
 
 
-void WriteOut::WriteRows(bundle bulk, bundles dplx, std::string posn, ogzstream & gzout ) {
+void WriteOut::WriteRows(bundle bulk, bundles dplx, std::string posn, ogzstream & gzout, bool out2stdout ) {
   std::stringstream ss;
   std::string strb;
   ss << posn;
@@ -185,6 +185,10 @@ void WriteOut::WriteRows(bundle bulk, bundles dplx, std::string posn, ogzstream 
     row << WriteOut::ProperPairs(&bndls.second);
     strb = row.str();
     strb.pop_back();//remove tab at the eol
-    gzout << strb << std::endl ;
+    if ( out2stdout ) {
+      std::cout << strb << std::endl;
+    } else {
+      gzout << strb << std::endl;
+    }
   }
 }

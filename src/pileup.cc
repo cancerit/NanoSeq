@@ -89,25 +89,24 @@ bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, int i) {
 
 void Pileup::Initiate(Options *opts) {
   //test that we can write output file
-  std::ofstream test_file( opts-> oname );
-  if (test_file.is_open()) {
-    test_file.close();
-  } else {
-    std::stringstream er;
-    er << "Error: cannot write output file ";
-    er << opts-> oname;
-    er << std::endl;
-    throw std::runtime_error(er.str());
+  if ( not opts-> out2stdout ) {
+    std::ofstream test_file( opts-> oname );
+    if (test_file.is_open()) {
+      test_file.close();
+    } else {
+      std::stringstream er;
+      er << "Error: cannot write output file ";
+      er << opts-> oname;
+      er << std::endl;
+      throw std::runtime_error(er.str());
+    }
+    this->gzout.open( opts-> oname);
   }
-  this->gzout.open( opts-> oname);
-  this->gzout << "# Version 1.0 January 2019\n";
-  this->gzout << "#\n";
-  this->gzout << "# INTERVALS FROM BED FILES\n";
   this->opts = opts;
   this->snp.Load(this->opts->beds[0], this->opts->rname, this->opts->beg,
-    this->opts->end, this->gzout);
+    this->opts->end, this->gzout, this->opts->out2stdout);
   this->mask.Load(this->opts->beds[1], this->opts->rname, this->opts->beg,
-    this->opts->end, this->gzout);
+    this->opts->end, this->gzout, this->opts->out2stdout);
   this->fai = fai_load(this->opts->fasta);
   if (this->fai == NULL) {
     std::stringstream er;
@@ -351,7 +350,9 @@ std::string Pileup::PositionString(int pos) {
 
 
 void Pileup::MultiplePileup() {
-  this->gzout << Pileup::Header() << std::endl;
+  if ( not opts-> out2stdout ) {
+    this->gzout << Pileup::Header() << std::endl;
+  }
   int pos;
   while (bam_mplp_auto(this->mplp, &this->tid, &pos, this->n_plp,
     this->plp) > 0) {
@@ -374,7 +375,7 @@ void Pileup::MultiplePileup() {
       // output
       std::unique_ptr<WriteOut> out (new WriteOut());
       std::string posn = Pileup::PositionString(pos);
-      out->WriteRows(bulk, dplx, posn, this->gzout);
+      out->WriteRows(bulk, dplx, posn, this->gzout, this->opts->out2stdout);
     }
     if (pos > opts->end) {
       break;
@@ -392,5 +393,7 @@ void Pileup::MultiplePileup() {
     free(this->data[i]);
   }
   free(this->data);
-  this->gzout.close();
+  if ( not opts-> out2stdout ) {
+    this->gzout.close();
+  }
 }
