@@ -107,7 +107,9 @@ class VariantCaller {
       
     std::ofstream fout;
 
-    std::ofstream fout_coverage; 
+    std::ofstream fout_coverage;
+
+    ogzstream gzout_coverage;
 
     const char* outfile;
 

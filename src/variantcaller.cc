@@ -478,14 +478,14 @@ void VariantCaller::CollectMetrics() {
               } else if ( row.chrom == lastRow.chrom && row.chrom_beg ==  lastRow.chrom_beg && row.context == lastRow.context) {
                 cov++;
               } else {
-                this->fout_coverage << lastRow.chrom;
-                this->fout_coverage << "\t";
-                this->fout_coverage << lastRow.chrom_beg;
-                this->fout_coverage << "\t";
-                this->fout_coverage << lastRow.chrom_beg+1;
-                this->fout_coverage << "\t";
-                this->fout_coverage << lastRow.context << ";" << lastRow.context[1] << ";" << cov;
-                this->fout_coverage << std::endl;
+                this->gzout_coverage << lastRow.chrom;
+                this->gzout_coverage << "\t";
+                this->gzout_coverage << lastRow.chrom_beg;
+                this->gzout_coverage << "\t";
+                this->gzout_coverage << lastRow.chrom_beg+1;
+                this->gzout_coverage << "\t";
+                this->gzout_coverage << lastRow.context << ";" << lastRow.context[1] << ";" << cov;
+                this->gzout_coverage << std::endl;
                 cov = 1;
               }
               lastRow = row;
@@ -506,14 +506,14 @@ void VariantCaller::CollectMetrics() {
   }
   //wirte last line to coverage file
   if(this->outfile_coverage != NULL) {
-    this->fout_coverage << lastRow.chrom;
-    this->fout_coverage << "\t";
-    this->fout_coverage << lastRow.chrom_beg;
-    this->fout_coverage << "\t";
-    this->fout_coverage << lastRow.chrom_beg+1;
-    this->fout_coverage << "\t";
-    this->fout_coverage << lastRow.context << ";" << lastRow.context[1] << ";" << cov;
-    this->fout_coverage << std::endl;
+    this->gzout_coverage << lastRow.chrom;
+    this->gzout_coverage << "\t";
+    this->gzout_coverage << lastRow.chrom_beg;
+    this->gzout_coverage << "\t";
+    this->gzout_coverage << lastRow.chrom_beg+1;
+    this->gzout_coverage << "\t";
+    this->gzout_coverage << lastRow.context << ";" << lastRow.context[1] << ";" << cov;
+    this->gzout_coverage << std::endl;
   }
 }
 
@@ -853,6 +853,8 @@ void Options(int argc, char **argv, VariantCaller *vc) {
   vc->vaf        = 0.01;          // 1 to 0
   vc->outfile    = NULL;
   int opt = 0;
+  char suffix[] = ".gz";
+  char buffer[600];
   while ((opt = getopt(argc, argv, "B:a:b:z:c:d:f:i:m:n:p:q:r:v:x:O:U:h")) >= 0) {
     switch (opt) {
       case 'B':
@@ -906,7 +908,9 @@ void Options(int argc, char **argv, VariantCaller *vc) {
         vc->outfile = optarg;
         break;
       case 'U': //coverage
-        vc->outfile_coverage = optarg;
+        strcpy(buffer,optarg);
+        strcat(buffer,suffix);
+        vc->outfile_coverage = buffer;
         break;
       case 'h':
         Usage();
@@ -938,7 +942,7 @@ void Options(int argc, char **argv, VariantCaller *vc) {
     }
   vc->fout << std::endl;
   if(vc->outfile_coverage != NULL) {
-    vc->fout_coverage.open(vc->outfile_coverage);
+    vc->gzout_coverage.open(vc->outfile_coverage);
   }
 }
 
