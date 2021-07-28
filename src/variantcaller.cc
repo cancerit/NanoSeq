@@ -433,6 +433,9 @@ void VariantCaller::CollectMetrics() {
   this->coverage = 0;
   int curr = -1;
   std::string line;
+  row_t lastRow;
+  bool first = true;
+  int cov = 0;
   while (std::getline(this->gzin, line)) {
     if (line[0] != '#') {
       row_t row = VariantCaller::ParseRow(line);
@@ -465,6 +468,30 @@ void VariantCaller::CollectMetrics() {
           if (row.isvariant) {
             VariantCaller::WriteVariants(&row);
           }
+          //fa8: write the information needed for analysing coverage:
+          // only for not masked sites!
+          if(this->outfile_coverage != NULL) {
+            if(row.shearwater == 0 && row.snp == 0) {
+              if ( first ) {
+                cov = 1;
+                first = false;
+              } else if ( row.chrom == lastRow.chrom && row.chrom_beg ==  lastRow.chrom_beg && row.context == lastRow.context) {
+                cov++;
+              } else {
+                this->fout_coverage << lastRow.chrom;
+                this->fout_coverage << "\t";
+                this->fout_coverage << lastRow.chrom_beg;
+                this->fout_coverage << "\t";
+                this->fout_coverage << lastRow.chrom_beg+1;
+                this->fout_coverage << "\t";
+                this->fout_coverage << lastRow.context << ";" << lastRow.context[1] << ";" << cov;
+                this->fout_coverage << std::endl;
+                cov = 1;
+              }
+              lastRow = row;
+            }
+          }
+
           if (row.chrom_beg != curr) {
             this->coverage++;
             curr = row.chrom_beg;
@@ -476,6 +503,17 @@ void VariantCaller::CollectMetrics() {
         }
       }
     }
+  }
+  //wirte last line to coverage file
+  if(this->outfile_coverage != NULL) {
+    this->fout_coverage << lastRow.chrom;
+    this->fout_coverage << "\t";
+    this->fout_coverage << lastRow.chrom_beg;
+    this->fout_coverage << "\t";
+    this->fout_coverage << lastRow.chrom_beg+1;
+    this->fout_coverage << "\t";
+    this->fout_coverage << lastRow.context << ";" << lastRow.context[1] << ";" << cov;
+    this->fout_coverage << std::endl;
   }
 }
 
@@ -792,6 +830,7 @@ void Usage() {
   fprintf(stderr, "\t-x\tmaximum cycle number\n");
   fprintf(stderr, "\t-v\tmaximum bulk VAF\n");
   fprintf(stderr, "\t-O\tprefix of the output file\n");
+  fprintf(stderr, "\t-U\tcoverage output file [optional]\n");
   fprintf(stderr, "\t-h\tHelp\n\n");
 }
 
@@ -814,7 +853,7 @@ void Options(int argc, char **argv, VariantCaller *vc) {
   vc->vaf        = 0.01;          // 1 to 0
   vc->outfile    = NULL;
   int opt = 0;
-  while ((opt = getopt(argc, argv, "B:a:b:z:c:d:f:i:m:n:p:q:r:v:x:O:h")) >= 0) {
+  while ((opt = getopt(argc, argv, "B:a:b:z:c:d:f:i:m:n:p:q:r:v:x:O:U:h")) >= 0) {
     switch (opt) {
       case 'B':
         vc->bed = optarg;
@@ -866,6 +905,9 @@ void Options(int argc, char **argv, VariantCaller *vc) {
       case 'O':
         vc->outfile = optarg;
         break;
+      case 'U': //coverage
+        vc->outfile_coverage = optarg;
+        break;
       case 'h':
         Usage();
         exit(0);
@@ -895,6 +937,9 @@ void Options(int argc, char **argv, VariantCaller *vc) {
     vc->fout << " ";
     }
   vc->fout << std::endl;
+  if(vc->outfile_coverage != NULL) {
+    vc->fout_coverage.open(vc->outfile_coverage);
+  }
 }
 
 

@@ -105,9 +105,13 @@ class VariantCaller {
   public:
     igzstream gzin;
       
-    std::ofstream fout;    
+    std::ofstream fout;
+
+    std::ofstream fout_coverage; 
 
     const char* outfile;
+
+    const char* outfile_coverage;
 
     const char* bed;
 
