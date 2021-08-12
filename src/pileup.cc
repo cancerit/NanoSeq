@@ -174,8 +174,25 @@ void Pileup::Initiate(Options *opts) {
       throw std::runtime_error(er.str());
     }
     hts_idx_destroy(idx);
-    sam_hdr_destroy(this->data[i]->head);
   }
+  //Check that the headers of both BAMs match each other
+  int n_targets0 = sam_hdr_nref( this->data[0]->head );
+  int n_targets1 = sam_hdr_nref( this->data[1]->head );
+  if ( n_targets0 != n_targets1 ){
+    std::stringstream er;
+    er << "Error : number of chromosomes in bulk and duplex don't match (" << n_targets0 << ":" << n_targets1 << ")";
+    er << std::endl;
+    throw std::runtime_error(er.str());
+  }
+  for (int i = 0; i < n_targets0; i++) {
+    if (strcmp(sam_hdr_tid2name(this->data[0]->head,i), sam_hdr_tid2name(this->data[1]->head,i))){
+      std::stringstream er;
+      er << "Error : order of chromosomes in bulk and duplex BAMs don't match";
+      er << std::endl;
+      throw std::runtime_error(er.str());
+    }
+  }
+
   this->mplp  = bam_mplp_init(n, RetrieveAlignments, reinterpret_cast<void**>
     (this->data));
   this->n_plp = reinterpret_cast<int*>(calloc(n, sizeof(int)));
@@ -390,6 +407,7 @@ void Pileup::MultiplePileup() {
     if (this->data[i]->iter) {
       hts_itr_destroy(this->data[i]->iter);
     }
+    sam_hdr_destroy(this->data[i]->head);
     free(this->data[i]);
   }
   free(this->data);
