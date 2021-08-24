@@ -47,7 +47,7 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
   opts->offset           = 1;
   opts->min_base_quality = 30;
   opts->min_mapQ         = 0;
-  opts->out2stdout       = false;
+  opts->out2stdout       = true;
   char suffix[] = ".gz";
   int opt = 0;
   while ((opt = getopt(argc, argv, "A:B:C:D:R:Q:M:r:b:e:d:O:sh")) >= 0) {
@@ -89,9 +89,7 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
         strcpy(buffer,optarg);
         strcat(buffer,suffix);
         opts->oname = buffer;
-        break;
-      case 's':
-        opts->out2stdout = true;
+        opts->out2stdout = false;
         break;
       case 'h':
         Usage();
