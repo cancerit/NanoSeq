@@ -191,6 +191,7 @@ fi
 
 cp $INIT_DIR/python/* $INST_PATH/bin
 cp $INIT_DIR/R/* $INST_PATH/bin/
+cp $INIT_DIR/perl/* $INST_PATH/bin
 
 # cleanup all junk
 rm -rf $SETUP_DIR
