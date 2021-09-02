@@ -33,8 +33,8 @@ my $FILTER_3_PRIME  = 135; #Number of bases to start trimming from. Set as 0 if 
 my $BULK_MIN_COV    = 16;
 
 GetOptions('rb|reads-bundle=i'  => \$MIN_SIZE_SUBFAM,
-           't3|trim3=i'  => \$FILTER_5_PRIME,
-           't5|trim5=i'  => \$FILTER_3_PRIME, 
+           't3|trim3=i'  => \$FILTER_3_PRIME,
+           't5|trim5=i'  => \$FILTER_5_PRIME, 
            'mc|min-coverage=i' => \$BULK_MIN_COV,
            'o|out=s' => \$opts{'o'},
            'h|help' => \$opts{'h'},
@@ -154,6 +154,7 @@ while(<IN>) {
 		print OUT "$chr\t",$site-1,"\t$site\t$site_tags\n"; #BED Format including site tags!
 	}
 }
+OUT->flush;
 close(OUT);
 
 sub reverse_signature {
