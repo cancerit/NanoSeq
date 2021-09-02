@@ -309,19 +309,20 @@ class GInterval :
       return False
 
 # compute coverage histogram
-def runBamcov(bam,mapQ, window, ichr, out) :
+def runBamcov(bam, mapQ, window, ichr, out) :
+  if (bam == None ) : return
   out = out+".cov.bed"
   p = subprocess.Popen(['bamcov','-q',mapQ,'-w',window,'-r',ichr,'-o',out, bam],stderr=subprocess.PIPE)
   p.wait()
   if (p.returncode != 0 ) : 
     error = p.stderr.read().decode()
-    print("\n!Error running bamcov for chr %s (cov): %s\n"%(ichr,error))
+    sys.stderr.write("\n!Error running bamcov for chr %s (cov): %s\n"%(ichr,error))
     raise ValueError(error)
   p = subprocess.Popen(['gzip', '-1', '-f', out],stderr=subprocess.PIPE)
   p.wait()
   if (p.returncode != 0 ) : 
     error = p.stderr.read().decode()
-    print("\n!Error while compressing %s with gzip (cov) : %s\n"%(out,error))
+    sys.stderr.write("\n!Error while compressing %s with gzip (cov) : %s\n"%(out,error))
     raise ValueError(error)
   outdone = re.sub('cov.bed$','done',out)
   open(outdone,'w').close()
@@ -421,7 +422,10 @@ if (args.subcommand == 'cov'):
       iofile.write(str(len(chrList) ))
   inputs = []
   for ii,ichr in enumerate(chrList) :
-    inputs.append( (args.tumour,str(args.Q),str(args.win),ichr,"%s/cov/%s"%(tmpDir,ii) ))
+    if ( os.path.isfile("%s/cov/%s.done") ) :
+      inputs.append( (None,None,None,None,None ) ) #restart, don't do anything
+    else :
+      inputs.append( (args.tumour,str(args.Q),str(args.win),ichr,"%s/cov/%s"%(tmpDir,ii) ))
   if ( args.index == None ) :
     #multiple threads are available
     with open("%s/cov/%s"%(tmpDir,'gIntervals.dat'), 'wb') as iofile :
