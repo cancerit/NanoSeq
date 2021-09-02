@@ -70,7 +70,6 @@ parser_dsa.add_argument('-q', type=int, action='store', default=30, help="minimu
 
 #variant caller
 parser_var = subparsers.add_parser('var', help='variant caller')
-parser_var.add_argument('-U', '--coverage', action='store', required=False, help="file with output coverage")
 parser_var.add_argument('-a', type=int, action='store', default=2, help="minimum AS-XS (2)")
 parser_var.add_argument('-b', type=int, action='store', default=5, help="minimum duplex reads per strand (5)")
 parser_var.add_argument('-c', type=int, action='store', default=0, help="maximum number of clips (0)")
@@ -156,15 +155,18 @@ if ( hasattr(args,'ref') ) :
   if not os.path.isfile(args.ref + '.fai') :
     parser.error("Index file %s was not found!" % (args.ref + '.fai'))
 
-#check that all the code for the analysis is in PATH
-scripts = [ "bamcov",
-            "dsa",
-            "variantcaller",
-            "variantcaller_merge.py",
-            "variantcaller.R",
-            "indelCaller_step1.pl",
-            "indelCaller_step2.pl",
-            "indelCaller_step3.R",
+#check that all the dependancies for the analysis are in PATH
+scripts = [ "Rscript", #indel, post
+            "bcftools",#indel
+            "samtools",#indel
+            "bamcov",#cov
+            "dsa", #dsa
+            "variantcaller", #var
+            "variantcaller_merge.py", #post
+            "variantcaller.R", #post
+            "indelCaller_step1.pl", #indel
+            "indelCaller_step2.pl", #indel
+            "indelCaller_step3.R", #indel
             "efficiency_nanoseq.R" ]
 
 for icode in scripts :
@@ -327,13 +329,14 @@ def runBamcov(bam,mapQ, window, ichr, out) :
 
 #run an external command
 def runCommand(command) :
+  if ( command == None ) : return
   for ijob in command.rstrip(';').split(';') :
     print("\nExecuting: %s\n"%ijob)
     p = subprocess.Popen(ijob,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     p.wait()
     if (p.returncode != 0 ) :
       error = p.stderr.read().decode()
-      print("\n!Error processing:  %s\n"%ijob )
+      sys.stderr.write("\n!Error processing:  %s\n"%ijob )
       raise ValueError(error)
   return
 
@@ -356,8 +359,9 @@ if (args.subcommand == 'cov'):
     if (not os.path.isdir(tmpDir+'/indel') ) :
       os.makedirs(tmpDir+'/indel')
 
-with open("%s/%s/args.json"%(tmpDir,args.subcommand), "w") as jsonOut :
-    json.dump(args.__dict__, jsonOut)
+if ( args.index == None or args.index == 1 ) :
+  with open("%s/%s/args.json"%(tmpDir,args.subcommand), "w") as jsonOut :
+      json.dump(args.__dict__, jsonOut)
 
 #coverage section
 if (args.subcommand == 'cov'):
@@ -412,8 +416,9 @@ if (args.subcommand == 'cov'):
     gintervals = iiresult
 
   print("Starting coverage calculation\n")
-  with open("%s/cov/nfiles"%(tmpDir), "w") as iofile :
-    iofile.write(str(len(chrList) ))
+  if ( args.index == None or args.index == 1 ) :
+    with open("%s/cov/nfiles"%(tmpDir), "w") as iofile :
+      iofile.write(str(len(chrList) ))
   inputs = []
   for ii,ichr in enumerate(chrList) :
     inputs.append( (args.tumour,str(args.Q),str(args.win),ichr,"%s/cov/%s"%(tmpDir,ii) ))
@@ -454,6 +459,9 @@ if (args.subcommand == 'dsa' ) :
   for i in range(nfiles ) :
     if ( len(glob.glob(tmpDir+"/cov/%s.done"%i)) != 1 ) :
       sys.exit("\ncov job %s did not complete correctly\n"%i)
+    if ( len(glob.glob(tmpDir+"/cov/%s.cov.bed.gz"%i)) != 1 ) :
+      sys.exit("\ncov job %s did not complete correctly\n"%i)
+   
 
   #try to stagger file access for array execution
   if ( args.index != None ) : time.sleep( 3 * args.index )
@@ -499,8 +507,10 @@ if (args.subcommand == 'dsa' ) :
     njobs = args.max_index
   basesPerCPU = cctotal/ njobs
   print( "\nPartitioning %s jobs with %s bases/task\n"%(njobs,basesPerCPU))
-  with open("%s/dsa/nfiles"%(tmpDir), "w") as iofile :
-    iofile.write(str(njobs ))
+
+  if ( args.index == None or args.index == 1 ) :
+    with open("%s/dsa/nfiles"%(tmpDir), "w") as iofile :
+      iofile.write(str(njobs ))
 
   sumCov = 0
   oIntervals = []
@@ -522,32 +532,140 @@ if (args.subcommand == 'dsa' ) :
     oIntervals.append(GInterval(ichar, ibeg + 1, iend))
   if ( len(oIntervals) > 0 ) : intervalsPerCPU.append( oIntervals)
   
-  commands = []
+  commands = [ ( None, ) ] * njobs
   for i in range(njobs) :
-    #for restarts remove job files that didn't complete correctly
-    if ( not os.path.isfile("%s/dsa/%s.done"%(tmpDir,i)) ) :
-      if ( os.path.isfile("%s/dsa/%s.bed"%(tmpDir,i) ) ) :  os.remove( "%s/dsa/%s.bed"%(tmpDir,i))
-      if ( os.path.isfile("%s/dsa/%s.bed.gz"%(tmpDir,i) ) ) :  os.remove( "%s/dsa/%s.bed.gz"%(tmpDir,i))
-    else :
+    #check for restarts
+    if ( os.path.isfile("%s/dsa/%s.done"%(tmpDir,i)) and \
+          os.path.isfile("%s/dsa/%s.dsa.bed.gz"%(tmpDir,i)) ):
       continue
 
     #construct dsa commands
     cmd = ""
-    for iinterval in intervalsPerCPU[i] :
+    for (ii , iinterval) in enumerate( intervalsPerCPU[i] ):
       dsaInt = iinterval.convert2DSAInput()
-      cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s -r %s -b %s -e %s >> %s/dsa/%s.dsa.bed;" \
+      pipe = ">" if ii == 0 else ">>" #ensure first command overwrittes
+      cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s -r %s -b %s -e %s %s %s ;" \
               %(args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, oargs['Q'],
-                dsaInt.chr, dsaInt.beg, dsaInt.end,tmpDir,i)
+                dsaInt.chr, dsaInt.beg, dsaInt.end,pipe, "%s/dsa/%s.dsa.bed"%(tmpDir,i) )
     cmd += "gzip -1 %s/dsa/%s.dsa.bed; sleep 2; gzip -t %s/dsa/%s.dsa.bed.gz;"%(tmpDir,i,tmpDir,i)
     cmd += "touch %s/dsa/%s.done"%(tmpDir,i)
-    commands.append( ( cmd , ))
-
-  #execute dsa commans
+    commands[i] =  ( cmd , )
+  
+#execute dsa commans
   print("Starting dsa calculation\n")
+  if ( args.index == None ) :
+    #multithread
+    print("%s\n"%args.threads)
+    with Pool( args.threads ) as p :
+      p.starmap( runCommand, commands )
+  else :
+    #array execution
+    runCommand( commands[args.index - 1][0] )
+  print("Completed dsa calculation\n")
+
+#var section
+if (args.subcommand == 'var' ) :
+  if (not os.path.isfile(tmpDir+'/dsa/args.json') ):
+    sys.exit("\nMust run dsa submmand prior to var\n")
+  else :
+    with open(tmpDir+'/dsa/args.json') as iofile :
+      oargs = json.load( iofile )
+
+  if (not os.path.isfile(tmpDir+'/dsa/nfiles') ):
+    sys.exit(tmpDir+'/dsa/nfiles not found!\n')
+  else :
+    with open(tmpDir+'/dsa/nfiles') as iofile :
+      nfiles = int(iofile.readline())
+
+  for i in range(nfiles ) :
+    if ( len(glob.glob(tmpDir+"/dsa/%s.done"%i)) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%i)
+    if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%i)) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%i)
+
+  if ( not (nfiles == args.threads  or  nfiles == args.max_index) ) :
+    sys.exit("\nMust use same number of jobs/threads as used in dsa calculation (%s).\n"%nfiles)
+  
+  njobs = nfiles
+  commands = [ (None ,) ] * njobs
+  for i in range(njobs) :
+    #check for restarts
+    if ( os.path.isfile("%s/var/%s.done"%(tmpDir,i)) and \
+        os.path.isfile("%s/var/%s.var"%(tmpDir,i)) and \
+        os.path.isfile("%s/var/%s.cov.bed.gz"%(tmpDir,i)) ):
+      continue
+
+    #construct variantcaller commands
+    cmd = "variantcaller -B %s -U %s -O %s -a %s -b %s -c %s -g %s -i %s -m %s -n %s -p %s -q %s -r %s -v %s -x %s -z %s ;" \
+        %("%s/dsa/%s.dsa.bed.gz"%(tmpDir,i),"%s/var/%s.cov.bed"%(tmpDir,i),"%s/var/%s.var"%(tmpDir,i),
+          args.a,args.b,args.c, args.f, args.i, args.m, args.n, args.p, args.q, args.r, args.v, args.x, args.z)
+    cmd += "touch %s/var/%s.done"%(tmpDir,i)
+    commands[i] = ( cmd , )
+
+  #execute variantcaller commans
+  print("Starting var calculation\n")
   if ( args.index == None ) :
     #multithread
     with Pool( args.threads ) as p :
       p.starmap( runCommand, commands )
   else :
     #array execution
-    runCommand( commands[args.index][0] )
+    runCommand( commands[args.index - 1][0] )
+  print("Completed var calculation\n")
+
+#indel section
+if (args.subcommand == 'indel' ) :
+  if (not os.path.isfile(tmpDir+'/dsa/args.json') ):
+    sys.exit("\nMust run dsa submmand prior to indel\n")
+  else :
+    with open(tmpDir+'/dsa/args.json') as iofile :
+      oargs = json.load( iofile )
+
+  if (not os.path.isfile(tmpDir+'/dsa/nfiles') ):
+    sys.exit(tmpDir+'/dsa/nfiles not found!\n')
+  else :
+    with open(tmpDir+'/dsa/nfiles') as iofile :
+      nfiles = int(iofile.readline())
+
+  for i in range(nfiles ) :
+    if ( len(glob.glob(tmpDir+"/dsa/%s.done"%i)) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%i)
+    if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%i)) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%i)
+
+
+  if ( not (nfiles == args.threads  or  nfiles == args.max_index) ) :
+    sys.exit("\nMust use same number of jobs/threads as used in dsa calculation (%s).\n"%nfiles)
+  
+  njobs = nfiles
+  commands =  [ ( None, ) ] * njobs
+  for i in range(njobs) :
+    #check for restarts
+    if ( os.path.isfile("%s/indel/%s.done"%(tmpDir,i)) and \
+         os.path.isfile("%s/indel/%s.indel.filtered.vcf.gz"%(tmpDir,i)) ) :
+      continue
+    
+    #construct the indel commands ( 3 steps)
+    cmd = "indelCaller_step1.pl -o %s -rb %s -t3 %s -t5 %s -mc %s %s ;"\
+        %("%s/indel/%s.indel.bed.gz"%(tmpDir,i), args.rb, args.t3, args.t5, args.mc, 
+          "%s/dsa/%s.dsa.bed.gz"%(tmpDir,i))
+    cmd += "indelCaller_step2.pl -o %s -r %s -b %s %s ;"\
+        %("%s/indel/%s.indel"%(tmpDir,i), args.ref, args.tumour,
+          "%s/indel/%s.indel.bed.gz"%(tmpDir,i))
+    cmd += "indelCaller_step3.R %s %s %s ;"\
+        %(args.ref, "%s/indel/%s.indel.vcf.gz"%(tmpDir,i), args.normal)
+    cmd += "touch %s/indel/%s.done"%(tmpDir,i)
+    commands[i] =  ( cmd , )
+
+  #execute indeliantcaller commans
+  print("Starting indel calculation\n")
+  if ( args.index == None ) :
+    #multithread
+    with Pool( args.threads ) as p :
+      p.starmap( runCommand, commands )
+  else :
+    #array execution
+    runCommand( commands[args.index - 1][0] )
+  print("Completed indel calculation\n")
+
+
