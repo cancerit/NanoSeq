@@ -21,9 +21,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 ###########################
 
-library(data.table)
-library(ggplot2)
-
+suppressPackageStartupMessages({
+  library(data.table)
+  library(ggplot2)
+})
 
 # builds the following objects
 #   burdens
@@ -47,10 +48,18 @@ if (length(args) != 1) {
 
 dirname <- args[1]
 
+if (! dir.exists(dirname)){
+  stop("Input directory not found : ", dirname, call.=FALSE)
+}
+
 # remove trailing forward slash from dirname
 dirname <- sub("/$", "", dirname)
 
 # read in csv files
+cat(getwd())
+cat("\n")
+cat( paste(dirname, 'burdens.csv', sep="/") )
+cat("\n")
 burdens     <- fread(paste(dirname, 'burdens.csv', sep="/"))
 callsvsqpos <- fread(paste(dirname, 'callvsqpos.csv', sep="/"))
 coverage    <- fread(paste(dirname, 'coverage.csv', sep="/"))
@@ -165,7 +174,7 @@ p1 <- ggplot(vars, aes(x=pyrcontexttype, y=N)) +
   theme(axis.title=element_blank()) +
   scale_fill_manual(values=COLORS6)
 
-ggsave(paste(dirname, "/", dirname, ".pdf", sep=""))
+ggsave(paste(dirname, "/triNucleotide.pdf", sep=""))
 
 
 
