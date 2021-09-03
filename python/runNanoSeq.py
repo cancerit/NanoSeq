@@ -44,6 +44,9 @@ parser.add_argument('--out',   action='store', default='.', help='path of the ou
 parser.add_argument('-j','--index', type=int, action='store', help='index of the LSF job array. One based')
 parser.add_argument('-k','--max_index', type=int, action='store', help='maximum index of the LSF job array')
 parser.add_argument('-t','--threads', type=int, action='store', default= 1, help='number of threads (1)')
+parser.add_argument('-R','--ref', action='store', required=True, help="referene sequence")
+parser.add_argument('-A','--normal', action='store', required=True, help="normal BAM")
+parser.add_argument('-B','--tumour', action='store', required=True, help="tumour (duplex) BAM")
 parser.add_argument('-v','--version', action='version', version=version)
 
 #subcommands and their arguments
@@ -51,8 +54,6 @@ parser.add_argument('-v','--version', action='version', version=version)
 subparsers = parser.add_subparsers(dest='subcommand', help='subcommands')
 subparsers.required = True #work around for older python versions
 parser_cov = subparsers.add_parser('cov', help='coverage calculation')
-parser_cov.add_argument('-R','--ref', action='store', required=True, help="referene sequence")
-parser_cov.add_argument('-B','--tumour', action='store', required=True, help="tumour (duplex) BAM")
 parser_cov.add_argument('--exclude', action='store', default='MT,GL%%,NC_%,hs37d5', help='List of contigs to exclude. Comma separated, %% acts as a wild card. (MT,GL%%,NC_%%,hs37d5)')
 parser_cov.add_argument('-w','--win', type=int, action='store', default=100, help='bin size for coverage distribution (100)')
 parser_cov.add_argument('-Q', type=int, action='store', default=0, help="minimum mapQ to include a tumour read (0)")
@@ -60,11 +61,9 @@ parser_cov.add_argument('--excludeBED', action='store', help='BED file with regi
 
 #dsa
 parser_dsa = subparsers.add_parser('dsa', help='compute tables')
-parser_dsa.add_argument('-A','--normal', action='store', required=True, help="normal BAM")
-parser_dsa.add_argument('-B','--tumour', action='store', required=True, help="tumour (duplex) BAM")
+parser_dsa.add_argument('-R','--ref', action='store', required=False,)
 parser_dsa.add_argument('-C','--snp', action='store', required=True, help="SNP BED file")
 parser_dsa.add_argument('-D','--mask', action='store', required=True, help="mask BED file")
-parser_dsa.add_argument('-R','--ref', action='store', required=True, help="referene sequence")
 parser_dsa.add_argument('-d', type=int, action='store', default=2, help="minimum duplex depth (2)")
 parser_dsa.add_argument('-q', type=int, action='store', default=30, help="minimum base quality for normal (30)")
 
@@ -86,9 +85,6 @@ parser_var.add_argument('-z', type=int, action='store', default=12, help="minimu
 
 #compute indels
 parser_indel = subparsers.add_parser('indel', help='indel caller')
-parser_indel.add_argument('-R','--ref', action='store', required=True, help="referene sequence")
-parser_indel.add_argument('-A','--normal', action='store', required=True, help="normal BAM")
-parser_indel.add_argument('-B','--tumour', action='store', required=True, help="tumour (duplex) BAM")
 parser_indel.add_argument('-s','--sample', action='store', default='sample_1', help="sample name in output vcf")
 parser_indel.add_argument('--rb', type=int, action='store', default=2, help="minimum reads in a bundle. (2)")
 parser_indel.add_argument('--t3', type=int, action='store', default=135, help="excess bases above this value are trimmed from 3' (135)")
@@ -123,7 +119,6 @@ try :
 except OSError :
   sys.exit("\nCan't write to out directory %s\n"% args.out )
 
-
 #check required files
 if ( hasattr(args,'tumour') ) :
   if not os.path.isfile(args.tumour) :
@@ -137,6 +132,12 @@ if ( hasattr(args,'normal') ) :
   if not os.path.isfile(args.normal + '.bai') :
     parser.error("Index file %s was not found!" % (args.normal + '.bai'))
 
+if ( hasattr(args,'ref') ) :
+  if not os.path.isfile(args.ref) :
+    parser.error("Reference file %s was not found!" % args.ref)
+  if not os.path.isfile(args.ref + '.fai') :
+    parser.error("Index file %s was not found!" % (args.ref + '.fai'))
+
 if ( hasattr(args,'snp') ) :
   if not os.path.isfile(args.snp) :
     parser.error("SNP file %s was not found!" % args.snp)
@@ -149,11 +150,6 @@ if ( hasattr(args,'mask') ) :
   if not os.path.isfile(args.mask + '.tbi') :
     parser.error("Index file %s was not found!" % (args.mask + '.tbi'))
 
-if ( hasattr(args,'ref') ) :
-  if not os.path.isfile(args.ref) :
-    parser.error("Reference file %s was not found!" % args.ref)
-  if not os.path.isfile(args.ref + '.fai') :
-    parser.error("Index file %s was not found!" % (args.ref + '.fai'))
 
 #check that all the dependancies for the analysis are in PATH
 scripts = [ "Rscript", #indel, post
@@ -162,12 +158,15 @@ scripts = [ "Rscript", #indel, post
             "bamcov",#cov
             "dsa", #dsa
             "variantcaller", #var
-            "variantcaller_merge.py", #post
+            "tabix",
+            "bgzip",
             "variantcaller.R", #post
             "indelCaller_step1.pl", #indel
             "indelCaller_step2.pl", #indel
             "indelCaller_step3.R", #indel
-            "efficiency_nanoseq.R" ]
+            "efficiency_nanoseq.pl", #post
+            "efficiency_nanoseq.R" #post
+             ]
 
 for icode in scripts :
   if ( shutil.which( icode ) == None ) :
@@ -318,7 +317,7 @@ def runBamcov(bam, mapQ, window, ichr, out) :
     error = p.stderr.read().decode()
     sys.stderr.write("\n!Error running bamcov for chr %s (cov): %s\n"%(ichr,error))
     raise ValueError(error)
-  p = subprocess.Popen(['gzip', '-1', '-f', out],stderr=subprocess.PIPE)
+  p = subprocess.Popen(['bgzip','-l',2,'-f', out],stderr=subprocess.PIPE)
   p.wait()
   if (p.returncode != 0 ) : 
     error = p.stderr.read().decode()
@@ -446,6 +445,7 @@ if (args.subcommand == 'cov'):
       runBamcov(inputs[ii][0], inputs[ii][1], inputs[ii][2], inputs[ii][3], inputs[ii][4])
     print("Completed coverage calculation for this job\n")
 
+
 #dsa section
 if (args.subcommand == 'dsa' ) :
   if (not os.path.isfile(tmpDir+'/cov/args.json') ):
@@ -459,14 +459,13 @@ if (args.subcommand == 'dsa' ) :
   else :
     with open(tmpDir+'/cov/nfiles') as iofile :
       nfiles = int(iofile.readline())
-
+  
   for i in range(nfiles ) :
     if ( len(glob.glob(tmpDir+"/cov/%s.done"%i)) != 1 ) :
       sys.exit("\ncov job %s did not complete correctly\n"%i)
     if ( len(glob.glob(tmpDir+"/cov/%s.cov.bed.gz"%i)) != 1 ) :
       sys.exit("\ncov job %s did not complete correctly\n"%i)
-   
-
+ 
   #try to stagger file access for array execution
   if ( args.index != None ) : time.sleep( 3 * args.index )
 
@@ -551,7 +550,7 @@ if (args.subcommand == 'dsa' ) :
       cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s -r %s -b %s -e %s %s %s ;" \
               %(args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, oargs['Q'],
                 dsaInt.chr, dsaInt.beg, dsaInt.end,pipe, "%s/dsa/%s.dsa.bed"%(tmpDir,i) )
-    cmd += "gzip -1 %s/dsa/%s.dsa.bed; sleep 2; gzip -t %s/dsa/%s.dsa.bed.gz;"%(tmpDir,i,tmpDir,i)
+    cmd += "bgzip -f -l 2 %s/dsa/%s.dsa.bed; sleep 3; bgzip -t %s/dsa/%s.dsa.bed.gz;"%(tmpDir,i,tmpDir,i)
     cmd += "touch %s/dsa/%s.done"%(tmpDir,i)
     commands[i] =  ( cmd , )
   
@@ -591,6 +590,10 @@ if (args.subcommand == 'var' ) :
     sys.exit("\nMust use same number of jobs/threads as used in dsa calculation (%s).\n"%nfiles)
   
   njobs = nfiles
+  if ( args.index == None or args.index == 1 ) :
+    with open("%s/var/nfiles"%(tmpDir), "w") as iofile :
+      iofile.write(str(njobs ))
+
   commands = [ (None ,) ] * njobs
   for i in range(njobs) :
     #check for restarts
@@ -642,6 +645,10 @@ if (args.subcommand == 'indel' ) :
     sys.exit("\nMust use same number of jobs/threads as used in dsa calculation (%s).\n"%nfiles)
   
   njobs = nfiles
+  if ( args.index == None or args.index == 1 ) :
+    with open("%s/indel/nfiles"%(tmpDir), "w") as iofile :
+      iofile.write(str(njobs ))
+
   commands =  [ ( None, ) ] * njobs
   for i in range(njobs) :
     #check for restarts
@@ -672,4 +679,133 @@ if (args.subcommand == 'indel' ) :
     runCommand( commands[args.index - 1][0] )
   print("Completed indel calculation\n")
 
+#indel section
+if (args.subcommand == 'post' ) :
 
+  #do post with only one job if called with array
+  if ( not ( args.index == 1 or args.max_index == None )) : sys.exit(0)   
+
+  #check dsa
+  if (not os.path.isfile(tmpDir+'/dsa/nfiles') ):
+    sys.exit(tmpDir+'/dsa/nfiles not found!\n')
+  else :
+    with open(tmpDir+'/dsa/nfiles') as iofile :
+      nfiles = int(iofile.readline())
+
+  for i in range(nfiles ) :
+    if ( len(glob.glob(tmpDir+"/dsa/%s.done"%i)) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%i)
+    if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%i)) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%i)
+
+  #check var
+  did_var = False
+  if ( os.path.isfile(tmpDir+'/var/nfiles') ):
+    did_var = True
+    with open(tmpDir+'/dsa/nfiles') as iofile :
+      nfiles = int(iofile.readline())
+    for i in range(nfiles ) :
+      if ( len(glob.glob(tmpDir+"/var/%s.done"%i)) != 1 ) :
+        sys.exit("\nvar job %s did not complete correctly\n"%i)
+      if ( len(glob.glob(tmpDir+"/var/%s.var"%i)) != 1 ) :
+        sys.exit("\nvar job %s did not complete correctly\n"%i)
+      if ( len(glob.glob(tmpDir+"/var/%s.cov.bed.gz"%i)) != 1 ) :
+        sys.exit("\nvar job %s did not complete correctly\n"%i)
+
+  #check indel
+  did_indel = False
+  if ( os.path.isfile(tmpDir+'/indel/nfiles') ):
+    did_indel = True
+    with open(tmpDir+'/indel/nfiles') as iofile :
+      nfiles = int(iofile.readline())
+    for i in range(nfiles ) :
+      if ( len(glob.glob(tmpDir+"/indel/%s.done"%i)) != 1 ) :
+        sys.exit("\nindel job %s did not complete correctly\n"%i)
+      if ( len(glob.glob(tmpDir+"/indel/%s.indel.filtered.vcf.gz"%i)) != 1 ) :
+        sys.exit("\nindel job %s did not complete correctly\n"%i)
+
+
+  if ( did_var ) :
+    #generate csv files
+    print("\nGenerating CSV files for var\n")
+    csvFiles = {
+                'Coverage'   : open('%s/post/%s' % (tmpDir, 'coverage.csv'), 'w'),
+                'CallVsQpos' : open('%s/post/%s' % (tmpDir, 'callvsqpos.csv'), 'w'),
+                'PyrVsMask'  : open('%s/post/%s' % (tmpDir, 'pyrvsmask.csv'), 'w'),
+                'ReadBundles': open('%s/post/%s' % (tmpDir, 'readbundles.csv'), 'w'),
+                'Burdens'    : open('%s/post/%s' % (tmpDir, 'burdens.csv'), 'w'),
+                'Variants'   : open('%s/post/%s' % (tmpDir, 'variants.csv'), 'w'),
+                'Mismatches' : open('%s/post/%s' % (tmpDir, 'mismatches.csv'), 'w')
+               }
+    #write headers
+    csvFiles['Coverage'].write('count\n')
+    csvFiles['CallVsQpos'].write('base,qpos,ismasked,count\n')
+    csvFiles['PyrVsMask'].write('pyrcontext,ismasked,count\n')
+    csvFiles['ReadBundles'].write('fwd,rev,ismasked,isvariant,count\n')
+    csvFiles['Burdens'].write('ismasked,isvariant,count\n')
+    csvFiles['Variants'].write('chrom,chromStart,context,commonSNP,'
+      'shearwater,bulkASXS,bulkNM,bulkForwardA,bulkForwardC,bulkForwardG,'
+      'bulkForwardT,bulkForwardIndel,bulkReverseA,bulkReverseC,bulkReverseG,'
+      'bulkReverseT,bulkReverseIndel,dplxBreakpointBeg,dplxBreakpointEnd,'
+      'bundleType,dplxASXS,dplxCLIP,dplxNM,dplxfwdA,dplxfwdC,dplxfwdG,dplxfwdT,'
+      'dplxfwdIndel,dplxrevA,dplxrevC,dplxrevG,dplxrevT,dplxrevIndel,'
+      'dplxCQfwdA,dplxCQfwdC,dplxCQfwdG,dplxCQfwdT,dplxCQrevA,'
+      'dplxCQrevC,dplxCQrevG,dplxCQrevT,bulkForwardTotal,bulkReverseTotal,'
+      'dplxfwdTotal,dplxrevTotal,left,right,qpos,call,isvariant,pyrcontext,'
+      'stdcontext,pyrsub,stdsub,ismasked\n')
+    csvFiles['Mismatches'].write('chrom,chromStart,context,commonSNP,'
+      'shearwater,bulkASXS,bulkNM,bulkForwardA,bulkForwardC,bulkForwardG,'
+      'bulkForwardT,bulkForwardIndel,bulkReverseA,bulkReverseC,bulkReverseG,'
+      'bulkReverseT,bulkReverseIndel,dplxBreakpointBeg,dplxBreakpointEnd,'
+      'dplxASXS,dplxCLIP,dplxNM,dplxfwdA,dplxfwdC,dplxfwdG,dplxfwdT,'
+      'dplxfwdIndel,dplxrevA,dplxrevC,dplxrevG,dplxrevT,dplxrevIndel,'
+      'dplxCQfwdA,dplxCQfwdC,dplxCQfwdG,dplxCQfwdT,dplxCQrevA,'
+      'dplxCQrevC,dplxCQrevG,dplxCQrevT,bulkForwardTotal,bulkReverseTotal,'
+      'dplxfwdTotal,dplxrevTotal,left,right,qpos,mismatch,ismasked\n')
+
+    #wirte body
+    for i in range(nfiles ) :
+      ifile = "%s/var/%s.var"%(tmpDir, i )
+      for row in open( ifile, 'rU' ) :
+        if ( row[0] == '#') : continue
+        arow = row.strip().split('\t')
+        if csvFiles.get(arow[0], None):
+          csvFiles[arow[0]].write('%s\n' % ','.join(arow[1:]))
+    
+    for ifile in csvFiles.values():
+      ifile.close()
+
+    print("\nMerge coverage files for var\n")
+    #merge coverage files
+    outFile = "%s/post/cov.bed"%(tmpDir )
+    cmd = "rm -f %s;"%( outFile)
+    for i in range(nfiles ) :
+      ifile = "%s/var/%s.cov.bed.gz"%(tmpDir, i )
+      cmd += "bgzip -dc %s >> %s ;"%( ifile, outFile )
+    cmd += "bgzip -f %s; sleep 3; bgzip -t %s.gz ;"%(outFile,outFile)
+    cmd += "tabix -f %s.gz"%(outFile)
+    runCommand( cmd )
+
+    print("\nCompute summaries for var\n")
+    #do the summary
+    cmd = "variantcaller.R %s/post/ > %s/post/summary.txt"%(tmpDir,tmpDir)
+    runCommand( cmd )
+
+    cmd = "nanoseq_results_plotter.R %s/post %s/post/results"%(tmpDir,tmpDir)
+    runCommand( cmd )
+  
+  if ( did_indel ) :
+    print("\nMerging vcf files for indel\n")
+    vcf2Merge = []
+    for i in range (nfiles) :
+      ifile = tmpDir+"/indel/%s.indel.filtered.vcf.gz"%i
+      vcf2Merge.append( ifile )
+    cmd = "bcftools concat --no-version -Oz -o %s/post/indel.filtered.vcf.gz "%tmpDir 
+    for ifile in vcf2Merge :
+      cmd += "%s "%ifile
+    cmd += ";bcftools index -t -f %s/post/indel.filtered.vcf.gz "%tmpDir 
+    runCommand(cmd)
+
+  print("\nEfficiency computation\n")
+  cmd = "efficiency_nanoseq.pl -normal %s -tumour %s -r %s -o %s"%(args.normal,args.tumour,args.ref,"%s/post/eff"%(tmpDir))
+  runCommand( cmd )
