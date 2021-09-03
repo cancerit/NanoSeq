@@ -58,7 +58,7 @@ die ("\nMust define a tumour duplex BAM\n") unless ( $merged_bam );
 die ("\nFile $merged_bam not found\n") unless ( -e $merged_bam );
 die ("\nIndex for $merged_bam not found\n") unless ( -e "$merged_bam".".bai" );
 die ("\nRscript not found in path\n") unless ( which 'Rscript' );
-die ("\nefficiency_nanoseq-cross_species.R must be in path\n") unless ( which 'efficiency_nanoseq-cross_species.R' );
+die ("\nefficiency_nanoseq.R must be in path\n") unless ( which 'efficiency_nanoseq.R' );
 
 my $rb_output     = "$output_prefix.RBs";
 my $main_output   = "$output_prefix.tsv";
@@ -71,7 +71,7 @@ $region           = chomp($region);
 # Calculating number of reads and duplicate rates
 my($num_unique_reads,$num_sequenced_reads,$dup_rate);
 
-print STDERR "Calculating number of reads in $neat_bam...\n";
+print STDOUT "Calculating number of reads in $neat_bam...\n";
 my ($stdout, $stderr, $exit) = capture {
     system("samtools view -c $neat_bam");
 };
@@ -79,9 +79,9 @@ die "Error calling samtools view -c $neat_bam, $stderr\n" if ( $exit != 0 );
 chomp( $stdout);
 $num_unique_reads = $stdout;
 
-print STDERR "  Num unique reads=$num_unique_reads\n";
+print STDOUT "  Num unique reads=$num_unique_reads\n";
 
-print STDERR "Calculating number of reads in $merged_bam...\n";
+print STDOUT "Calculating number of reads in $merged_bam...\n";
 ($stdout, $stderr, $exit) = capture {
     system("samtools view -c $merged_bam");
 };
@@ -89,17 +89,17 @@ die "Error calling samtools view -c $merged_bam, $stderr\n" if ( $exit != 0 );
 chomp( $stdout);
 $num_sequenced_reads = $stdout;
 
-print STDERR "  Num sequenced reads=$num_sequenced_reads\n";
+print STDOUT "  Num sequenced reads=$num_sequenced_reads\n";
 
 $dup_rate = ($num_sequenced_reads-$num_unique_reads)/$num_sequenced_reads;
-print STDERR "  Duplicate rate=$dup_rate\n";
+print STDOUT "  Duplicate rate=$dup_rate\n";
 
 ##########################################################################################
 # Get read bundle comformations
 my %rbs;
 my $bam = $merged_bam;
 # Get first reads in reverse:
-print STDERR "RB comformation: 1st reads in reverse...\n";
+print STDOUT "RB comformation: 1st reads in reverse...\n";
 open(IN, "samtools view -f 82 $bam $region |") || die "Error launching samtools view -f 82 $bam $region\n"; 
 while(<IN>) {
 	chomp;
@@ -112,7 +112,7 @@ while(<IN>) {
 }
 close(IN) or die ("error when calling samtools: $?, $!\n");
 
-print STDERR "RB comformation: 2nd reads in reverse...\n";
+print STDOUT "RB comformation: 2nd reads in reverse...\n";
 open(IN, "samtools view -f 146 $bam $region |") || die "samtools view -f 146 $bam $region\n"; 
 while(<IN>) {
 	chomp;
@@ -136,10 +136,10 @@ close(OUT);
 ##########################################################################################
 # Call R to get the two values that inform on strand misses:
 my($reads_per_rb,$f_eff,$zib_eff,$ok_rbs,$total_rbs,$gc_both,$gc_single,$total_reads);
-print STDERR "Running: efficiency_nanoseq-cross_species.R $rb_output $ref_genome\n";
-open(IN, "efficiency_nanoseq-cross_species.R $rb_output $ref_genome |") || die "Error running efficiency_nanoseq-cross_species.R $rb_output $ref_genome\n";
+print STDOUT "Running: efficiency_nanoseq.R $rb_output $ref_genome\n";
+open(IN, "efficiency_nanoseq.R $rb_output $ref_genome |") || die "Error running efficiency_nanoseq-cross_species.R $rb_output $ref_genome\n";
 while(<IN>) {
-	print STDERR "  Routput: ",$_;
+	print STDOUT "  Routput: ",$_;
 	chomp;
 	if(/READS_PER_RB/) {
 		$reads_per_rb = (split)[1];
@@ -169,7 +169,7 @@ print OUT "DUPLICATE_RATE\t$dup_rate\n";
 
 print OUT "# RB metrics are reported for chr/contig $region only:\n";
 if(!defined($zib_eff) || $zib_eff eq "") {
-	print STDERR "ERROR: R script didn't worked\n";
+	print STDOUT "ERROR: R script didn't worke correctly\n";
 } 
 my $bases_sequenced = $total_reads * 150;
 my $bases_ok_rbs    = $ok_rbs * (300-50); # assuming mates don't overlap. Removing 50 bps for varios trimmings (rough estimate)
