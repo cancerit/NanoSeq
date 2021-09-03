@@ -190,8 +190,8 @@ foreach my $rb_id (keys %indels) {
         if (/^##bcftools_callCommand=call/) {
           $_ ="##bcftools_callCommand=call --ploidy 1 --skip-variants snps --multiallelic-caller --variants-only -O v\n";
         }
-        if (/^##bcftoolsCommand=norm/) {
-          $_ ="##bcftoolsCommand=norm\n";
+        if (/^##bcftools_normCommand=norm/) {
+          $_ ="##bcftools_normCommand=norm\n";
         }
 				print OUT $_;
 				$header .= $_;
