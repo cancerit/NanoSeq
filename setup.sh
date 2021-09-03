@@ -143,9 +143,12 @@ else
   mkdir -p htslib
   tar --strip-components 1 -C htslib -jxf htslib.tar.bz2
   cd htslib
-  export CFLAGS="-I$INST_PATH/include"
+  export CFLAGS="-I$INST_PATH/include -D HAVE_LIBDEFLATE"
   export LDFLAGS="-L$INST_PATH/lib"
-  ./configure --enable-plugins  --enable-libcurl --with-libdeflate --prefix=$INST_PATH
+  #do this to force libdeflate to be statically liked, (for tabix and bgzip)
+  export HAVE_LIBDEFLATE=1
+  export LIBS="-l:libdeflate.a"
+  ./configure --enable-plugins  --enable-libcurl --without-libdeflate --prefix=$INST_PATH
   make -j$CPU
   make install
   mkdir -p $INST_PATH/include/cram
@@ -153,6 +156,10 @@ else
   cp header.h $INST_PATH/include
   cd $SETUP_DIR
   rm -r htslib.tar.bz2
+  unset HAVE_LIBDEFLATE
+  unset CFLAGS
+  unset LDFLAGS
+  unset LIBS
   touch $SETUP_DIR/htslib.success
 fi
 
