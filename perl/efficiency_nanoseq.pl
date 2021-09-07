@@ -116,7 +116,7 @@ while(<IN>) {
 close(IN) or die ("error when calling samtools: $?, $!\n");
 
 print STDOUT "RB comformation: 2nd reads in reverse...\n";
-open(IN, "samtools -@ $threads view -f 146 $bam $region |") || die "samtools view -@ $threads -f 146 $bam $region\n"; 
+open(IN, "samtools view -@ $threads -f 146 $bam $region |") || die "samtools view -@ $threads -f 146 $bam $region\n"; 
 while(<IN>) {
 	chomp;
 	my @tmp = (split(/\t/,$_));
