@@ -158,15 +158,6 @@ int VariantCaller::MismatchFilter(row_t *row) {
       return 0;
     }
   }
-
- // end
- 
-// if ((row->bulk_nm <= this->nmms) &&
-//     (row->dplx_nm <= this->nmms)) {
-//   return 1;
-// } else {
-//   return 0;
-// }
 }
 
 
@@ -206,7 +197,6 @@ int VariantCaller::ConsensusBaseQualityFilter(row_t *row) {
 
 
 int VariantCaller::IndelFilter(row_t *row) {
-  // fa8: I have to change this too
   if(row->bfwd_total > 0 && row->bfwd_I/row->bfwd_total > this->indel) {
   	return 0;
   }
@@ -220,15 +210,6 @@ int VariantCaller::IndelFilter(row_t *row) {
   	return 0;
   }
   return 1;
-  // end
-  //if (((row->bfwd_I/row->bfwd_total) <= this->indel) &&
-  //    ((row->brev_I/row->brev_total) <= this->indel) &&
-  //    ((row->f1r2_I/row->f1r2_total) <= this->indel) &&
-  //    ((row->f2r1_I/row->f2r1_total) <= this->indel)) {
-  //  return 1;
-  //} else {
-  //  return 0;
-  //}
 }
 
 
@@ -304,15 +285,9 @@ bool VariantCaller::PassesFilter(row_t *row) {
   int t8  = VariantCaller::FivePrimeTrimFilter(row);
   int t9  = VariantCaller::ThreePrimeTrimFilter(row);
   int t10 = VariantCaller::ProperPairFilter(row);
-  // fa8:
-   //std::cerr << t1 << "," << t2 << "," << t3 << "," << t4 << "," << t5 << "," << t6 << "," << t7 << "," << t8 << "," << t9 << "," << t10 << std::endl; 
-   //std::cerr << "  " << row->bulk_asxs << "," << row->dplx_asxs << std::endl;
-  //
   if ((t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8 + t9 + t10) == 10) {
-    //std::cerr << "PASSED" << std::endl;
     return true;
   } else {
-    //std::cerr << "FAILED" << std::endl;
     return false;
   }
 }
@@ -322,9 +297,6 @@ int VariantCaller::IsVariant(row_t *row) {
   std::vector<int> bfwd = {row->bfwd_A, row->bfwd_C, row->bfwd_G, row->bfwd_T};
   std::vector<int> brev = {row->brev_A, row->brev_C, row->brev_G, row->brev_T};
   int i = INDEX[row->call];
-  //fa8, I think here is the problem:
-  //std::cerr << row->chrom_beg << " :fwd " << i << ": " << bfwd[i] << "/" << row->bfwd_canonical << "=" << bfwd[i]/row->bfwd_canonical << std::endl;
-  //std::cerr << row->chrom_beg << " :rev " << i << ": " << brev[i] << "/" << row->brev_canonical << "=" << brev[i]/row->brev_canonical << std::endl;
   if(row->bfwd_canonical > 0 && bfwd[i]/row->bfwd_canonical > this->vaf ) {
     return 0;
   }
@@ -336,14 +308,6 @@ int VariantCaller::IsVariant(row_t *row) {
   } else {
     return 0;
   }
-  // end
-  //if (((bfwd[i]/row->bfwd_canonical) <= this->vaf) &&
-  //    ((brev[i]/row->brev_canonical) <= this->vaf) &&
-  //    (row->context[1] != row->call)) {
-  //  return 1;
-  //} else {
-  //  return 0;
-  //}
 }
 
 
@@ -469,31 +433,22 @@ void VariantCaller::CollectMetrics() {
   this->coverage = 0;
   int curr = -1;
   std::string line;
+  row_t lastRow;
+  bool first = true;
+  int cov = 0;
   while (std::getline(this->gzin, line)) {
     if (line[0] != '#') {
       row_t row = VariantCaller::ParseRow(line);
-      //fa8: OK, here is the problem for the neat libraries... This condition is almost never fulfilled
-      //std::cerr << "parse_" << std::endl;
-      //if ((row.bfwd_canonical == 0) ||
-      //    (row.brev_canonical == 0) ||
-      //    (row.f1r2_canonical == 0) ||
-      //    (row.f2r1_canonical == 0)) {
-      //  continue;
-      //}
       // Modified by fa8 to not check the bulk
       if ((row.f1r2_canonical == 0) ||
           (row.f2r1_canonical == 0)) {
         continue;
       }
-      //fa8:
-      //std::cerr << "callduplex_" << std::endl;
       VariantCaller::CallDuplex(&row);
       if ((row.f1r2_call == 'N') ||
           (row.f2r1_call == 'N')) {
         continue;
       }
-      //fa8:
-      //std::cerr << "canonical" << std::endl;
       if (VariantCaller::ContextIsCanonical(&row) == false) {
         continue;
       }
@@ -513,6 +468,30 @@ void VariantCaller::CollectMetrics() {
           if (row.isvariant) {
             VariantCaller::WriteVariants(&row);
           }
+          //fa8: write the information needed for analysing coverage:
+          // only for not masked sites!
+          if(this->outfile_coverage != NULL) {
+            if(row.shearwater == 0 && row.snp == 0) {
+              if ( first ) {
+                cov = 1;
+                first = false;
+              } else if ( row.chrom == lastRow.chrom && row.chrom_beg ==  lastRow.chrom_beg && row.context == lastRow.context) {
+                cov++;
+              } else {
+                this->gzout_coverage << lastRow.chrom;
+                this->gzout_coverage << "\t";
+                this->gzout_coverage << lastRow.chrom_beg;
+                this->gzout_coverage << "\t";
+                this->gzout_coverage << lastRow.chrom_beg+1;
+                this->gzout_coverage << "\t";
+                this->gzout_coverage << lastRow.context << ";" << lastRow.context[1] << ";" << cov;
+                this->gzout_coverage << std::endl;
+                cov = 1;
+              }
+              lastRow = row;
+            }
+          }
+
           if (row.chrom_beg != curr) {
             this->coverage++;
             curr = row.chrom_beg;
@@ -524,6 +503,17 @@ void VariantCaller::CollectMetrics() {
         }
       }
     }
+  }
+  //wirte last line to coverage file
+  if(this->outfile_coverage != NULL) {
+    this->gzout_coverage << lastRow.chrom;
+    this->gzout_coverage << "\t";
+    this->gzout_coverage << lastRow.chrom_beg;
+    this->gzout_coverage << "\t";
+    this->gzout_coverage << lastRow.chrom_beg+1;
+    this->gzout_coverage << "\t";
+    this->gzout_coverage << lastRow.context << ";" << lastRow.context[1] << ";" << cov;
+    this->gzout_coverage << std::endl;
   }
 }
 
@@ -840,6 +830,7 @@ void Usage() {
   fprintf(stderr, "\t-x\tmaximum cycle number\n");
   fprintf(stderr, "\t-v\tmaximum bulk VAF\n");
   fprintf(stderr, "\t-O\tprefix of the output file\n");
+  fprintf(stderr, "\t-U\tcoverage output file [optional]\n");
   fprintf(stderr, "\t-h\tHelp\n\n");
 }
 
@@ -862,8 +853,9 @@ void Options(int argc, char **argv, VariantCaller *vc) {
   vc->vaf        = 0.01;          // 1 to 0
   vc->outfile    = NULL;
   int opt = 0;
-  //while ((opt = getopt(argc, argv, "B:a:b:c:d:f:i:m:n:p:q:r:v:x:h")) >= 0) { fa8:
-  while ((opt = getopt(argc, argv, "B:a:b:z:c:d:f:i:m:n:p:q:r:v:x:O:h")) >= 0) {
+  char suffix[] = ".gz";
+  char buffer[600];
+  while ((opt = getopt(argc, argv, "B:a:b:z:c:d:f:i:m:n:p:q:r:v:x:O:U:h")) >= 0) {
     switch (opt) {
       case 'B':
         vc->bed = optarg;
@@ -915,6 +907,11 @@ void Options(int argc, char **argv, VariantCaller *vc) {
       case 'O':
         vc->outfile = optarg;
         break;
+      case 'U': //coverage
+        strcpy(buffer,optarg);
+        strcat(buffer,suffix);
+        vc->outfile_coverage = buffer;
+        break;
       case 'h':
         Usage();
         exit(0);
@@ -944,6 +941,9 @@ void Options(int argc, char **argv, VariantCaller *vc) {
     vc->fout << " ";
     }
   vc->fout << std::endl;
+  if(vc->outfile_coverage != NULL) {
+    vc->gzout_coverage.open(vc->outfile_coverage);
+  }
 }
 
 

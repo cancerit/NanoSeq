@@ -89,25 +89,24 @@ bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, int i) {
 
 void Pileup::Initiate(Options *opts) {
   //test that we can write output file
-  std::ofstream test_file( opts-> oname );
-  if (test_file.is_open()) {
-    test_file.close();
-  } else {
-    std::stringstream er;
-    er << "Error: cannot write output file ";
-    er << opts-> oname;
-    er << std::endl;
-    throw std::runtime_error(er.str());
+  if ( not opts-> out2stdout ) {
+    std::ofstream test_file( opts-> oname );
+    if (test_file.is_open()) {
+      test_file.close();
+    } else {
+      std::stringstream er;
+      er << "Error: cannot write output file ";
+      er << opts-> oname;
+      er << std::endl;
+      throw std::runtime_error(er.str());
+    }
+    this->gzout.open( opts-> oname);
   }
-  this->gzout.open( opts-> oname);
-  this->gzout << "# Version 1.0 January 2019\n";
-  this->gzout << "#\n";
-  this->gzout << "# INTERVALS FROM BED FILES\n";
   this->opts = opts;
   this->snp.Load(this->opts->beds[0], this->opts->rname, this->opts->beg,
-    this->opts->end, this->gzout);
+    this->opts->end, this->gzout, this->opts->out2stdout);
   this->mask.Load(this->opts->beds[1], this->opts->rname, this->opts->beg,
-    this->opts->end, this->gzout);
+    this->opts->end, this->gzout, this->opts->out2stdout);
   this->fai = fai_load(this->opts->fasta);
   if (this->fai == NULL) {
     std::stringstream er;
@@ -175,8 +174,25 @@ void Pileup::Initiate(Options *opts) {
       throw std::runtime_error(er.str());
     }
     hts_idx_destroy(idx);
-    sam_hdr_destroy(this->data[i]->head);
   }
+  //Check that the headers of both BAMs match each other
+  int n_targets0 = sam_hdr_nref( this->data[0]->head );
+  int n_targets1 = sam_hdr_nref( this->data[1]->head );
+  if ( n_targets0 != n_targets1 ){
+    std::stringstream er;
+    er << "Error : number of chromosomes in bulk and duplex don't match (" << n_targets0 << ":" << n_targets1 << ")";
+    er << std::endl;
+    throw std::runtime_error(er.str());
+  }
+  for (int i = 0; i < n_targets0; i++) {
+    if (strcmp(sam_hdr_tid2name(this->data[0]->head,i), sam_hdr_tid2name(this->data[1]->head,i))){
+      std::stringstream er;
+      er << "Error : order of chromosomes in bulk and duplex BAMs don't match";
+      er << std::endl;
+      throw std::runtime_error(er.str());
+    }
+  }
+
   this->mplp  = bam_mplp_init(n, RetrieveAlignments, reinterpret_cast<void**>
     (this->data));
   this->n_plp = reinterpret_cast<int*>(calloc(n, sizeof(int)));
@@ -351,7 +367,9 @@ std::string Pileup::PositionString(int pos) {
 
 
 void Pileup::MultiplePileup() {
-  this->gzout << Pileup::Header() << std::endl;
+  if ( not opts-> out2stdout ) {
+    this->gzout << Pileup::Header() << std::endl;
+  }
   int pos;
   while (bam_mplp_auto(this->mplp, &this->tid, &pos, this->n_plp,
     this->plp) > 0) {
@@ -374,7 +392,7 @@ void Pileup::MultiplePileup() {
       // output
       std::unique_ptr<WriteOut> out (new WriteOut());
       std::string posn = Pileup::PositionString(pos);
-      out->WriteRows(bulk, dplx, posn, this->gzout);
+      out->WriteRows(bulk, dplx, posn, this->gzout, this->opts->out2stdout);
     }
     if (pos > opts->end) {
       break;
@@ -389,8 +407,11 @@ void Pileup::MultiplePileup() {
     if (this->data[i]->iter) {
       hts_itr_destroy(this->data[i]->iter);
     }
+    sam_hdr_destroy(this->data[i]->head);
     free(this->data[i]);
   }
   free(this->data);
-  this->gzout.close();
+  if ( not opts-> out2stdout ) {
+    this->gzout.close();
+  }
 }

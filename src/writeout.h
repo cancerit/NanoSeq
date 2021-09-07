@@ -54,7 +54,7 @@ class WriteOut {
 
     std::string IdentifierString(bundle *bin);
 
-    void WriteRows(bundle bulk, bundles dplx, std::string posn, ogzstream & gzout);
+    void WriteRows(bundle bulk, bundles dplx, std::string posn, ogzstream & gzout, bool out2stdout);
 };
 
 #endif  // WRITEOUT_H_

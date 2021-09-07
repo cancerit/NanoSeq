@@ -38,6 +38,7 @@ struct Options {
   int offset;
   int beg;
   int end;
+  bool out2stdout;
 };
 
 #endif  // OPTIONS_H_
