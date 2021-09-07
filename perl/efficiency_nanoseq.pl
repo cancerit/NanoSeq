@@ -38,6 +38,7 @@ GetOptions('n|normal=s'  => \my $neat_bam,
            'd|tumour=s'  => \my $merged_bam,
            'o|out=s'     => \my $output_prefix,
            'r|ref=s'     => \my $ref_genome,
+           't|threads=i' => \$opts{'t'},
            'h|help'      => \$opts{'h'},
            'v|version'   => \$opts{'v'},
 ) or pod2usage(2);
@@ -60,6 +61,8 @@ die ("\nIndex for $merged_bam not found\n") unless ( -e "$merged_bam".".bai" );
 die ("\nRscript not found in path\n") unless ( which 'Rscript' );
 die ("\nefficiency_nanoseq.R must be in path\n") unless ( which 'efficiency_nanoseq.R' );
 
+my $threads = 1;
+$threads = $opts{'t'} if ( defined $opts{'t'} );
 my $rb_output     = "$output_prefix.RBs";
 my $main_output   = "$output_prefix.tsv";
 # Get the first contig/chr:
@@ -73,9 +76,9 @@ my($num_unique_reads,$num_sequenced_reads,$dup_rate);
 
 print STDOUT "Calculating number of reads in $neat_bam...\n";
 my ($stdout, $stderr, $exit) = capture {
-    system("samtools view -c $neat_bam");
+    system("samtools view -@ $threads -c $neat_bam");
 };
-die "Error calling samtools view -c $neat_bam, $stderr\n" if ( $exit != 0 );
+die "Error calling samtools view -@ $threads -c $neat_bam, $stderr\n" if ( $exit != 0 );
 chomp( $stdout);
 $num_unique_reads = $stdout;
 
@@ -83,9 +86,9 @@ print STDOUT "  Num unique reads=$num_unique_reads\n";
 
 print STDOUT "Calculating number of reads in $merged_bam...\n";
 ($stdout, $stderr, $exit) = capture {
-    system("samtools view -c $merged_bam");
+    system("samtools view -@ $threads -c $merged_bam");
 };
-die "Error calling samtools view -c $merged_bam, $stderr\n" if ( $exit != 0 );
+die "Error calling samtools view -@ $threads -c $merged_bam, $stderr\n" if ( $exit != 0 );
 chomp( $stdout);
 $num_sequenced_reads = $stdout;
 
@@ -100,7 +103,7 @@ my %rbs;
 my $bam = $merged_bam;
 # Get first reads in reverse:
 print STDOUT "RB comformation: 1st reads in reverse...\n";
-open(IN, "samtools view -f 82 $bam $region |") || die "Error launching samtools view -f 82 $bam $region\n"; 
+open(IN, "samtools view -@ $threads -f 82 $bam $region |") || die "Error launching samtools view -@ $threads -f 82 $bam $region\n"; 
 while(<IN>) {
 	chomp;
 	my @tmp = (split(/\t/,$_));
@@ -113,7 +116,7 @@ while(<IN>) {
 close(IN) or die ("error when calling samtools: $?, $!\n");
 
 print STDOUT "RB comformation: 2nd reads in reverse...\n";
-open(IN, "samtools view -f 146 $bam $region |") || die "samtools view -f 146 $bam $region\n"; 
+open(IN, "samtools -@ $threads view -f 146 $bam $region |") || die "samtools view -@ $threads -f 146 $bam $region\n"; 
 while(<IN>) {
 	chomp;
 	my @tmp = (split(/\t/,$_));
@@ -137,7 +140,7 @@ close(OUT);
 # Call R to get the two values that inform on strand misses:
 my($reads_per_rb,$f_eff,$zib_eff,$ok_rbs,$total_rbs,$gc_both,$gc_single,$total_reads);
 print STDOUT "Running: efficiency_nanoseq.R $rb_output $ref_genome\n";
-open(IN, "efficiency_nanoseq.R $rb_output $ref_genome |") || die "Error running efficiency_nanoseq-cross_species.R $rb_output $ref_genome\n";
+open(IN, "efficiency_nanoseq.R $rb_output $ref_genome |") || die "Error running efficiency_nanoseq.R $rb_output $ref_genome\n";
 while(<IN>) {
 	print STDOUT "  Routput: ",$_;
 	chomp;
@@ -213,6 +216,10 @@ Output prefix
 =item B<-ref>
 
 Reference file
+
+=item B<-threads>
+
+Use samtools with these many threads
 
 =back
 

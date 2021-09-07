@@ -743,9 +743,6 @@ if (args.subcommand == 'indel' ) :
 #indel section
 if (args.subcommand == 'post' ) :
 
-  if ( args.threads > 1 ) :
-    print("\nWarning can only use 1 thread for post\n")
-
   if ( args.index != None and args.index > 1 ) :
     print("\nWarning can only use 1 job of array\n")
     sys.exit(0)
@@ -847,7 +844,7 @@ if (args.subcommand == 'post' ) :
     for i in range(nfiles ) :
       ifile = "%s/var/%s.cov.bed.gz"%(tmpDir, i )
       cmd += "bgzip -dc %s >> %s ;"%( ifile, outFile )
-    cmd += "bgzip -f %s; sleep 3; bgzip -t %s.gz ;"%(outFile,outFile)
+    cmd += "bgzip -@ %s -f %s; sleep 3; bgzip -@ %s -t %s.gz ;"%(args.threads,outFile,args.threads,outFile)
     cmd += "tabix -f %s.gz"%(outFile)
     runCommand( cmd )
 
@@ -911,7 +908,7 @@ if (args.subcommand == 'post' ) :
            var['qpos'][i],var['dplxfwdTotal'][i],var['dplxrevTotal'][i],var['bulkForwardTotal'][i], \
            var['bulkReverseTotal'][i] ) 
         iofile.write(iline)
-    cmd = "bgzip -f %s/post/results.muts.vcf; sleep 3; bgzip -t %s/post/results.muts.vcf.gz;"%(tmpDir,tmpDir)
+    cmd = "bgzip -@ %s -f %s/post/results.muts.vcf; sleep 3; bgzip -@ %s -t %s/post/results.muts.vcf.gz;"%(args.threads, tmpDir,args.threads,tmpDir)
     cmd += "bcftools index -t -f %s/post/results.muts.vcf.gz "%tmpDir
     runCommand(cmd)
     
@@ -929,5 +926,5 @@ if (args.subcommand == 'post' ) :
     runCommand(cmd)
 
   print("\nEfficiency computation\n")
-  cmd = "efficiency_nanoseq.pl -normal %s -tumour %s -r %s -o %s"%(args.normal,args.tumour,args.ref,"%s/post/eff"%(tmpDir))
+  cmd = "efficiency_nanoseq.pl -normal %s -tumour %s -r %s -o %s -t %s "%(args.normal,args.tumour,args.ref,"%s/post/eff"%(tmpDir), args.threads )
   runCommand( cmd )
