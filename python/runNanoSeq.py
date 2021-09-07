@@ -743,8 +743,12 @@ if (args.subcommand == 'indel' ) :
 #indel section
 if (args.subcommand == 'post' ) :
 
-  #do post with only one job if called with array
-  if ( not ( args.index == 1 or args.max_index == None )) : sys.exit(0)   
+  if ( args.threads > 1 ) :
+    print("\nWarning can only use 1 thread for post\n")
+
+  if ( args.index != None and args.index > 1 ) :
+    print("\nWarning can only use 1 job of array\n")
+    sys.exit(0)
 
   #check dsa
   if (not os.path.isfile(tmpDir+'/dsa/nfiles') ):
@@ -854,6 +858,63 @@ if (args.subcommand == 'post' ) :
 
     cmd = "nanoseq_results_plotter.R %s/post %s/post/results"%(tmpDir,tmpDir)
     runCommand( cmd )
+
+    print("\nGenerate vcf file from variants.csv\n")
+
+    var = {}
+    nVariants = 0
+    with open("%s/post/variants.csv"%tmpDir,'r') as iofile :
+      iline = iofile.readline().rstrip('\n')
+      fields = iline.split(',')
+      for ifield in fields :
+        var[ ifield ] = []
+      for iline in iofile :
+        nVariants += 1
+        for (i, ival) in enumerate(iline.rstrip('\n').split(',')) :
+          var[fields[i]].append(ival)
+      
+    header =  '##fileformat=VCFv4.2\n'
+    header += '##source=NanoSeq pipeline\n'
+    header += '##FILTER=<ID=PASS,Description="All filters passed">\n'
+    header += "##reference=file://%s\n"%args.ref
+    with open(args.ref + '.fai','r') as iofile :
+      for iline in iofile :
+        ichr = iline.split('\t')[0]
+        ilength = iline.split('\t')[1]
+        header += "##contig=<ID=%s,length=%s>\n"%(ichr,ilength)
+    header += '##ALT=<ID=*,Description="Represents allele(s) other than observed.">\n'
+    header += '##INFO=<ID=TRI,Number=1,Type=String,Description="Pyrimidine context, trinucleotide substitution">\n'
+    header += '##INFO=<ID=BBEG,Number=1,Type=String,Description="Read bundle left breakpoint">\n'
+    header += '##INFO=<ID=BEND,Number=1,Type=String,Description="Read bundle right breakpoint">\n'
+    header += '##INFO=<ID=QPOS,Number=1,Type=Integer,Description="Read position closest to 5-prime end">\n'
+    header += '##INFO=<ID=DEPTH_FWD,Number=1,Type=Integer,Description="Read bundle forward reads depth">\n'
+    header += '##INFO=<ID=DEPTH_REV,Number=1,Type=Integer,Description="Read bundle reverse reads depth">\n'
+    header += '##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Integer,Description="Matched normal forward reads depth">\n'
+    header += '##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Integer,Description="Matched normal reverse reads depth">\n'
+    header += '##FILTER=<ID=dbsnp,Description="Common SNP site">\n'
+    header += '##FILTER=<ID=shearwater,Description="Noisy site">\n'
+    header += '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
+
+    with open("%s/post/results.muts.vcf"%(tmpDir), "w") as iofile :
+      iofile.write(header)
+      for i in range( nVariants) :
+        iline = "%s\t%s\t%s\t%s\t%s\t.\t"% \
+          (var['chrom'][i],int(var['chromStart'][i])+1,'.',var['context'][i][1], var['call'][i])
+        ifilter = "PASS"
+        if ( var['shearwater'][i] == '1' ) :
+          ifilter = "shearwater"
+        if ( var['commonSNP'][i] == '1' ) :
+          ifilter = "dbsnp"
+        iline += "%s\t"%ifilter
+        iline += "TRI=%s;BBEG=%s;BEND=%s;QPOS=%s;DEPTH_FWD=%s;DEPTH_REV=%s;DEPTH_NORM_FWD=%s;DEPTH_NORM_REV=%s\n"% \
+          (var['pyrsub'][i],var['dplxBreakpointBeg'][i],var['dplxBreakpointEnd'][i], \
+           var['qpos'][i],var['dplxfwdTotal'][i],var['dplxrevTotal'][i],var['bulkForwardTotal'][i], \
+           var['bulkReverseTotal'][i] ) 
+        iofile.write(iline)
+    cmd = "bgzip -f %s/post/results.muts.vcf; sleep 3; bgzip -t %s/post/results.muts.vcf.gz;"%(tmpDir,tmpDir)
+    cmd += "bcftools index -t -f %s/post/results.muts.vcf.gz "%tmpDir
+    runCommand(cmd)
+    
   
   if ( did_indel ) :
     print("\nMerging vcf files for indel\n")
@@ -861,10 +922,10 @@ if (args.subcommand == 'post' ) :
     for i in range (nfiles) :
       ifile = tmpDir+"/indel/%s.indel.filtered.vcf.gz"%i
       vcf2Merge.append( ifile )
-    cmd = "bcftools concat --no-version -Oz -o %s/post/indel.filtered.vcf.gz "%tmpDir 
+    cmd = "bcftools concat --no-version -Oz -o %s/post/results.indel.vcf.gz "%tmpDir 
     for ifile in vcf2Merge :
       cmd += "%s "%ifile
-    cmd += ";bcftools index -t -f %s/post/indel.filtered.vcf.gz "%tmpDir 
+    cmd += ";bcftools index -t -f %s/post/results.indel.vcf.gz "%tmpDir 
     runCommand(cmd)
 
   print("\nEfficiency computation\n")
