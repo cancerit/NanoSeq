@@ -57,11 +57,13 @@ parser_cov = subparsers.add_parser('cov', help='coverage calculation')
 parser_cov.add_argument('--exclude', action='store', default='MT,GL%%,NC_%,hs37d5', help='List of contigs to exclude. Comma separated, %% acts as a wild card. (MT,GL%%,NC_%%,hs37d5)')
 parser_cov.add_argument('-w','--win', type=int, action='store', default=100, help='bin size for coverage distribution (100)')
 parser_cov.add_argument('-Q', type=int, action='store', default=0, help="minimum mapQ to include a tumour read (0)")
-parser_cov.add_argument('--excludeBED', action='store', help='BED file with regions to exclude from analysis')
+
+parser_part = subparsers.add_parser('part', help='partition intervals into n jobs using coverage information')
+parser_part.add_argument('-n','--jobs', type=int, action='store', required=True, help='partition dsa,var,indel to this many tasks')
+parser_part.add_argument('--excludeBED', action='store', help='BED file with regions to exclude from analysis')
 
 #dsa
 parser_dsa = subparsers.add_parser('dsa', help='compute tables')
-parser_dsa.add_argument('-R','--ref', action='store', required=False,)
 parser_dsa.add_argument('-C','--snp', action='store', required=True, help="SNP BED file")
 parser_dsa.add_argument('-D','--mask', action='store', required=True, help="mask BED file")
 parser_dsa.add_argument('-d', type=int, action='store', default=2, help="minimum duplex depth (2)")
@@ -92,7 +94,7 @@ parser_indel.add_argument('--t5', type=int, action='store', default=10, help="ba
 parser_indel.add_argument('--mc', type=int, action='store', default=16, help="minimum bulk coverage (16)")
 
 #carry out gather operations and compute summaries
-parser_post = subparsers.add_parser('post', help='gather final results produce summaries')
+parser_post = subparsers.add_parser('post', help='gather final files, compute summaries')
 
 args = parser.parse_args()
 
@@ -317,7 +319,7 @@ def runBamcov(bam, mapQ, window, ichr, out) :
     error = p.stderr.read().decode()
     sys.stderr.write("\n!Error running bamcov for chr %s (cov): %s\n"%(ichr,error))
     raise ValueError(error)
-  p = subprocess.Popen(['bgzip','-l',2,'-f', out],stderr=subprocess.PIPE)
+  p = subprocess.Popen(['bgzip','-l','2','-f', out],stderr=subprocess.PIPE)
   p.wait()
   if (p.returncode != 0 ) : 
     error = p.stderr.read().decode()
@@ -356,6 +358,8 @@ if (args.subcommand == 'cov'):
       os.makedirs(tmpDir+'/post')
     if (not os.path.isdir(tmpDir+'/cov') ) :
       os.makedirs(tmpDir+'/cov')
+    if (not os.path.isdir(tmpDir+'/part') ) :
+      os.makedirs(tmpDir+'/part')
     if (not os.path.isdir(tmpDir+'/indel') ) :
       os.makedirs(tmpDir+'/indel')
 
@@ -386,36 +390,7 @@ if (args.subcommand == 'cov'):
     reorderchr.append( iint.chr)
   chrList = reorderchr
 
-  #remove regions to ignore from exclude BED
-  if ( args.excludeBED != None ) :
-    xIntervals = []
-    with open(args.excludeBED,'r') as iofile :
-      for iline in iofile :
-        ichr = str(iline.split('\t')[0])
-        ib = int(iline.split('\t')[1])
-        ie = int(iline.split('\t')[2])
-        xIntervals.append( GInterval(ichr,ib+1,ie)) #convert to ginterval 
-
-    xIntervals.sort()
-    with open("%s/cov/%s"%(tmpDir,'gIntervalsExclude.dat'), 'wb') as iofile :
-      pickle.dump(xIntervals,iofile)
-        
-    iiresult= []
-    for ii in gintervals :
-      ifrag = ii
-      for jj in xIntervals :
-        if ( ifrag.chr != jj.chr ) :continue
-        diff = ifrag - jj
-        if len(diff) == 2 :
-          iiresult.append( diff[0] )
-          ifrag = diff[1]
-        else :
-          ifrag = diff[0]
-      iiresult.append( ifrag )
-
-    gintervals = iiresult
-
-  print("Starting coverage calculation\n")
+  print("Starting cov calculation\n")
   if ( args.index == None or args.index == 1 ) :
     with open("%s/cov/nfiles"%(tmpDir), "w") as iofile :
       iofile.write(str(len(chrList) ))
@@ -431,8 +406,6 @@ if (args.subcommand == 'cov'):
       pickle.dump(gintervals,iofile)
     with Pool( args.threads ) as p:
       p.starmap(runBamcov, inputs)
-    print("Completed coverage calculation\n")
-
   else :
     #single thread execution
     if (args.index == 1) :
@@ -443,34 +416,60 @@ if (args.subcommand == 'cov'):
     for ii in range(jobsPerCPU * (args.index-1), jobsPerCPU*args.index) :
       if ( ii >= len( inputs) ) : break
       runBamcov(inputs[ii][0], inputs[ii][1], inputs[ii][2], inputs[ii][3], inputs[ii][4])
-    print("Completed coverage calculation for this job\n")
-
-
-#dsa section
-if (args.subcommand == 'dsa' ) :
+  print("Completed cov calculation\n")
+    
+#merge coverage files, partition into desired number of jobs
+if (args.subcommand == 'part'):
   if (not os.path.isfile(tmpDir+'/cov/args.json') ):
-    sys.exit("\nMust run cov submmand prior to dsa\n")
+    sys.exit("\nMust run cov submmand prior to part\n")
   else :
     with open(tmpDir+'/cov/args.json') as iofile :
-      oargs = json.load( iofile )
-
+      oargs = json.load( iofile )    
   if (not os.path.isfile(tmpDir+'/cov/nfiles') ):
     sys.exit(tmpDir+'/cov/nfiles not found!\n')
   else :
     with open(tmpDir+'/cov/nfiles') as iofile :
       nfiles = int(iofile.readline())
-  
-  for i in range(nfiles ) :
+  for i in range( nfiles ) :
     if ( len(glob.glob(tmpDir+"/cov/%s.done"%i)) != 1 ) :
-      sys.exit("\ncov job %s did not complete correctly\n"%i)
+      sys.exit("\ncov job did not complete correctly\n"%i)
     if ( len(glob.glob(tmpDir+"/cov/%s.cov.bed.gz"%i)) != 1 ) :
-      sys.exit("\ncov job %s did not complete correctly\n"%i)
- 
-  #try to stagger file access for array execution
-  if ( args.index != None ) : time.sleep( 3 * args.index )
+      sys.exit("\ncov job did not complete correctly\n"%i)
+
+  if ( args.threads > 1 ) :
+    print("\nWarning can only use 1 thread for part\n")
+
+  if ( args.index != None and args.index > 1 ) :
+    print("\nWarning can only use 1 job of array\n")
+    sys.exit(0)
 
   with open(tmpDir+"/cov/gIntervals.dat", 'rb') as iofile :
     gIntervals = pickle.load(iofile)
+  
+  #remove regions to ignore from exclude BED
+  if ( args.excludeBED != None ) :
+    xIntervals = []
+    with open(args.excludeBED,'r') as iofile :
+      for iline in iofile :
+        ichr = str(iline.split('\t')[0])
+        ib = int(iline.split('\t')[1])
+        ie = int(iline.split('\t')[2])
+        xIntervals.append( GInterval(ichr,ib+1,ie)) #convert to ginterval 
+    xIntervals.sort()
+        
+    iiresult= []
+    for ii in gIntervals :
+      ifrag = ii
+      for jj in xIntervals :
+        if ( ifrag.chr != jj.chr ) :continue
+        diff = ifrag - jj
+        if len(diff) == 2 :
+          iiresult.append( diff[0] )
+          ifrag = diff[1]
+        else :
+          ifrag = diff[0]
+      iiresult.append( ifrag )
+    gIntervals = iiresult
 
   coverage = []
   cctotal = 0
@@ -487,10 +486,8 @@ if (args.subcommand == 'dsa' ) :
         coverage.append( [ichr,ib,cc]) #convert to ginterval 
   print("\nCompleted parsing coverage files\n")
 
-  #correct cctotal if there are exclusion regions
-  if ( oargs['excludeBED'] != None ) :
-    with open(tmpDir+"/cov/gIntervalsExclude.dat", 'rb') as iofile :
-      xIntervals = pickle.load(iofile)
+  #correct total coverage (cctotal) if there are excluded regions
+  if ( args.excludeBED != None ) :
     xSumCov = 0
     for iinterval in xIntervals :
       ichar =iinterval.chr
@@ -504,16 +501,9 @@ if (args.subcommand == 'dsa' ) :
   #determine the genomic intervals to give to each job so that each one roughly
   #has the same amount of coverage
   basesPerCPU = 0
-  if ( args.index == None ) :
-    njobs = args.threads
-  else :
-    njobs = args.max_index
+  njobs = args.jobs
   basesPerCPU = cctotal/ njobs
   print( "\nPartitioning %s jobs with %s bases/task\n"%(njobs,basesPerCPU))
-
-  if ( args.index == None or args.index == 1 ) :
-    with open("%s/dsa/nfiles"%(tmpDir), "w") as iofile :
-      iofile.write(str(njobs ))
 
   sumCov = 0
   oIntervals = []
@@ -534,7 +524,52 @@ if (args.subcommand == 'dsa' ) :
         ibeg=  coverage[j][1] + oargs['win'] 
     oIntervals.append(GInterval(ichar, ibeg + 1, iend))
   if ( len(oIntervals) > 0 ) : intervalsPerCPU.append( oIntervals)
-  
+  with open("%s/part/%s"%(tmpDir,'intervalsPerCPU.dat'), 'wb') as iofile :
+    pickle.dump(intervalsPerCPU,iofile)
+  cmd = "touch %s/part/1.done"%(tmpDir) 
+  runCommand( cmd )
+  print("\nCompleted part job\n")
+
+#dsa section
+if (args.subcommand == 'dsa' ) :
+  if (not os.path.isfile(tmpDir+'/part/args.json') ):
+    sys.exit("\nMust run cov and part submmands prior to dsa\n")
+  else :
+    with open(tmpDir+'/part/args.json') as iofile :
+      oargs = json.load( iofile )
+  njobs = oargs['jobs']  
+
+  if ( len(glob.glob(tmpDir+"/part/1.done")) != 1 ) :
+    sys.exit("\npart job did not complete correctly\n")
+  if ( len(glob.glob(tmpDir+"/part/intervalsPerCPU.dat")) != 1 ) :
+    sys.exit("\npart job did not complete correctly\n")
+ 
+  #make sure that number of jobs matches what was specified in part
+  if ( args.max_index != None ) :
+    #array execution
+    if ( args.max_index < njobs ) :
+      sys.exit("\nLSF array size must match number of jobs specified for part (%s)\n"%njobs)
+    if ( args.index > njobs ) :
+      print("\nWarning specified LSF array size is larger than jobs specified for part (%s)\n"%njobs)
+      sys.exit(0)
+  else :
+    #multithread
+    if ( args.threads < njobs ) :
+      sys.exit("\nNumber of threads must match number of jobs specified for part (%s)\n"%njobs)
+    if ( args.threads > njobs ) :
+      print("\nWarning number of threads is larger than jobs specified for part (%s)\n"%njobs)
+
+
+  #try to stagger file access for array execution
+  if ( args.index != None ) : time.sleep( 2 * args.index )
+
+  with open(tmpDir+"/part/intervalsPerCPU.dat", 'rb') as iofile :
+    intervalsPerCPU = pickle.load(iofile)
+
+  QQ = None
+  with open(tmpDir+'/cov/args.json') as iofile :
+    QQ = json.load( iofile )['Q']
+
   commands = [ ( None, ) ] * njobs
   for i in range(njobs) :
     #check for restarts
@@ -548,17 +583,20 @@ if (args.subcommand == 'dsa' ) :
       dsaInt = iinterval.convert2DSAInput()
       pipe = ">" if ii == 0 else ">>" #ensure first command overwrittes
       cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s -r %s -b %s -e %s %s %s ;" \
-              %(args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, oargs['Q'],
+              %(args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, QQ,
                 dsaInt.chr, dsaInt.beg, dsaInt.end,pipe, "%s/dsa/%s.dsa.bed"%(tmpDir,i) )
     cmd += "bgzip -f -l 2 %s/dsa/%s.dsa.bed; sleep 3; bgzip -t %s/dsa/%s.dsa.bed.gz;"%(tmpDir,i,tmpDir,i)
     cmd += "touch %s/dsa/%s.done"%(tmpDir,i)
     commands[i] =  ( cmd , )
   
-#execute dsa commans
+  if ( args.index == None or args.index == 1 ) :
+    with open("%s/dsa/nfiles"%(tmpDir), "w") as iofile :
+      iofile.write(str( njobs ))
+
+  #execute dsa commans
   print("Starting dsa calculation\n")
   if ( args.index == None ) :
     #multithread
-    print("%s\n"%args.threads)
     with Pool( args.threads ) as p :
       p.starmap( runCommand, commands )
   else :
@@ -579,6 +617,7 @@ if (args.subcommand == 'var' ) :
   else :
     with open(tmpDir+'/dsa/nfiles') as iofile :
       nfiles = int(iofile.readline())
+  njobs = nfiles
 
   for i in range(nfiles ) :
     if ( len(glob.glob(tmpDir+"/dsa/%s.done"%i)) != 1 ) :
@@ -586,13 +625,20 @@ if (args.subcommand == 'var' ) :
     if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%i)) != 1 ) :
       sys.exit("\ndsa job %s did not complete correctly\n"%i)
 
-  if ( not (nfiles == args.threads  or  nfiles == args.max_index) ) :
-    sys.exit("\nMust use same number of jobs/threads as used in dsa calculation (%s).\n"%nfiles)
-  
-  njobs = nfiles
-  if ( args.index == None or args.index == 1 ) :
-    with open("%s/var/nfiles"%(tmpDir), "w") as iofile :
-      iofile.write(str(njobs ))
+  #make sure that number of jobs matches what was specified in part
+  if ( args.max_index != None ) :
+    #array execution
+    if ( args.max_index < njobs ) :
+      sys.exit("\nLSF array size must match number of jobs specified for part (%s)\n"%njobs)
+    if ( args.index > njobs ) :
+      print("\nWarning specified LSF array size is larger than jobs specified for part (%s)\n"%njobs)
+      sys.exit(0)
+  else :
+    #multithread
+    if ( args.threads < njobs ) :
+      sys.exit("\nNumber of threads must match number of jobs specified for part (%s)\n"%njobs)
+    if ( args.threads > njobs ) :
+      print("\nWarning number of threads is larger than jobs specified for part (%s)\n"%njobs)
 
   commands = [ (None ,) ] * njobs
   for i in range(njobs) :
@@ -608,6 +654,10 @@ if (args.subcommand == 'var' ) :
           args.a,args.b,args.c, args.f, args.i, args.m, args.n, args.p, args.q, args.r, args.v, args.x, args.z)
     cmd += "touch %s/var/%s.done"%(tmpDir,i)
     commands[i] = ( cmd , )
+
+  if ( args.index == None or args.index == 1 ) :
+    with open("%s/var/nfiles"%(tmpDir), "w") as iofile :
+      iofile.write(str(njobs ))
 
   #execute variantcaller commans
   print("Starting var calculation\n")
@@ -633,6 +683,7 @@ if (args.subcommand == 'indel' ) :
   else :
     with open(tmpDir+'/dsa/nfiles') as iofile :
       nfiles = int(iofile.readline())
+  njobs = nfiles
 
   for i in range(nfiles ) :
     if ( len(glob.glob(tmpDir+"/dsa/%s.done"%i)) != 1 ) :
@@ -640,14 +691,20 @@ if (args.subcommand == 'indel' ) :
     if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%i)) != 1 ) :
       sys.exit("\ndsa job %s did not complete correctly\n"%i)
 
-
-  if ( not (nfiles == args.threads  or  nfiles == args.max_index) ) :
-    sys.exit("\nMust use same number of jobs/threads as used in dsa calculation (%s).\n"%nfiles)
-  
-  njobs = nfiles
-  if ( args.index == None or args.index == 1 ) :
-    with open("%s/indel/nfiles"%(tmpDir), "w") as iofile :
-      iofile.write(str(njobs ))
+  #make sure that number of jobs matches what was specified in part
+  if ( args.max_index != None ) :
+    #array execution
+    if ( args.max_index < njobs ) :
+      sys.exit("\nLSF array size must match number of jobs specified for part (%s)\n"%njobs)
+    if ( args.index > njobs ) :
+      print("\nWarning specified LSF array size is larger than jobs specified for part (%s)\n"%njobs)
+      sys.exit(0)
+  else :
+    #multithread
+    if ( args.threads < njobs ) :
+      sys.exit("\nNumber of threads must match number of jobs specified for part (%s)\n"%njobs)
+    if ( args.threads > njobs ) :
+      print("\nWarning number of threads is larger than jobs specified for part (%s)\n"%njobs)
 
   commands =  [ ( None, ) ] * njobs
   for i in range(njobs) :
@@ -667,6 +724,10 @@ if (args.subcommand == 'indel' ) :
         %(args.ref, "%s/indel/%s.indel.vcf.gz"%(tmpDir,i), args.normal)
     cmd += "touch %s/indel/%s.done"%(tmpDir,i)
     commands[i] =  ( cmd , )
+
+  if ( args.index == None or args.index == 1 ) :
+    with open("%s/indel/nfiles"%(tmpDir), "w") as iofile :
+      iofile.write(str(njobs ))
 
   #execute indeliantcaller commans
   print("Starting indel calculation\n")
