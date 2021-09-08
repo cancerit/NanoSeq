@@ -346,22 +346,25 @@ print("command arguments :")
 
 print(args.__dict__)
 print()
+
+#for array execution try to stagger access for files
+if ( args.index != None ) : time.sleep( 2 * args.index )
+
 # create all directory tree for the tmp files
 tmpDir = args.out + "/tmpNanoSeq"
 if (args.subcommand == 'cov'):
-  if ( args.index == None or args.index == 1 ) :
-    if (not os.path.isdir(tmpDir+'/dsa') ) :
-      os.makedirs(tmpDir+'/dsa')
-    if (not os.path.isdir(tmpDir+'/var') ) :
-      os.makedirs(tmpDir+'/var')
-    if (not os.path.isdir(tmpDir+'/post') ) :
-      os.makedirs(tmpDir+'/post')
-    if (not os.path.isdir(tmpDir+'/cov') ) :
-      os.makedirs(tmpDir+'/cov')
-    if (not os.path.isdir(tmpDir+'/part') ) :
-      os.makedirs(tmpDir+'/part')
-    if (not os.path.isdir(tmpDir+'/indel') ) :
-      os.makedirs(tmpDir+'/indel')
+  if (not os.path.isdir(tmpDir+'/dsa') ) :
+    os.makedirs(tmpDir+'/dsa')
+  if (not os.path.isdir(tmpDir+'/var') ) :
+    os.makedirs(tmpDir+'/var')
+  if (not os.path.isdir(tmpDir+'/post') ) :
+    os.makedirs(tmpDir+'/post')
+  if (not os.path.isdir(tmpDir+'/cov') ) :
+    os.makedirs(tmpDir+'/cov')
+  if (not os.path.isdir(tmpDir+'/part') ) :
+    os.makedirs(tmpDir+'/part')
+  if (not os.path.isdir(tmpDir+'/indel') ) :
+    os.makedirs(tmpDir+'/indel')
 
 if ( args.index == None or args.index == 1 ) :
   with open("%s/%s/args.json"%(tmpDir,args.subcommand), "w") as jsonOut :
@@ -440,9 +443,6 @@ if (args.subcommand == 'part'):
       sys.exit("\ncov job did not complete correctly\n"%i)
     if ( len(glob.glob(tmpDir+"/cov/%s.cov.bed.gz"%i)) != 1 ) :
       sys.exit("\ncov job did not complete correctly\n"%i)
-
-  if ( args.threads > 1 ) :
-    print("\nWarning can only use 1 thread for part\n")
 
   if ( args.index != None and args.index > 1 ) :
     print("\nWarning can only use 1 job of array\n")
@@ -563,10 +563,6 @@ if (args.subcommand == 'dsa' ) :
       sys.exit("\nNumber of threads must match number of jobs specified for part (%s)\n"%njobs)
     if ( args.threads > njobs ) :
       print("\nWarning number of threads is larger than jobs specified for part (%s)\n"%njobs)
-
-
-  #try to stagger file access for array execution
-  if ( args.index != None ) : time.sleep( 2 * args.index )
 
   with open(tmpDir+"/part/intervalsPerCPU.dat", 'rb') as iofile :
     intervalsPerCPU = pickle.load(iofile)
