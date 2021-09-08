@@ -145,7 +145,7 @@ runNanoSeq.py -k $CPU -j \$LSB_JOBINDEX  \\
 EOF
 
 #indel
-cat > run_inde.bsub <<- EOF
+cat > run_indel.bsub <<- EOF
 #!/bin/bash
 #BSUB -q normal
 #BSUB -J $NAME.indel[1-$CPU]
@@ -202,14 +202,27 @@ read ANSWER
 
 if [ $ANSWER = 'y' ]; then
   get_jobid `bsub < run_cov.bsub`
-  echo "submitted cov as $ID"
-  get_jobid `bsub -w "done($ID)" < run_part.bsub`
-  echo "submitted part as $ID"
-  get_jobid `bsub -w "done($ID)" < run_dsa.bsub`
-  echo "submitted dsa as $ID"
-  get_jobid `bsub -w "done($ID)" < run_var.bsub`
-  echo "submitted var as $ID"
-  get_jobid `bsub -w "done($ID)" < run_post.bsub`
+  COV_ID=$ID
+  echo "submitted cov as $COV_ID"
+
+  get_jobid `bsub -w "done($COV_ID)" < run_part.bsub`
+  PART_ID=$ID
+  echo "submitted part as $PART_ID"
+
+  get_jobid `bsub -w "done($PART_ID)" < run_dsa.bsub`
+  DSA_ID=$ID
+  echo "submitted dsa as $DSA_ID"
+
+  get_jobid `bsub -w "done($DSA_ID)" < run_var.bsub`
+  VAR_ID=$ID
+  echo "submitted var as $VAR_ID"
+
+  get_jobid `bsub -w "done($DSA_ID)" < run_indel.bsub`
+  INDEL_ID=$ID
+  echo "submitted indel as $INDEL_ID"
+
+  get_jobid `bsub -w "done($INDEL_ID) && done($VAR_ID)" < run_post.bsub`
+  POST_ID=$ID
   echo "submitted post as $ID"
 fi
 
