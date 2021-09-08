@@ -412,10 +412,15 @@ if (args.subcommand == 'cov'):
       with open("%s/cov/%s"%(tmpDir,'gIntervals.dat'), 'wb') as iofile :
         pickle.dump(gintervals,iofile)
 
-    jobsPerCPU = math.ceil( len(inputs)/args.max_index )
-    for ii in range(jobsPerCPU * (args.index-1), jobsPerCPU*args.index) :
-      if ( ii >= len( inputs) ) : break
-      runBamcov(inputs[ii][0], inputs[ii][1], inputs[ii][2], inputs[ii][3], inputs[ii][4])
+    commands = [ [] for i in range( args.max_index ) ]
+    jj = 0
+    for ii in range ( len(inputs) ) :
+      if ( ii % args.max_index == 0 ) : jj = 0
+      commands[ jj ].append( "runBamcov(inputs[%s][0], inputs[%s][1], inputs[%s][2], inputs[%s][3], inputs[%s][4])"%(ii,ii,ii,ii,ii) )
+      jj += 1
+    for icmd in commands[ args.index -1 ] :
+      exec( icmd )
+
   print("Completed cov calculation\n")
     
 #merge coverage files, partition into desired number of jobs
