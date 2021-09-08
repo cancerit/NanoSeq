@@ -68,7 +68,7 @@ cat > run_part.bsub <<- EOF
 #BSUB -q normal
 #BSUB -J $NAME.part
 #BSUB -n 1
-#BSUB -R "select[mem>900] rusage[mem=900]" -M900
+#BSUB -R "select[mem>8000] rusage[mem=8000]" -M8000
 #BSUB -e part.err
 #BSUB -o part.out
 
@@ -176,7 +176,7 @@ cat > run_post.bsub <<- EOF
 #BSUB -q normal
 #BSUB -J $NAME.post
 #BSUB -n 2
-#BSUB -R "select[mem>900] rusage[mem=900]" -M900
+#BSUB -R "select[mem>5000] rusage[mem=5000]" -M5000
 #BSUB -e post.err
 #BSUB -o post.out
 
