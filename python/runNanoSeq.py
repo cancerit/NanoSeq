@@ -68,6 +68,7 @@ parser_dsa.add_argument('-C','--snp', action='store', required=True, help="SNP B
 parser_dsa.add_argument('-D','--mask', action='store', required=True, help="mask BED file")
 parser_dsa.add_argument('-d', type=int, action='store', default=2, help="minimum duplex depth (2)")
 parser_dsa.add_argument('-q', type=int, action='store', default=30, help="minimum base quality for normal (30)")
+parser_dsa.add_argument('--no_test', action='store_true' )
 
 #variant caller
 parser_var = subparsers.add_parser('var', help='variant caller')
@@ -580,11 +581,13 @@ if (args.subcommand == 'dsa' ) :
 
     #construct dsa commands
     cmd = ""
+    topt = ""
+    if ( args.no_test ) : topt ="-t"
     for (ii , iinterval) in enumerate( intervalsPerCPU[i] ):
       dsaInt = iinterval.convert2DSAInput()
       pipe = ">" if ii == 0 else ">>" #ensure first command overwrittes
-      cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s -r %s -b %s -e %s %s %s ;" \
-              %(args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, QQ,
+      cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s %s -r %s -b %s -e %s %s %s ;" \
+              %(args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, QQ, topt,
                 dsaInt.chr, dsaInt.beg, dsaInt.end,pipe, "%s/dsa/%s.dsa.bed"%(tmpDir,i) )
     cmd += "bgzip -f -l 2 %s/dsa/%s.dsa.bed; sleep 3; bgzip -t %s/dsa/%s.dsa.bed.gz;"%(tmpDir,i,tmpDir,i)
     cmd += "touch %s/dsa/%s.done"%(tmpDir,i)
