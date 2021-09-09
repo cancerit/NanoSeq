@@ -64,19 +64,6 @@ if( (version$major == 3 && version$minor >=5) || version$major > 3) {
   ipak_bioc(c("VGAM"))
 } else {
   # OLD versions of R
-  source("http://bioconductor.org/biocLite.R")
-  ipak(c("Biostrings"))
-  ipak(c("data.table"))
-  ipak(c("deepSNV"))
-  ipak(c("epitools"))
-  ipak(c("GenomicRanges"))
-  ipak(c("ggplot2"))
-  ipak(c("grid"))
-  ipak(c("gridExtra"))
-  ipak(c("MASS"))
-  ipak(c("Rsamtools"))
-  ipak(c("seqinr"))
-  ipak(c("stringr"))
-  ipak(c("vcfR"))
-  ipak(c("VGAM"))
+  echo "Must update to R v3.5.0 or greater"
+  exit(1)
 }
