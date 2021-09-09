@@ -48,9 +48,10 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
   opts->min_base_quality = 30;
   opts->min_mapQ         = 0;
   opts->out2stdout       = true;
+  opts->testBulk         = true;
   char suffix[] = ".gz";
   int opt = 0;
-  while ((opt = getopt(argc, argv, "A:B:C:D:R:Q:M:r:b:e:d:O:sh")) >= 0) {
+  while ((opt = getopt(argc, argv, "A:B:C:D:R:Q:M:r:b:e:d:O:th")) >= 0) {
     switch (opt) {
       case 'A':
         opts->bams[0] = optarg;
@@ -90,6 +91,9 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
         strcat(buffer,suffix);
         opts->oname = buffer;
         opts->out2stdout = false;
+        break;
+      case 't':
+        opts->testBulk = false;
         break;
       case 'h':
         Usage();
