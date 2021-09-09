@@ -345,6 +345,12 @@ char* Pileup::GetTrinucleotideContext(int pos) {
   return fai_fetch(this->fai, region.str().c_str(), &seq_len);
 }
 
+char* UpperCase(char *in) {
+   for (char *iter = in; *iter != '\0'; ++iter){
+       *iter = std::toupper(*iter);
+   }
+  return in;
+}
 
 std::string Pileup::PositionString(int pos) {
   char* context = Pileup::GetTrinucleotideContext(pos);
@@ -357,7 +363,7 @@ std::string Pileup::PositionString(int pos) {
   ss << "\t";
   ss << pos + 1;
   ss << "\t";
-  ss << context;
+  ss << UpperCase(context);
   ss << "\t";
   ss << is_snp;
   ss << "\t";
