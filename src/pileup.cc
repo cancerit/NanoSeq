@@ -147,13 +147,15 @@ void Pileup::Initiate(Options *opts) {
       er << std::endl;
       throw std::runtime_error(er.str());
     }
-    if (BamIsCorrectlyPreprocessed(this->data[i]->head, i) == false) {
-      std::stringstream er;
-      er << "Error : bam ";
-      er << this->opts->bams[i];
-      er << " is not properly preprocessed.";
-      er << std::endl;
-      throw std::runtime_error(er.str());
+    if (  this->opts->testBulk || i != 0  ) { //skip bulk test for legacy BAMs
+      if (BamIsCorrectlyPreprocessed(this->data[i]->head, i) == false) {
+        std::stringstream er;
+        er << "Error : bam ";
+        er << this->opts->bams[i];
+        er << " is not properly preprocessed.";
+        er << std::endl;
+        throw std::runtime_error(er.str());
+      }
     }
     hts_idx_t *idx = NULL;
     idx = sam_index_load(this->data[i]->fp, this->opts->bams[i] );

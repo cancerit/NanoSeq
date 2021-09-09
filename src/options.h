@@ -39,6 +39,7 @@ struct Options {
   int beg;
   int end;
   bool out2stdout;
+  bool testBulk;
 };
 
 #endif  // OPTIONS_H_
