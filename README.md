@@ -80,7 +80,7 @@ The wrapper scrpt has subcommands that that are meant to roughly follow the same
 
 ### Coverage (cov)
 
-A coverage histogram is comuted for the bulk BAM. eg.
+A coverage histogram is computed for the bulk BAM.
 
 ```
 runNanoSeq.py -t 10 \
@@ -94,7 +94,7 @@ runNanoSeq.py -t 10 \
 
 ### Partition (part)
 
-Divide the coverage so that each job in the NanoSeq analysis gets roughly the same work.
+Divide the coverage so that each job in the NanoSeq analysis gets roughly the same work. The -n argument idicates the number of tasks that will be used in the dsa, var and indel steps.
 
 ```
 runNanoSeq.py -t 1 \
