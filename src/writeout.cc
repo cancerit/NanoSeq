@@ -150,16 +150,20 @@ std::string WriteOut::ProperPairs(bundle *bin) {
   return ss.str();
 }
 
-
 std::string WriteOut::IdentifierString(bundle *bin) {
   std::stringstream ss;
+  std::string str;
   ss << bin->idf.beg;
   ss << "\t";
   ss << bin->idf.end;
   ss << "\t";
-  ss << bin->idf.fwd_bc;
+  str = bin->idf.fwd_bc;
+  std::transform(str.begin(), str.end(),str.begin(), ::toupper); //uppercase
+  ss << str;
   ss << "|";
-  ss << bin->idf.rev_bc;
+  str = bin->idf.rev_bc;
+  std::transform(str.begin(), str.end(),str.begin(), ::toupper);
+  ss << str;
   ss << "\t";
   ss << bin->bundle_type;
   ss << "\t";
