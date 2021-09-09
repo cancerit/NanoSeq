@@ -64,5 +64,5 @@ if( (version$major == 3 && version$minor >=5) || version$major > 3) {
   ipak_bioc(c("VGAM"))
 } else {
   # OLD versions of R
-  exit("Must update to R v3.5.0 or greater")
+  stop("Must update to R v3.5.0 or greater")
 }
