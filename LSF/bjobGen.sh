@@ -132,6 +132,7 @@ runNanoSeq.py -k $CPU -j \$LSB_JOBINDEX  \\
   -a 2 \\
   -b 5 \\
   -c 0 \\
+  -d 2 \\
   -f 0.9 \\
   -i 1 \\
   -m 8 \\
