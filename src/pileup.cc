@@ -104,9 +104,9 @@ void Pileup::Initiate(Options *opts) {
   }
   this->opts = opts;
   this->snp.Load(this->opts->beds[0], this->opts->rname, this->opts->beg,
-    this->opts->end, this->gzout, this->opts->out2stdout);
+    this->opts->end + 1, this->gzout, this->opts->out2stdout);
   this->mask.Load(this->opts->beds[1], this->opts->rname, this->opts->beg,
-    this->opts->end, this->gzout, this->opts->out2stdout);
+    this->opts->end + 1, this->gzout, this->opts->out2stdout);
   this->fai = fai_load(this->opts->fasta);
   if (this->fai == NULL) {
     std::stringstream er;
@@ -168,7 +168,7 @@ void Pileup::Initiate(Options *opts) {
     }
     this->tid = sam_hdr_name2tid(this->data[i]->head, this->opts->rname);
     if (  this->tid < 0 ) exit(1);
-    this->data[i]->iter = sam_itr_queryi(idx, this->tid, opts->beg, opts->end);
+    this->data[i]->iter = sam_itr_queryi(idx, this->tid, opts->beg, opts->end + 1 );
     if (this->data[i]->iter == NULL) {
       std::stringstream er;
       er << "Error : failed to parse region";
