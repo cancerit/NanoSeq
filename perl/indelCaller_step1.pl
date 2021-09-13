@@ -150,7 +150,9 @@ while(<IN>) {
 		# If seen in the bulk, flag it:
 		if($bulkForwardIndel+$bulkReverseIndel > 1) {
 			$site_tags .= ";BULK_SEEN($dplxForwardIndel+$dplxReverseIndel/$bulktotal)";
-		}
+		} else {
+      $site_tags .= ";";
+    }
 		print OUT "$chr\t",$site-1,"\t$site\t$site_tags\n"; #BED Format including site tags!
 	}
 }
