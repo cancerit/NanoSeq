@@ -151,6 +151,7 @@ foreach my $rb_id (keys %indels) {
 	system( "bcftools index -f $tempdir/$out_name.bcf $tempdir/$out_name.indexed.bcf") and die("\n Error running: bcftools index -f $tempdir/$out_name.bcf $tempdir/$out_name.indexed.bcf : $!\n") ;
 
 	print STDOUT "Step 5...\n";
+  #`bcftools call --skip-variants snps --multiallelic-caller --variants-only  -O v $tempdir/$out_name.bcf -o $tempdir/$out_name.tmp.vcf`;
 	system("bcftools call --ploidy 1 --skip-variants snps --multiallelic-caller --variants-only  -O v $tempdir/$out_name.bcf -o $tempdir/$out_name.tmp.vcf") and die ("\nError running: bcftools call --skip-variants snps --multiallelic-caller --variants-only  -O v $tempdir/$out_name.bcf -o $tempdir/$out_name.tmp.vcf : $!\n");
 
 	print STDOUT "Step 6...\n";
