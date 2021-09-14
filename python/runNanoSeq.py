@@ -75,6 +75,7 @@ parser_var = subparsers.add_parser('var', help='variant caller')
 parser_var.add_argument('-a', type=int, action='store', default=2, help="minimum AS-XS (2)")
 parser_var.add_argument('-b', type=int, action='store', default=5, help="minimum duplex reads per strand (5)")
 parser_var.add_argument('-c', type=int, action='store', default=0, help="maximum number of clips (0)")
+parser_var.add_argument('-d', type=int, action='store', default=0, help="minimum duplex depth (2)")
 parser_var.add_argument('-f', type=float, action='store', default=0.9, help="minimum fraction of reads for consensus (0.9)")
 parser_var.add_argument('-i', type=int, action='store', default=1, help="maximum fraction of reads with an indel (1)")
 parser_var.add_argument('-m', type=int, action='store', default=8, help="minimum cycle number (8)")
@@ -400,7 +401,7 @@ if (args.subcommand == 'cov'):
       iofile.write(str(len(chrList) ))
   inputs = []
   for ii,ichr in enumerate(chrList) :
-    if ( os.path.isfile("%s/cov/%s.done") ) :
+    if ( os.path.isfile("%s/cov/%s.done"%(tmpDir,ii) ) ):
       inputs.append( (None,None,None,None,None ) ) #restart, don't do anything
     else :
       inputs.append( (args.tumour,str(args.Q),str(args.win),ichr,"%s/cov/%s"%(tmpDir,ii) ))
@@ -429,6 +430,7 @@ if (args.subcommand == 'cov'):
     
 #merge coverage files, partition into desired number of jobs
 if (args.subcommand == 'part'):
+  if ( os.path.isfile("%s/part/1.done"%(tmpDir) ) ) : exit(0) #restart
   if (not os.path.isfile(tmpDir+'/cov/args.json') ):
     sys.exit("\nMust run cov submmand prior to part\n")
   else :
@@ -653,9 +655,9 @@ if (args.subcommand == 'var' ) :
       continue
 
     #construct variantcaller commands
-    cmd = "variantcaller -B %s -U %s -O %s -a %s -b %s -c %s -g %s -i %s -m %s -n %s -p %s -q %s -r %s -v %s -x %s -z %s ;" \
+    cmd = "variantcaller -B %s -U %s -O %s -a %s -b %s -c %s -d %s -f %s -i %s -m %s -n %s -p %s -q %s -r %s -v %s -x %s -z %s ;" \
         %("%s/dsa/%s.dsa.bed.gz"%(tmpDir,i),"%s/var/%s.cov.bed"%(tmpDir,i),"%s/var/%s.var"%(tmpDir,i),
-          args.a,args.b,args.c, args.f, args.i, args.m, args.n, args.p, args.q, args.r, args.v, args.x, args.z)
+          args.a,args.b,args.c, args.d, args.f, args.i, args.m, args.n, args.p, args.q, args.r, args.v, args.x, args.z)
     cmd += "touch %s/var/%s.done"%(tmpDir,i)
     commands[i] = ( cmd , )
 
@@ -746,7 +748,7 @@ if (args.subcommand == 'indel' ) :
 
 #indel section
 if (args.subcommand == 'post' ) :
-
+  if ( os.path.isfile(tmpDir+'/post/1.done') ) : sys.exit(0)
   if ( args.index != None and args.index > 1 ) :
     print("\nWarning can only use 1 job of array\n")
     sys.exit(0)
@@ -931,4 +933,6 @@ if (args.subcommand == 'post' ) :
 
   print("\nEfficiency computation\n")
   cmd = "efficiency_nanoseq.pl -normal %s -tumour %s -r %s -o %s -t %s "%(args.normal,args.tumour,args.ref,"%s/post/eff"%(tmpDir), args.threads )
+  runCommand( cmd )
+  cmd = "touch %s/post/1.done"%(tmpDir)
   runCommand( cmd )
