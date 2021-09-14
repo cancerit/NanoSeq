@@ -147,7 +147,7 @@ void Pileup::Initiate(Options *opts) {
       er << std::endl;
       throw std::runtime_error(er.str());
     }
-    if (  this->opts->testBulk || i != 0  ) { //skip bulk test for legacy BAMs
+    if (  this->opts->doTests   ) { //allow to skip tests
       if (BamIsCorrectlyPreprocessed(this->data[i]->head, i) == false) {
         std::stringstream er;
         er << "Error : bam ";
@@ -177,24 +177,43 @@ void Pileup::Initiate(Options *opts) {
     }
     hts_idx_destroy(idx);
   }
-  //Check that the headers of both BAMs match each other
-  int n_targets0 = sam_hdr_nref( this->data[0]->head );
-  int n_targets1 = sam_hdr_nref( this->data[1]->head );
-  if ( n_targets0 != n_targets1 ){
-    std::stringstream er;
-    er << "Error : number of chromosomes in bulk and duplex don't match (" << n_targets0 << ":" << n_targets1 << ")";
-    er << std::endl;
-    throw std::runtime_error(er.str());
-  }
-  for (int i = 0; i < n_targets0; i++) {
-    if (strcmp(sam_hdr_tid2name(this->data[0]->head,i), sam_hdr_tid2name(this->data[1]->head,i))){
+  if ( this->opts->doTests ) {
+    //Check that the headers of both BAMs match each other
+    int n_targets0 = sam_hdr_nref( this->data[0]->head );
+    int n_targets1 = sam_hdr_nref( this->data[1]->head );
+    if ( n_targets0 != n_targets1 ){
       std::stringstream er;
-      er << "Error : order of chromosomes in bulk and duplex BAMs don't match";
+      er << "Error : number of chromosomes in bulk and duplex don't match (" << n_targets0 << ":" << n_targets1 << ")";
       er << std::endl;
       throw std::runtime_error(er.str());
     }
+    for (int i = 0; i < n_targets0; i++) {
+      if (strcmp(sam_hdr_tid2name(this->data[0]->head,i), sam_hdr_tid2name(this->data[1]->head,i))){
+        std::stringstream er;
+        er << "Error : order of chromosomes in bulk and duplex BAMs don't match";
+        er << std::endl;
+        throw std::runtime_error(er.str());
+      }
+    }
+    //Check BAM contig names against the reference
+    for (int i = 0; i < n_targets0; i++) {
+      if ( ! faidx_has_seq( this->fai, sam_hdr_tid2name(this->data[0]->head,i))){
+        std::stringstream er;
+        er << "Error: BAM file chromosome " << sam_hdr_tid2name(this->data[0]->head,i) << " doesn't match any reference chromosome";
+        er << std::endl;
+        throw std::runtime_error(er.str());
+      }
+    }
+    //Check that the BAM chomosome lenghts match the reference
+    for (int i = 0; i < n_targets0; i++) {
+      if ( sam_hdr_tid2len( this->data[0]->head,i ) != faidx_seq_len( this->fai, sam_hdr_tid2name(this->data[0]->head,i))){
+        std::stringstream er;
+        er << "Error: BAM file chromosome length for " << sam_hdr_tid2name(this->data[0]->head,i) << " doesn't match reference chromosome length";
+        er << std::endl;
+        throw std::runtime_error(er.str());
+      }
+    }
   }
-
   this->mplp  = bam_mplp_init(n, RetrieveAlignments, reinterpret_cast<void**>
     (this->data));
   this->n_plp = reinterpret_cast<int*>(calloc(n, sizeof(int)));
