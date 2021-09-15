@@ -68,7 +68,7 @@ parser_dsa.add_argument('-C','--snp', action='store', required=True, help="SNP B
 parser_dsa.add_argument('-D','--mask', action='store', required=True, help="mask BED file")
 parser_dsa.add_argument('-d', type=int, action='store', default=2, help="minimum duplex depth (2)")
 parser_dsa.add_argument('-q', type=int, action='store', default=30, help="minimum base quality for normal (30)")
-parser_dsa.add_argument('--no_test', action='store_true' )
+parser_dsa.add_argument('--no_test', action='store_true', help="skip BAM format tests, use with caution" )
 
 #variant caller
 parser_var = subparsers.add_parser('var', help='variant caller')
