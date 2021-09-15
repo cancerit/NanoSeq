@@ -89,7 +89,7 @@ parser_var.add_argument('-z', type=int, action='store', default=12, help="minimu
 
 #compute indels
 parser_indel = subparsers.add_parser('indel', help='indel caller')
-parser_indel.add_argument('-s','--sample', action='store', default='sample_1', help="sample name in output vcf")
+parser_indel.add_argument('-s','--sample', action='store', default='sample_1', help="sample name in output vcf (sample_1)")
 parser_indel.add_argument('--rb', type=int, action='store', default=2, help="minimum reads in a bundle. (2)")
 parser_indel.add_argument('--t3', type=int, action='store', default=135, help="excess bases above this value are trimmed from 3' (135)")
 parser_indel.add_argument('--t5', type=int, action='store', default=10, help="bases to trim from 5' reads (10)")
