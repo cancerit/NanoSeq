@@ -7,7 +7,7 @@ NORMAL="3.final.bam"
 REF="genome.fa"
 SNP_BED="SNP.sorted.bed.gz"
 NOISE_BED="NOISE.sorted.bed.gz"
-CPU=60
+CPU=80
 NAME="MY_NAME"
 
 if [ ! -f $TUMOUR ] || [ ! -f $TUMOUR.bai ] ; then
