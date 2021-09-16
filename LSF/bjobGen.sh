@@ -8,7 +8,7 @@ REF="genome.fa"
 SNP_BED="SNP.sorted.bed.gz"
 NOISE_BED="NOISE.sorted.bed.gz"
 CPU=60
-NAME="NANO3"
+NAME="MY_NAME"
 
 if [ ! -f $TUMOUR ] || [ ! -f $TUMOUR.bai ] ; then
   echo "TUMOUR file or index not found!"
