@@ -43,7 +43,7 @@ DEPENDS="module add samtools; module add bcftools; module add ISG/R/4.1.0"
 cat > run_cov.bsub <<- EOF
 #!/bin/bash
 #BSUB -q normal
-#BSUB -J $NAME.cov[1-10]
+#BSUB -J $NAME.cov[1-12]
 #BSUB -n 1
 #BSUB -R "select[mem>900] rusage[mem=900]" -M900
 #BSUB -e %I.cov.err
@@ -53,7 +53,7 @@ $DEPENDS
 
 export PATH=$NANOSEQ_PATH:\$PATH
 
-runNanoSeq.py -k 10 -j \$LSB_JOBINDEX  \\
+runNanoSeq.py -k 12 -j \$LSB_JOBINDEX  \\
   -A $NORMAL \\
   -B $TUMOUR \\
   -R $REF \\
