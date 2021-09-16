@@ -1,7 +1,6 @@
 #!/bin/bash
 
 NANOSEQ_PATH="~/NanoSeq/opt/bin"
-
 TUMOUR="filtered-3.bam"
 NORMAL="3.final.bam"
 REF="genome.fa"
@@ -34,8 +33,6 @@ if [ ! -f $NOISE_BED ] || [ ! -f $NOISE_BED.tbi ]; then
   echo "NOISE_BED file or index not found!"
   exit 1
 fi
-
-
 
 DEPENDS="module add samtools; module add bcftools; module add ISG/R/4.1.0"
 
