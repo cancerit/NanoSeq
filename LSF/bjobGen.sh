@@ -1,6 +1,6 @@
 #!/bin/bash
 
-NANOSEQ_PATH="/NanoSeq/opt/bin"
+NANOSEQ_PATH="~/NanoSeq/opt/bin"
 
 TUMOUR="filtered-3.bam"
 NORMAL="3.final.bam"
@@ -51,7 +51,7 @@ cat > run_cov.bsub <<- EOF
 
 $DEPENDS
 
-export PATH=\$NANOSEQ_PATH:\$PATH
+export PATH=$NANOSEQ_PATH:\$PATH
 
 runNanoSeq.py -k 10 -j \$LSB_JOBINDEX  \\
   -A $NORMAL \\
@@ -74,7 +74,7 @@ cat > run_part.bsub <<- EOF
 
 $DEPENDS
 
-export PATH=/nfs/users/nfs_r/ra11/lustre2/NanoSeq/NanoSeq/opt/bin:\$PATH
+export PATH=$NANOSEQ_PATH:\$PATH
 
 runNanoSeq.py -t 1  \\
   -A $NORMAL \\
@@ -97,7 +97,7 @@ cat > run_dsa.bsub <<- EOF
 
 $DEPENDS
 
-export PATH=\$NANOSEQ_PATH:\$PATH
+export PATH=$NANOSEQ_PATH:\$PATH
 
 runNanoSeq.py -k $CPU -j \$LSB_JOBINDEX  \\
   -A $NORMAL \\
@@ -122,7 +122,7 @@ cat > run_var.bsub <<- EOF
 
 $DEPENDS
 
-export PATH=\$NANOSEQ_PATH:\$PATH
+export PATH=$NANOSEQ_PATH:\$PATH
 
 runNanoSeq.py -k $CPU -j \$LSB_JOBINDEX  \\
   -A $NORMAL \\
@@ -157,7 +157,7 @@ cat > run_indel.bsub <<- EOF
 
 $DEPENDS
 
-export PATH=\$NANOSEQ_PATH:\$PATH
+export PATH=$NANOSEQ_PATH:\$PATH
 
 runNanoSeq.py -k $CPU -j \$LSB_JOBINDEX  \\
   -A $NORMAL \\
@@ -183,7 +183,7 @@ cat > run_post.bsub <<- EOF
 
 $DEPENDS
 
-export PATH=\$NANOSEQ_PATH:\$PATH
+export PATH=$NANOSEQ_PATH:\$PATH
 
 runNanoSeq.py -t 2  \\
   -A $NORMAL \\
