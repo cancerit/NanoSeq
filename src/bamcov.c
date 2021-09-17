@@ -478,6 +478,9 @@ int main_coverage(int argc, char *argv[]) {
                 else
                     stats[tid].summed_baseQ += bam_get_qual(p->b)[p->qpos];
             }
+            if (current_bin < n_bins)
+              hist[current_bin] += depth_at_pos;
+          
             if (depth_at_pos > 0) {
                 count_base = true;
                 stats[tid].summed_coverage += depth_at_pos;
@@ -485,8 +488,6 @@ int main_coverage(int argc, char *argv[]) {
         }
         if (count_base) {
             stats[tid].n_covered_bases++;
-            if (current_bin < n_bins)
-                ++(hist[current_bin]); // Histogram based on breadth of coverage
         }
     }
 
