@@ -55,6 +55,8 @@ subparsers = parser.add_subparsers(dest='subcommand', help='subcommands')
 subparsers.required = True #work around for older python versions
 parser_cov = subparsers.add_parser('cov', help='coverage calculation')
 parser_cov.add_argument('--exclude', action='store', default='MT,GL%%,NC_%,hs37d5', help='List of contigs to exclude. Comma separated, %% acts as a wild card. (MT,GL%%,NC_%%,hs37d5)')
+parser_cov.add_argument('--include', action='store', help='Only include these contigs. Comma separated, %% acts as a wild card.')
+parser_cov.add_argument('--larger', type=int, action='store', default=0, help='Only include contigs larger than this size. (0)')
 parser_cov.add_argument('-w','--win', type=int, action='store', default=100, help='bin size for coverage distribution (100)')
 parser_cov.add_argument('-Q', type=int, action='store', default=0, help="minimum mapQ to include a tumour read (0)")
 
@@ -375,18 +377,27 @@ if ( args.index == None or args.index == 1 ) :
 #coverage section
 if (args.subcommand == 'cov'):
   # build the chromosome dictionary, list and intervals
-  excludes = [ re.compile(istr + "$") for istr in args.exclude.replace("%",".+").split(',') ]
+  if ( args.exclude == None or args.exclude == ""  ) :
+    excludes = [ ] #exlcude None
+  else :
+    excludes = [ re.compile(istr + "$") for istr in args.exclude.replace("%",".+").split(',') ]
+  if ( args.include == None ) :
+    includes = [ re.compile(".+") ] #include all
+  else :
+    includes = [ re.compile(istr + "$") for istr in args.include.replace("%",".+").split(',') ]
   chrList = []
   rnames = {}
   with open(args.ref + '.fai','r') as iofile :
     for iline in iofile :
       ichr = iline.split('\t')[0]
-      if any( iregx.match(ichr) for iregx in excludes ): continue
-      ilength = iline.split('\t')[1]
-      chrList.append(ichr)
-      rnames[ichr] = int(ilength)
-
+      if  any( iregx.match(ichr) for iregx in includes ):
+        if any( iregx.match(ichr) for iregx in excludes ): continue
+        ilength = int( iline.split('\t')[1])
+        if ( ilength <= args.larger ) : continue
+        chrList.append(ichr)
+        rnames[ichr] = ilength
   gintervals = []
+  print("\nAnalysing contigs: %s\n"%chrList)
   for ichr in chrList :
     gintervals.append( GInterval(ichr,1,rnames[ichr]) )
   gintervals.sort()
