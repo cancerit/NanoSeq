@@ -105,9 +105,9 @@ runNanoSeq.py -t 1 \
   -n 60 \
 ```
 
-### dsa tables (dsa)
+### dsa beds (dsa)
 
-Compute the dsa tables. SNP and NOISE BED files contain sites to be marked on the output VCF file.
+Compute the dsa bed files. SNP and NOISE BED files contain sites to be marked on the output VCF file.
 
 ```
 runNanoSeq.py -t 60 \
@@ -146,9 +146,9 @@ runNanoSeq.py -t 60 \
   -z 12
 ```
 
-### dsa tables (dsa)
+### Indel vcfs (indel)
 
-Compute indels.
+Compute vcf files for indels.
 
 ```
 runNanoSeq.py -t 60 \
