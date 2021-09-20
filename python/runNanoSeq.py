@@ -62,12 +62,13 @@ parser_cov.add_argument('-Q', type=int, action='store', default=0, help="minimum
 
 parser_part = subparsers.add_parser('part', help='partition intervals into n jobs using coverage information')
 parser_part.add_argument('-n','--jobs', type=int, action='store', required=True, help='partition dsa,var,indel to this many tasks')
-parser_part.add_argument('--excludeBED', action='store', help='BED file with regions to exclude from analysis')
+parser_part.add_argument('--excludeBED', action='store', help='BED (gz) file with regions to exclude from analysis.')
+parser_part.add_argument('--excludeCov', type=int, action='store', help='Exclude regions with coverage values higher than this')
 
 #dsa
 parser_dsa = subparsers.add_parser('dsa', help='compute tables')
-parser_dsa.add_argument('-C','--snp', action='store', required=True, help="SNP BED file")
-parser_dsa.add_argument('-D','--mask', action='store', required=True, help="mask BED file")
+parser_dsa.add_argument('-C','--snp', action='store', required=True, help="SNP BED (gz) file")
+parser_dsa.add_argument('-D','--mask', action='store', required=True, help="mask BED (gz) file")
 parser_dsa.add_argument('-d', type=int, action='store', default=2, help="minimum duplex depth (2)")
 parser_dsa.add_argument('-q', type=int, action='store', default=30, help="minimum base quality for normal (30)")
 parser_dsa.add_argument('--no_test', action='store_true', help="skip BAM format tests, use with caution" )
@@ -381,7 +382,7 @@ if (args.subcommand == 'cov'):
     excludes = [ ] #exlcude None
   else :
     excludes = [ re.compile(istr + "$") for istr in args.exclude.replace("%",".+").split(',') ]
-  if ( args.include == None ) :
+  if ( args.include == None or args.include == "" ) :
     includes = [ re.compile(".+") ] #include all
   else :
     includes = [ re.compile(istr + "$") for istr in args.include.replace("%",".+").split(',') ]
@@ -465,17 +466,43 @@ if (args.subcommand == 'part'):
   with open(tmpDir+"/cov/gIntervals.dat", 'rb') as iofile :
     gIntervals = pickle.load(iofile)
   
-  #remove regions to ignore from exclude BED
-  if ( args.excludeBED != None ) :
-    xIntervals = []
-    with open(args.excludeBED,'r') as iofile :
+
+  coverage = []
+  cctotal = 0
+  chrOffset = {}
+  tmpIntervals = []
+  print("\nParsing coverage files\n")
+  for i in range(nfiles) :
+    with gzip.open( tmpDir+"/cov/%s.cov.bed.gz"%i,'rt') as iofile :
       for iline in iofile :
         ichr = str(iline.split('\t')[0])
         ib = int(iline.split('\t')[1])
         ie = int(iline.split('\t')[2])
-        xIntervals.append( GInterval(ichr,ib+1,ie)) #convert to ginterval 
-    xIntervals.sort()
-        
+        cc = int(iline.split('\t')[3])
+        cctotal += cc
+        if (args.excludeCov != None ) :
+          if ( cc >= args.excludeCov ) : tmpIntervals.append( GInterval(ichr,ib+1,ie) )
+        if (ib == 0 ) : chrOffset[str(ichr)] = len( coverage )
+        coverage.append( [ib,cc])
+  print("\nCompleted parsing coverage files\n")
+
+  #remove regions to ignore from exclude BED
+  if ( args.excludeBED != None ) :
+    with gzip.open(args.excludeBED,'rt') as iofile :
+      for iline in iofile :
+        ichr = str(iline.split('\t')[0])
+        ib = int(iline.split('\t')[1])
+        ie = int(iline.split('\t')[2])
+        tmpIntervals.append( GInterval(ichr,ib+1,ie)) #convert to ginterval 
+    tmpIntervals.sort()
+
+  if ( len( tmpIntervals ) > 0 ) :
+    #merge overlapping intervals
+    xIntervals = [ tmpIntervals.pop(0) ]
+    while ( len(tmpIntervals) > 0 ) : 
+      xIntervals.extend( xIntervals.pop() + tmpIntervals.pop(0) )     
+
+    #remove the excluded intervals
     iiresult= []
     for ii in gIntervals :
       ifrag = ii
@@ -485,28 +512,16 @@ if (args.subcommand == 'part'):
         if len(diff) == 2 :
           iiresult.append( diff[0] )
           ifrag = diff[1]
-        else :
+        elif len(diff) == 1 :
           ifrag = diff[0]
-      iiresult.append( ifrag )
+        else :
+          break
+      else :
+        iiresult.append( ifrag )
     gIntervals = iiresult
+    print("\nExcluding intervals: %s\n"%xIntervals)
 
-  coverage = []
-  cctotal = 0
-  chrOffset = {}
-  print("\nParsing coverage files\n")
-  for i in range(nfiles) :
-    with gzip.open( tmpDir+"/cov/%s.cov.bed.gz"%i,'rt') as iofile :
-      for iline in iofile :
-        ichr = str(iline.split('\t')[0])
-        ib = int(iline.split('\t')[1])
-        cc = int(iline.split('\t')[3])
-        cctotal += cc
-        if (ib == 0 ) : chrOffset[str(ichr)] = len( coverage )
-        coverage.append( [ichr,ib,cc]) #convert to ginterval 
-  print("\nCompleted parsing coverage files\n")
-
-  #correct total coverage (cctotal) if there are excluded regions
-  if ( args.excludeBED != None ) :
+    #correct total coverage (cctotal) if there are excluded regions
     xSumCov = 0
     for iinterval in xIntervals :
       ichar =iinterval.chr
@@ -514,7 +529,7 @@ if (args.subcommand == 'part'):
       iend = iinterval.end
       for i in range(math.floor(ibeg/oargs['win']), math.floor(iend/oargs['win'])+ 1 ):
         j = i + chrOffset[ ichar ]
-        xSumCov += coverage[j][2]
+        xSumCov += coverage[j][1]
     cctotal = cctotal - xSumCov
 
   #determine the genomic intervals to give to each job so that each one roughly
@@ -534,13 +549,13 @@ if (args.subcommand == 'part'):
     iend = iinterval.end
     for i in range(math.floor(ibeg/oargs['win']), math.floor(iend/oargs['win'])+ 1 ):
       j = i + chrOffset[ ichar ]
-      sumCov += coverage[j][2]
+      sumCov += coverage[j][1]
       if ( sumCov > basesPerCPU ) :
-        oIntervals.append(GInterval(ichar, ibeg + 1, coverage[j][1] + oargs['win']))
+        oIntervals.append(GInterval(ichar, ibeg + 1, coverage[j][0] + oargs['win']))
         intervalsPerCPU.append( oIntervals)
         oIntervals = [] 
         sumCov = 0
-        ibeg=  coverage[j][1] + oargs['win'] 
+        ibeg=  coverage[j][0] + oargs['win'] 
     oIntervals.append(GInterval(ichar, ibeg + 1, iend))
   if ( len(oIntervals) > 0 ) : intervalsPerCPU.append( oIntervals)
   with open("%s/part/%s"%(tmpDir,'intervalsPerCPU.dat'), 'wb') as iofile :
