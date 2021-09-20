@@ -15,7 +15,7 @@ Execution of the scripts from this repo requires that these dependencies be on P
 ```
 ./setup.sh path_to_install                       #install code from this repo
 export PATH=$PATH:path_to_install/bin
-Rscript ./build/libInstall.R <R libraries path>  #install all the required R libraries
+Rscript ./build/manualInstall.R <R libraries path>  #install all the required R libraries
 ```
 
 ## FASTQ and BAM processing of NanoSeq libraries
