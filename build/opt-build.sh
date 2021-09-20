@@ -87,23 +87,14 @@ export PATH="$INST_PATH/bin:$PATH"
 SETUP_DIR=$INIT_DIR/install_tmp
 mkdir -p $SETUP_DIR
 
-echo -n "Get libdeflate ..."
-if [ -e $SETUP_DIR/libdeflateGet.success ]; then
-  echo " already staged ...";
-else
-  echo
-  cd $SETUP_DIR
-  get_distro "libdeflate" "https://github.com/ebiggers/libdeflate/archive/$VER_LIBDEFLATE.tar.gz"
-  touch $SETUP_DIR/libdeflateGet.success
-fi
-
 echo -n "Building libdeflate ..."
 if [ -e $SETUP_DIR/libdeflate.success ]; then
-  echo " previously installed ...";
+  echo " previously built ...";
 else
   echo
   cd $SETUP_DIR
   mkdir -p libdeflate
+  get_distro "libdeflate" "https://github.com/ebiggers/libdeflate/archive/$VER_LIBDEFLATE.tar.gz"
   tar --strip-components 1 -C libdeflate -zxf libdeflate.tar.gz
   cd libdeflate
   make -j$CPU CFLAGS="-fPIC -O3" libdeflate.a
@@ -113,23 +104,14 @@ else
   touch $SETUP_DIR/libdeflate.success
 fi
 
-echo -n "Get htslib ..."
-if [ -e $SETUP_DIR/htslibGet.success ]; then
-  echo " already staged ...";
-else
-  echo
-  cd $SETUP_DIR
-  get_distro "htslib" "https://github.com/samtools/htslib/releases/download/$VER_HTSLIB/htslib-$VER_HTSLIB.tar.bz2"
-  touch $SETUP_DIR/htslibGet.success
-fi
-
 echo -n "Building htslib ..."
 if [ -e $SETUP_DIR/htslib.success ]; then
-  echo " previously installed ...";
+  echo " previously built ...";
 else
   echo
   cd $SETUP_DIR
   mkdir -p htslib
+  get_distro "htslib" "https://github.com/samtools/htslib/releases/download/$VER_HTSLIB/htslib-$VER_HTSLIB.tar.bz2"
   tar --strip-components 1 -C htslib -jxf htslib.tar.bz2
   cd htslib
   export CFLAGS="-I$INST_PATH/include"
@@ -142,14 +124,54 @@ else
   cp header.h $INST_PATH/include
   cd $SETUP_DIR
   rm -r htslib.tar.bz2
+  unset CFLAGS
+  unset LDFLAGS
+  unset LIBS
   touch $SETUP_DIR/htslib.success
 fi
 
-#Non-critical for the BotSeq pipeline execution
-#(used to compute purity of the BotSeq BAM files)
-echo -n "Downloading VerifyBamID ..."
+echo -n "Building bcftools ..."
+if [ -e $SETUP_DIR/bcftools.success ]; then
+  echo " previously built ...";
+else
+  echo
+  cd $SETUP_DIR
+  rm -rf bcftools
+  get_distro "bcftools" "https://github.com/samtools/bcftools/releases/download/$VER_BCFTOOLS/bcftools-$VER_BCFTOOLS.tar.bz2"
+  mkdir -p bcftools
+  tar --strip-components 1 -C bcftools -xjf bcftools.tar.bz2
+  cd bcftools
+  ./configure --enable-libgsl --enable-perl-filters --prefix=$INST_PATH
+  make -j$CPU
+  make install
+  cd $SETUP_DIR
+  rm -f bcftools.tar.bz2
+  touch $SETUP_DIR/bcftools.success
+fi
+
+echo -n "Building samtools ..."
+if [ -e $SETUP_DIR/samtools.success ]; then
+  echo " previously built ...";
+else
+  echo
+  cd $SETUP_DIR
+  rm -rf samtools
+  get_distro "samtools" "https://github.com/samtools/samtools/releases/download/$VER_SAMTOOLS/samtools-$VER_SAMTOOLS.tar.bz2"
+  mkdir -p samtools
+  tar --strip-components 1 -C samtools -xjf samtools.tar.bz2
+  cd samtools
+  ./configure --with-htslib=$SETUP_DIR/htslib --enable-plugins --enable-libcurl --prefix=$INST_PATH
+  make -j$CPU
+  make install
+  cd $SETUP_DIR
+  rm -f samtools.tar.bz2
+  touch $SETUP_DIR/samtools.success
+fi
+
+#used for QC of NanoSeq BAM files
+echo -n "Building VerifyBamID ..."
 if [ -e $SETUP_DIR/verifyBAMID.success ]; then
-  echo " previously downloaded ...";
+  echo " previously built ...";
 else
   echo
   cd $SETUP_DIR
@@ -160,8 +182,8 @@ else
   cd verifyBamID
   mkdir build
   cd build
-  cmake ..
-  make
+  cmake -DCMAKE_PREFIX_PATH=$INST_PATH ..
+  make -j$CPU
   make test
   cp ../bin/VerifyBamID $INST_PATH/bin
   cd $SETUP_DIR
@@ -169,28 +191,6 @@ else
   touch $SETUP_DIR/verifyBAMID.success
 fi
 
-echo -n "Downloading samtools ..."
-if [ -e $SETUP_DIR/samtools.success ]; then
-  echo " previously downloaded ...";
-else
-  echo
-  cd $SETUP_DIR
-  rm -rf samtools
-  get_distro "samtools" "https://github.com/samtools/samtools/releases/download/$VER_SAMTOOLS/samtools-$VER_SAMTOOLS.tar.bz2"
-  mkdir -p samtools
-  tar --strip-components 1 -C samtools -xjf samtools.tar.bz2
-  cd samtools
-  cp *.h $INST_PATH/include
-  ./configure --enable-plugins --enable-libcurl --prefix=$INST_PATH
-  make -j$CPU all all-htslib
-  make install all all-htslib
-  cd $SETUP_DIR
-  rm -f samtools.tar.bz2
-  touch $SETUP_DIR/samtools.success
-fi
-
-#Non-critical R functions (can be easily run manually)
-#(create plots and summary stats)
 echo -n "Installing R libraries..."
 mkdir -p $R_LIBS
 if [ -e $SETUP_DIR/Rlib.success ]; then
@@ -207,7 +207,7 @@ fi
 
 echo -n "Building gzstream ..."
 if [ -e $SETUP_DIR/gzstream.success ]; then
-  echo " previously downloaded ...";
+  echo " previously built ...";
 else
   echo
   cd $SETUP_DIR
