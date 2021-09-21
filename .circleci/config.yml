@@ -36,7 +36,17 @@ jobs:
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH statistics -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH gridsearch_merge.py -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH variantcaller_merge.py -h
-            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH runBotSeq.py -h
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH bamcov -h
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH efficiency_nanoseq.pl -h
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH efficiency_nanoseq.R
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH extract_tags.py -h
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH bamcov -h
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step1.pl -h
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step2.pl -h
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step3.R
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH nanoseq_results_plotter.R
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH variantcaller.R
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH runNanoSeq.py -h
             if [ "$CIRCLE_TAG" = "$BRANCH_OR_TAG" ]; then
               echo 'Pushing image'
               docker push $IMAGE_NAME:$CLEAN_BRANCH
