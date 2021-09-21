@@ -21,12 +21,14 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 args       = commandArgs(trailingOnly=TRUE)
-rb_file    = args[1]
-genomeFile = args[2]
 
 if (length(args)!=2) {
-  stop("efficiency_nanoseq.R rb_file genome\n\nMust specify a read-bundle file and a genome.\n\n", call.=FALSE)
+  cat("efficiency_nanoseq.R rb_file genome\n\nMust specify a read-bundle file and a genome.\n\n")
+  quit(save="no",status=0)
 }
+
+rb_file    = args[1]
+genomeFile = args[2]
 
 if (! file.exists(genomeFile)){
   stop("Reference file not found : ",genomeFile, call.=FALSE)

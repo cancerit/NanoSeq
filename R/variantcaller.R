@@ -43,7 +43,8 @@ suppressPackageStartupMessages({
 args = commandArgs(trailingOnly=TRUE)
 
 if (length(args) != 1) {
-  stop("Directory name argument must be supplied\n", call.=FALSE)
+  cat("Directory name argument must be supplied\n")
+  quit(save="no",status=0)
 }
 
 dirname <- args[1]

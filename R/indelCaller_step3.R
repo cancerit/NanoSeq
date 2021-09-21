@@ -31,7 +31,8 @@
 args = commandArgs(trailingOnly=TRUE)
 
 if (length(args)!=3) {
-  stop("indelCaller_step3.R  reference  vcf  bam\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM file for the matched normal\n\n", call.=FALSE)
+  cat("indelCaller_step3.R  reference  vcf  bam\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM file for the matched normal\n\n")
+  quit(save="no",status=0)
 }
 
 genomeFile = args[1]

@@ -25,7 +25,8 @@ READ_LENGTH = 151
 
 args       = commandArgs(TRUE)
 if (length(args)!=2) {
-  stop("nanoseq_results_plotter.R  directory  output_prefix\n\nMust specify a directory with the various CSV files and a prefix for the output files.\n\nScript generates a series of plots and tables summarizing the results of the variantcaller.\n\n", call.=FALSE)
+  cat("nanoseq_results_plotter.R  directory  output_prefix\n\nMust specify a directory with the various CSV files and a prefix for the output files.\n\nScript generates a series of plots and tables summarizing the results of the variantcaller.\n\n")
+  quit(save="no",status=0)
 }
 
 dir_res    = args[1]
