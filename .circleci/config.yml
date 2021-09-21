@@ -10,6 +10,17 @@
 
 version: 2.1
 jobs:
+  license_chk:
+    machine:
+      # need machine as want to mount a volume
+      image: ubuntu-2004:202107-02
+    steps:
+      - checkout
+      - run:
+          name: Execute skywalking-eyes check of licenses
+          # once 0.2.0 released change image
+          command: |
+            docker run --rm -v $(pwd):/github/workspace ghcr.io/apache/skywalking-eyes/license-eye header check
   build:
     environment:
       IMAGE_NAME: quay.io/wtsicgp/nanoseq
@@ -28,24 +39,41 @@ jobs:
             echo "$QUAYIO_PASSWORD" | docker login -u "$QUAYIO_USER" --password-stdin quay.io
             docker build -t $IMAGE_NAME:$CLEAN_BRANCH .
             echo 'Verify program(s) from this repo'
+            echo 'dsa'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH dsa -h
+            echo 'variantcaller'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH variantcaller -h
+            echo 'bamaddreadbundles'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH bamaddreadbundles -h
+            echo 'gridsearch'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH gridsearch -h
+            echo 'randomreadinbundle'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH randomreadinbundle -h
+            echo 'statistics'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH statistics -h
+            echo 'gridsearch_merge.py'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH gridsearch_merge.py -h
+            echo 'variantcaller_merge.py'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH variantcaller_merge.py -h
+            echo 'bamcov'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH bamcov -h
-            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH efficiency_nanoseq.pl -h
+            echo 'efficiency_nanoseq.pl'
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH efficiency_nanoseq.pl -v
+            echo 'efficiency_nanoseq.R'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH efficiency_nanoseq.R
+            echo 'extract_tags.py'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH extract_tags.py -h
-            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH bamcov -h
+            echo 'indelCaller_step1.pl '
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step1.pl -h
+            echo 'indelCaller_step2.pl '
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step2.pl -h
+            echo 'indelCaller_step3.R '
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step3.R
+            echo 'nanoseq_results_plotter.R'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH nanoseq_results_plotter.R
+            echo 'variantcaller.R'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH variantcaller.R
+            echo 'runNanoSeq.py'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH runNanoSeq.py -h
             if [ "$CIRCLE_TAG" = "$BRANCH_OR_TAG" ]; then
               echo 'Pushing image'
@@ -57,10 +85,16 @@ workflows:
   version: 2.1
   build_test:
     jobs:
+      - license_chk:
+          filters:
+            tags:
+              only: /.+/
       - build:
           context:
             - dockerhub-casmservice
             - quayio-casmservice
+          requires :
+            - license_chk
           filters:
             tags:
               only: /.+/
