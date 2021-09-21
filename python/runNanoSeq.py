@@ -114,11 +114,11 @@ parser_post = subparsers.add_parser('post', help='gather final files, compute su
 args = parser.parse_args()
 
 #check job partition arguments
-if ( (args.index == None and args.max_index != None) or 
-     (args.index != None and args.max_index == None) ) :
+if ( (args.index is None and args.max_index is not None) or 
+     (args.index is not None and args.max_index is None) ) :
     raise ValueError( "Must specify index and max_index for array execution!")
 
-if ( args.index == None and args.max_index == None ) :
+if ( args.index is None and args.max_index is None ) :
   jobArray = False
 else :
   jobArray = True
@@ -186,7 +186,7 @@ scripts = [ "Rscript", #indel, post
              ]
 
 for icode in scripts :
-  if ( shutil.which( icode ) == None ) :
+  if ( shutil.which( icode ) is None ) :
     raise ValueError( "%s was not found in path!"%icode )
 
 #handle genomic intervals with a class
@@ -326,7 +326,7 @@ class GInterval :
 
 # compute coverage histogram
 def runBamcov(bam, mapQ, window, ichr, out) :
-  if (bam == None ) : return
+  if (bam is None ) : return
   out = out+".cov.bed"
   p = subprocess.Popen(['bamcov','-q',mapQ,'-w',window,'-r',ichr,'-o',out, bam],stderr=subprocess.PIPE)
   p.wait()
@@ -346,7 +346,7 @@ def runBamcov(bam, mapQ, window, ichr, out) :
 
 #run an external command
 def runCommand(command) :
-  if ( command == None ) : return
+  if ( command is None ) : return
   for ijob in command.rstrip(';').split(';') :
     print("\nExecuting: %s\n"%ijob)
     p = subprocess.Popen(ijob,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -363,7 +363,7 @@ print(args.__dict__)
 print()
 
 #for array execution try to stagger access for files
-if ( args.index != None ) : time.sleep( 2 * args.index )
+if ( args.index is not None ) : time.sleep( 2 * args.index )
 
 # create all directory tree for the tmp files
 tmpDir = args.out + "/tmpNanoSeq"
@@ -381,18 +381,18 @@ if (args.subcommand == 'cov'):
   if (not os.path.isdir(tmpDir+'/indel') ) :
     os.makedirs(tmpDir+'/indel')
 
-if ( args.index == None or args.index == 1 ) :
+if ( args.index is None or args.index == 1 ) :
   with open("%s/%s/args.json"%(tmpDir,args.subcommand), "w") as jsonOut :
       json.dump(args.__dict__, jsonOut)
 
 #coverage section
 if (args.subcommand == 'cov'):
   # build the chromosome dictionary, list and intervals
-  if ( args.exclude == None or args.exclude == ""  ) :
+  if ( args.exclude is None or args.exclude == ""  ) :
     excludes = [ ] #exlcude None
   else :
     excludes = [ re.compile(istr + "$") for istr in args.exclude.replace("%",".+").split(',') ]
-  if ( args.include == None or args.include == "" ) :
+  if ( args.include is None or args.include == "" ) :
     includes = [ re.compile(".+") ] #include all
   else :
     includes = [ re.compile(istr + "$") for istr in args.include.replace("%",".+").split(',') ]
@@ -418,7 +418,7 @@ if (args.subcommand == 'cov'):
   chrList = reorderchr
 
   print("Starting cov calculation\n")
-  if ( args.index == None or args.index == 1 ) :
+  if ( args.index is None or args.index == 1 ) :
     with open("%s/cov/nfiles"%(tmpDir), "w") as iofile :
       iofile.write(str(len(chrList) ))
   inputs = []
@@ -427,7 +427,7 @@ if (args.subcommand == 'cov'):
       inputs.append( (None,None,None,None,None ) ) #restart, don't do anything
     else :
       inputs.append( (args.tumour,str(args.Q),str(args.win),ichr,"%s/cov/%s"%(tmpDir,ii) ))
-  if ( args.index == None ) :
+  if ( args.index is None ) :
     #multiple threads are available
     with open("%s/cov/%s"%(tmpDir,'gIntervals.dat'), 'wb') as iofile :
       pickle.dump(gintervals,iofile)
@@ -469,7 +469,7 @@ if (args.subcommand == 'part'):
     if ( len(glob.glob(tmpDir+"/cov/%s.cov.bed.gz"%i)) != 1 ) :
       sys.exit("\ncov job did not complete correctly\n"%i)
 
-  if ( args.index != None and args.index > 1 ) :
+  if ( args.index is not None and args.index > 1 ) :
     print("\nWarning can only use 1 job of array\n")
     sys.exit(0)
 
@@ -490,14 +490,14 @@ if (args.subcommand == 'part'):
         ie = int(iline.split('\t')[2])
         cc = int(iline.split('\t')[3])
         cctotal += cc
-        if (args.excludeCov != None ) :
+        if (args.excludeCov is not None ) :
           if ( cc >= args.excludeCov ) : tmpIntervals.append( GInterval(ichr,ib+1,ie) )
         if (ib == 0 ) : chrOffset[str(ichr)] = len( coverage )
         coverage.append( [ib,cc])
   print("\nCompleted parsing coverage files\n")
 
   #remove regions to ignore from exclude BED
-  if ( args.excludeBED != None ) :
+  if ( args.excludeBED is not None ) :
     with gzip.open(args.excludeBED,'rt') as iofile :
       for iline in iofile :
         ichr = str(iline.split('\t')[0])
@@ -589,7 +589,7 @@ if (args.subcommand == 'dsa' ) :
     sys.exit("\npart job did not complete correctly\n")
  
   #make sure that number of jobs matches what was specified in part
-  if ( args.max_index != None ) :
+  if ( args.max_index is not None ) :
     #array execution
     if ( args.max_index < njobs ) :
       sys.exit("\nLSF array size must match number of jobs specified for part (%s)\n"%njobs)
@@ -631,13 +631,13 @@ if (args.subcommand == 'dsa' ) :
     cmd += "touch %s/dsa/%s.done"%(tmpDir,i)
     commands[i] =  ( cmd , )
   
-  if ( args.index == None or args.index == 1 ) :
+  if ( args.index is None or args.index == 1 ) :
     with open("%s/dsa/nfiles"%(tmpDir), "w") as iofile :
       iofile.write(str( njobs ))
 
   #execute dsa commans
   print("Starting dsa calculation\n")
-  if ( args.index == None ) :
+  if ( args.index is None ) :
     #multithread
     with Pool( args.threads ) as p :
       p.starmap( runCommand, commands )
@@ -668,7 +668,7 @@ if (args.subcommand == 'var' ) :
       sys.exit("\ndsa job %s did not complete correctly\n"%i)
 
   #make sure that number of jobs matches what was specified in part
-  if ( args.max_index != None ) :
+  if ( args.max_index is not None ) :
     #array execution
     if ( args.max_index < njobs ) :
       sys.exit("\nLSF array size must match number of jobs specified for part (%s)\n"%njobs)
@@ -697,13 +697,13 @@ if (args.subcommand == 'var' ) :
     cmd += "touch %s/var/%s.done"%(tmpDir,i)
     commands[i] = ( cmd , )
 
-  if ( args.index == None or args.index == 1 ) :
+  if ( args.index is None or args.index == 1 ) :
     with open("%s/var/nfiles"%(tmpDir), "w") as iofile :
       iofile.write(str(njobs ))
 
   #execute variantcaller commans
   print("Starting var calculation\n")
-  if ( args.index == None ) :
+  if ( args.index is None ) :
     #multithread
     with Pool( args.threads ) as p :
       p.starmap( runCommand, commands )
@@ -734,7 +734,7 @@ if (args.subcommand == 'indel' ) :
       sys.exit("\ndsa job %s did not complete correctly\n"%i)
 
   #make sure that number of jobs matches what was specified in part
-  if ( args.max_index != None ) :
+  if ( args.max_index is not None ) :
     #array execution
     if ( args.max_index < njobs ) :
       sys.exit("\nLSF array size must match number of jobs specified for part (%s)\n"%njobs)
@@ -767,13 +767,13 @@ if (args.subcommand == 'indel' ) :
     cmd += "touch %s/indel/%s.done"%(tmpDir,i)
     commands[i] =  ( cmd , )
 
-  if ( args.index == None or args.index == 1 ) :
+  if ( args.index is None or args.index == 1 ) :
     with open("%s/indel/nfiles"%(tmpDir), "w") as iofile :
       iofile.write(str(njobs ))
 
   #execute indeliantcaller commans
   print("Starting indel calculation\n")
-  if ( args.index == None ) :
+  if ( args.index is None ) :
     #multithread
     with Pool( args.threads ) as p :
       p.starmap( runCommand, commands )
@@ -785,7 +785,7 @@ if (args.subcommand == 'indel' ) :
 #indel section
 if (args.subcommand == 'post' ) :
   if ( os.path.isfile(tmpDir+'/post/1.done') ) : sys.exit(0)
-  if ( args.index != None and args.index > 1 ) :
+  if ( args.index is not None and args.index > 1 ) :
     print("\nWarning can only use 1 job of array\n")
     sys.exit(0)
 
