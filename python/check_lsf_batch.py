@@ -81,7 +81,7 @@ def check_results(intervals, results):
   """
   for interval in intervals:
     result = results.get(interval, None)
-    if result == None:
+    if result is None:
       result = 'Missing.'
     if result != "Successfully completed.":
       print interval, result
