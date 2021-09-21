@@ -64,9 +64,9 @@ jobs:
             echo 'extract_tags.py'
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH extract_tags.py -h
             echo 'indelCaller_step1.pl '
-            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step1.pl -h
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step1.pl -v
             echo 'indelCaller_step2.pl '
-            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step2.pl -h
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step2.pl -v
             echo 'indelCaller_step3.R '
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step3.R
             echo 'nanoseq_results_plotter.R'
