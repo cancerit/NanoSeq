@@ -519,7 +519,9 @@ if (args.subcommand == 'part'):
     #merge overlapping intervals
     xIntervals = [ tmpIntervals.pop(0) ]
     while ( len(tmpIntervals) > 0 ) : 
-      xIntervals.extend( xIntervals.pop() + tmpIntervals.pop(0) )     
+      xIntervals.extend( xIntervals.pop() + tmpIntervals.pop(0) )
+  
+    print("\nExcluding %s intervals\n"% len(xIntervals))
 
     #remove the excluded intervals
     iiresult= []
@@ -538,7 +540,6 @@ if (args.subcommand == 'part'):
       else :
         iiresult.append( ifrag )
     gIntervals = iiresult
-    print("\nExcluding intervals: %s\n"%xIntervals)
 
     #correct total coverage (cctotal) if there are excluded regions
     xSumCov = 0
