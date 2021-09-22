@@ -571,7 +571,6 @@ if (args.subcommand == 'part'):
       sumCov += coverage[j][1]
       if ( sumCov > basesPerCPU ) :
         jend = min( [ coverage[j][0] + oargs['win'], iend ] ) 
-        print(GInterval(ichar, ibeg + 1, jend))
         oIntervals.append(GInterval(ichar, ibeg + 1, jend ))
         intervalsPerCPU.append( oIntervals)
         oIntervals = [] 
