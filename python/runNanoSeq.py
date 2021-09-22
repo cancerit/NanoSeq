@@ -184,6 +184,8 @@ for icode in scripts :
 class GInterval :
   def __init__(self, chrr, beg, end ) : 
     self.chr = chrr
+    if ( end < beg ) :
+      raise ValueError( "Interval %s: %s - %s is invalid!"%(chrr,beg,end) )
     self.beg = beg
     self.end = end
     self.l = end - beg + 1
@@ -568,13 +570,28 @@ if (args.subcommand == 'part'):
       j = i + chrOffset[ ichar ]
       sumCov += coverage[j][1]
       if ( sumCov > basesPerCPU ) :
-        oIntervals.append(GInterval(ichar, ibeg + 1, coverage[j][0] + oargs['win']))
+        jend = min( [ coverage[j][0] + oargs['win'], iend ] ) 
+        print(GInterval(ichar, ibeg + 1, jend))
+        oIntervals.append(GInterval(ichar, ibeg + 1, jend ))
         intervalsPerCPU.append( oIntervals)
         oIntervals = [] 
         sumCov = 0
-        ibeg=  coverage[j][0] + oargs['win'] 
-    oIntervals.append(GInterval(ichar, ibeg + 1, iend))
+        ibeg=  jend
+    if ( iend >= (ibeg + 1)) : 
+      oIntervals.append(GInterval(ichar, ibeg + 1, iend))
   if ( len(oIntervals) > 0 ) : intervalsPerCPU.append( oIntervals)
+
+  #check partitioning code is working as expected
+  #compare merged partitioned intervals to original gIntervals
+  flatInt = [item for sublist in intervalsPerCPU for item in sublist]
+  mIntervals = [ flatInt.pop(0) ]
+  while ( len(flatInt) > 0 ) : 
+    mIntervals.extend( mIntervals.pop() + flatInt.pop(0) )
+  for (i,ival) in enumerate(gIntervals) :
+    if ( ival != mIntervals[i] ) :
+      print("mismatch for interval %s should be %s\n"%(mIntervals[i], ival ) )
+      sys.exit(1)
+
   with open("%s/part/%s"%(tmpDir,'intervalsPerCPU.dat'), 'wb') as iofile :
     pickle.dump(intervalsPerCPU,iofile)
   cmd = "touch %s/part/1.done"%(tmpDir) 
