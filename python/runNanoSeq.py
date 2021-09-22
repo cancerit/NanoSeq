@@ -141,9 +141,8 @@ except OSError :
 def file_chk(fn, idx_ext, msg_prefix):
   if not os.path.isfile(fn) :
     parser.error(f"{msg_prefix} file {fn} was not found!")
-  if not os.path.isfile(args.snp + '.tbi') :
+  if not os.path.isfile(fn + idx_ext ) :
     parser.error(f"{msg_prefix} index file {fn}{idx_ext} was not found!")
-
 
 if ( hasattr(args,'tumour') ) :
   file_chk( args.tumour, ".bai", "BAM")
@@ -414,16 +413,17 @@ if (args.subcommand == 'cov'):
         if ( ilength <= args.larger ) : continue
         chrList.append(ichr)
         rnames[ichr] = ilength
+
   gintervals = []
-  print("\nAnalysing contigs: %s\n"%chrList)
   for ichr in chrList :
     gintervals.append( GInterval(ichr,1,rnames[ichr]) )
   gintervals.sort()
+
   reorderchr = []
   for iint in gintervals :
     reorderchr.append( iint.chr)
   chrList = reorderchr
-
+  print("\nAnalysing contigs: %s\n"%chrList)
   print("Starting cov calculation\n")
   if ( args.index is None or args.index == 1 ) :
     with open("%s/cov/nfiles"%(tmpDir), "w") as iofile :
