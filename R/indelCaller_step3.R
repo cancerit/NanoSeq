@@ -81,27 +81,27 @@ out_vcf_file = gsub(".vcf",".filtered.vcf",vcf_file)
 cat( "processing: ",vcf_file,"\n")
 if ( nrow(vcf@fix)  != 0 ){
   for(i in c(1:nrow( vcf@fix ))) {
-	  pos = strtoi( vcf@fix[i,"POS"] )
-	  chr = vcf@fix[i,"CHROM"]
-	  len = max(1,length( vcf@fix[i,"REF"])-1)
-	  start = pos - FLANK
-	  end   = pos + len + FLANK
-	  kk = bam2R(bam_file, chr,start,end, q=-100, mask=3844, mq=10) 
-	  # dont want a filter on BQ because in some bams BQ of indels have -1
+    pos = strtoi( vcf@fix[i,"POS"] )
+    chr = vcf@fix[i,"CHROM"]
+    len = max(1,length( vcf@fix[i,"REF"])-1)
+    start = pos - FLANK
+    end   = pos + len + FLANK
+    kk = bam2R(bam_file, chr,start,end, q=-100, mask=3844, mq=10) 
+    # dont want a filter on BQ because in some bams BQ of indels have -1
     n_bases  = sum(kk[,c("A","C","G","T","a","c","g","t")])
-	  n_indels = sum(kk[,c("-","INS","_","ins")            ]) # Number of reads with an indel around the mutation
-	  cat(chr,pos,len,n_bases,n_indels,"\n");
-	  cat(n_bases,"/",n_indels,"\n")
+    n_indels = sum(kk[,c("-","INS","_","ins")            ]) # Number of reads with an indel around the mutation
+    cat(chr,pos,len,n_bases,n_indels,"\n");
+    cat(n_bases,"/",n_indels,"\n")
     cat(i,"\n")
-	  if(n_bases == 0) {
+    if(n_bases == 0) {
       vcf@fix[i,"FILTER"] = "MISSINGBULK"
       vcf@fix[i,"INFO"] = paste(vcf@fix[i,"INFO"],";NN=[",n_indels,"/",n_bases,"]",sep="")
 
-	  } else if(n_indels/n_bases > 0.01) {
+    } else if(n_indels/n_bases > 0.01) {
       vcf@fix[i,"FILTER"] = "NEI_IND"
-		  vcf@fix[i,"INFO"] = paste(vcf@fix[i,"INFO"],";NN=[",n_indels,"/",n_bases,"]",sep="")
-	  }	
-	  sequence = as.vector(scanFa(genomeFile, GRanges(chr, IRanges(start-3, end+3))))
+      vcf@fix[i,"INFO"] = paste(vcf@fix[i,"INFO"],";NN=[",n_indels,"/",n_bases,"]",sep="")
+    }  
+    sequence = as.vector(scanFa(genomeFile, GRanges(chr, IRanges(start-3, end+3))))
     vcf@fix[i,"INFO"] = paste(vcf@fix[i,"INFO"],";SEQ=",sequence,sep="")
   }
 

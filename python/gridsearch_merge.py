@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+# coding=utf-8
 
 ########## LICENCE ##########
 # Copyright (c) 2020-2021 Genome Research Ltd
@@ -77,7 +78,6 @@ class MergeResults(object):
     fns = []
     for fn in os.listdir(self.dirname):
       if fn.endswith('.bed'):
-      #if fn.endswith('.csv'): #added by fa8
         fns.append('%s/%s' % (self.dirname, fn))
     return fns
 

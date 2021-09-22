@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 ########## LICENCE ##########
 # Copyright (c) 2020-2021 Genome Research Ltd
@@ -116,7 +116,7 @@ args = parser.parse_args()
 #check job partition arguments
 if ( (args.index is None and args.max_index is not None) or 
      (args.index is not None and args.max_index is None) ) :
-    raise ValueError( "Must specify index and max_index for array execution!")
+    parser.error( "Must specify index and max_index for array execution!")
 
 if ( args.index is None and args.max_index is None ) :
   jobArray = False
@@ -137,36 +137,28 @@ except OSError :
   sys.exit("\nCan't write to out directory %s\n"% args.out )
 
 #check required files
+
+def file_chk(fn, idx_ext, msg_prefix):
+  if not os.path.isfile(fn) :
+    parser.error(f"{msg_prefix} file {fn} was not found!")
+  if not os.path.isfile(args.snp + '.tbi') :
+    parser.error(f"{msg_prefix} index file {fn}{idx_ext} was not found!")
+
+
 if ( hasattr(args,'tumour') ) :
-  if not os.path.isfile(args.tumour) :
-    parser.error("BAM file %s was not found!" % args.tumour)
-  if not os.path.isfile(args.tumour + '.bai') :
-    parser.error("Index file %s was not found!" % (args.tumour + '.bai'))
+  file_chk( args.tumour, ".bai", "BAM")
 
 if ( hasattr(args,'normal') ) :
-  if not os.path.isfile(args.normal) :
-    parser.error("BAM file %s was not found!" % args.normal)
-  if not os.path.isfile(args.normal + '.bai') :
-    parser.error("Index file %s was not found!" % (args.normal + '.bai'))
+  file_chk( args.normal, ".bai", "BAM")
 
 if ( hasattr(args,'ref') ) :
-  if not os.path.isfile(args.ref) :
-    parser.error("Reference file %s was not found!" % args.ref)
-  if not os.path.isfile(args.ref + '.fai') :
-    parser.error("Index file %s was not found!" % (args.ref + '.fai'))
+  file_chk( args.ref, ".fai", "Reference")
 
 if ( hasattr(args,'snp') ) :
-  if not os.path.isfile(args.snp) :
-    parser.error("SNP file %s was not found!" % args.snp)
-  if not os.path.isfile(args.snp + '.tbi') :
-    parser.error("Index file %s was not found!" % (args.snp + '.tbi'))
+  file_chk( args.snp, ".tbi", "SNP")
 
 if ( hasattr(args,'mask') ) :
-  if not os.path.isfile(args.mask) :
-    parser.error("Mask file %s was not found!" % args.mask)
-  if not os.path.isfile(args.mask + '.tbi') :
-    parser.error("Index file %s was not found!" % (args.mask + '.tbi'))
-
+  file_chk( args.mask, ".tbi", "Mask")
 
 #check that all the dependancies for the analysis are in PATH
 scripts = [ "Rscript", #indel, post
@@ -357,6 +349,30 @@ def runCommand(command) :
       raise ValueError(error)
   return
 
+def vcfHeader( fai ) :
+  header =  '##fileformat=VCFv4.2\n'
+  header += '##source=NanoSeq pipeline\n'
+  header += '##FILTER=<ID=PASS,Description="All filters passed">\n'
+  header += "##reference=file://%s\n"%args.ref
+  with open(fai,'r') as iofile :
+    for iline in iofile :
+      ichr = iline.split('\t')[0]
+      ilength = iline.split('\t')[1]
+  header += "##contig=<ID=%s,length=%s>\n"%(ichr,ilength)
+  header += '##ALT=<ID=*,Description="Represents allele(s) other than observed.">\n'
+  header += '##INFO=<ID=TRI,Number=1,Type=String,Description="Pyrimidine context, trinucleotide substitution">\n'
+  header += '##INFO=<ID=BBEG,Number=1,Type=String,Description="Read bundle left breakpoint">\n'
+  header += '##INFO=<ID=BEND,Number=1,Type=String,Description="Read bundle right breakpoint">\n'
+  header += '##INFO=<ID=QPOS,Number=1,Type=Integer,Description="Read position closest to 5-prime end">\n'
+  header += '##INFO=<ID=DEPTH_FWD,Number=1,Type=Integer,Description="Read bundle forward reads depth">\n'
+  header += '##INFO=<ID=DEPTH_REV,Number=1,Type=Integer,Description="Read bundle reverse reads depth">\n'
+  header += '##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Integer,Description="Matched normal forward reads depth">\n'
+  header += '##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Integer,Description="Matched normal reverse reads depth">\n'
+  header += '##FILTER=<ID=dbsnp,Description="Common SNP site">\n'
+  header += '##FILTER=<ID=shearwater,Description="Noisy site">\n'
+  header += '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
+  return header
+
 print("command arguments :")
 
 print(args.__dict__)
@@ -368,18 +384,9 @@ if ( args.index is not None ) : time.sleep( 2 * args.index )
 # create all directory tree for the tmp files
 tmpDir = args.out + "/tmpNanoSeq"
 if (args.subcommand == 'cov'):
-  if (not os.path.isdir(tmpDir+'/dsa') ) :
-    os.makedirs(tmpDir+'/dsa')
-  if (not os.path.isdir(tmpDir+'/var') ) :
-    os.makedirs(tmpDir+'/var')
-  if (not os.path.isdir(tmpDir+'/post') ) :
-    os.makedirs(tmpDir+'/post')
-  if (not os.path.isdir(tmpDir+'/cov') ) :
-    os.makedirs(tmpDir+'/cov')
-  if (not os.path.isdir(tmpDir+'/part') ) :
-    os.makedirs(tmpDir+'/part')
-  if (not os.path.isdir(tmpDir+'/indel') ) :
-    os.makedirs(tmpDir+'/indel')
+  for idir in ('cov','part', 'dsa', 'var', 'indel', 'post') :
+    if (not os.path.isdir(tmpDir+'/'+idir) ) :
+      os.makedirs(tmpDir+'/'+idir)
 
 if ( args.index is None or args.index == 1 ) :
   with open("%s/%s/args.json"%(tmpDir,args.subcommand), "w") as jsonOut :
@@ -832,22 +839,18 @@ if (args.subcommand == 'post' ) :
   if ( did_var ) :
     #generate csv files
     print("\nGenerating CSV files for var\n")
-    csvFiles = {
-                'Coverage'   : open('%s/post/%s' % (tmpDir, 'coverage.csv'), 'w'),
-                'CallVsQpos' : open('%s/post/%s' % (tmpDir, 'callvsqpos.csv'), 'w'),
-                'PyrVsMask'  : open('%s/post/%s' % (tmpDir, 'pyrvsmask.csv'), 'w'),
-                'ReadBundles': open('%s/post/%s' % (tmpDir, 'readbundles.csv'), 'w'),
-                'Burdens'    : open('%s/post/%s' % (tmpDir, 'burdens.csv'), 'w'),
-                'Variants'   : open('%s/post/%s' % (tmpDir, 'variants.csv'), 'w'),
-                'Mismatches' : open('%s/post/%s' % (tmpDir, 'mismatches.csv'), 'w')
-               }
+    csvFiles = [ 'Coverage' , 'CallVsQpos', 'PyrVsMask', 'ReadBundles', 'Burdens', 'Variants', 'Mismatches' ]
+    csvIO = {}
+    for ifile in csvFiles :
+      csvIO[ifile] = open('%s/post/%s.csv' % (tmpDir, ifile.lower()), 'w'),
+
     #write headers
-    csvFiles['Coverage'].write('count\n')
-    csvFiles['CallVsQpos'].write('base,qpos,ismasked,count\n')
-    csvFiles['PyrVsMask'].write('pyrcontext,ismasked,count\n')
-    csvFiles['ReadBundles'].write('fwd,rev,ismasked,isvariant,count\n')
-    csvFiles['Burdens'].write('ismasked,isvariant,count\n')
-    csvFiles['Variants'].write('chrom,chromStart,context,commonSNP,'
+    csvIO['Coverage'].write('count\n')
+    csvIO['CallVsQpos'].write('base,qpos,ismasked,count\n')
+    csvIO['PyrVsMask'].write('pyrcontext,ismasked,count\n')
+    csvIO['ReadBundles'].write('fwd,rev,ismasked,isvariant,count\n')
+    csvIO['Burdens'].write('ismasked,isvariant,count\n')
+    csvIO['Variants'].write('chrom,chromStart,context,commonSNP,'
       'shearwater,bulkASXS,bulkNM,bulkForwardA,bulkForwardC,bulkForwardG,'
       'bulkForwardT,bulkForwardIndel,bulkReverseA,bulkReverseC,bulkReverseG,'
       'bulkReverseT,bulkReverseIndel,dplxBreakpointBeg,dplxBreakpointEnd,'
@@ -857,7 +860,7 @@ if (args.subcommand == 'post' ) :
       'dplxCQrevC,dplxCQrevG,dplxCQrevT,bulkForwardTotal,bulkReverseTotal,'
       'dplxfwdTotal,dplxrevTotal,left,right,qpos,call,isvariant,pyrcontext,'
       'stdcontext,pyrsub,stdsub,ismasked\n')
-    csvFiles['Mismatches'].write('chrom,chromStart,context,commonSNP,'
+    csvIO['Mismatches'].write('chrom,chromStart,context,commonSNP,'
       'shearwater,bulkASXS,bulkNM,bulkForwardA,bulkForwardC,bulkForwardG,'
       'bulkForwardT,bulkForwardIndel,bulkReverseA,bulkReverseC,bulkReverseG,'
       'bulkReverseT,bulkReverseIndel,dplxBreakpointBeg,dplxBreakpointEnd,'
@@ -873,10 +876,10 @@ if (args.subcommand == 'post' ) :
       for row in open( ifile, 'rU' ) :
         if ( row[0] == '#') : continue
         arow = row.strip().split('\t')
-        if csvFiles.get(arow[0], None):
-          csvFiles[arow[0]].write('%s\n' % ','.join(arow[1:]))
+        if csvIO.get(arow[0], None):
+          csvIO[arow[0]].write('%s\n' % ','.join(arow[1:]))
     
-    for ifile in csvFiles.values():
+    for ifile in csvIO.values():
       ifile.close()
 
     print("\nMerge coverage files for var\n")
@@ -912,27 +915,7 @@ if (args.subcommand == 'post' ) :
         for (i, ival) in enumerate(iline.rstrip('\n').split(',')) :
           var[fields[i]].append(ival)
       
-    header =  '##fileformat=VCFv4.2\n'
-    header += '##source=NanoSeq pipeline\n'
-    header += '##FILTER=<ID=PASS,Description="All filters passed">\n'
-    header += "##reference=file://%s\n"%args.ref
-    with open(args.ref + '.fai','r') as iofile :
-      for iline in iofile :
-        ichr = iline.split('\t')[0]
-        ilength = iline.split('\t')[1]
-        header += "##contig=<ID=%s,length=%s>\n"%(ichr,ilength)
-    header += '##ALT=<ID=*,Description="Represents allele(s) other than observed.">\n'
-    header += '##INFO=<ID=TRI,Number=1,Type=String,Description="Pyrimidine context, trinucleotide substitution">\n'
-    header += '##INFO=<ID=BBEG,Number=1,Type=String,Description="Read bundle left breakpoint">\n'
-    header += '##INFO=<ID=BEND,Number=1,Type=String,Description="Read bundle right breakpoint">\n'
-    header += '##INFO=<ID=QPOS,Number=1,Type=Integer,Description="Read position closest to 5-prime end">\n'
-    header += '##INFO=<ID=DEPTH_FWD,Number=1,Type=Integer,Description="Read bundle forward reads depth">\n'
-    header += '##INFO=<ID=DEPTH_REV,Number=1,Type=Integer,Description="Read bundle reverse reads depth">\n'
-    header += '##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Integer,Description="Matched normal forward reads depth">\n'
-    header += '##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Integer,Description="Matched normal reverse reads depth">\n'
-    header += '##FILTER=<ID=dbsnp,Description="Common SNP site">\n'
-    header += '##FILTER=<ID=shearwater,Description="Noisy site">\n'
-    header += '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
+    header = vcfHeader( args.ref + '.fai','r' )
 
     with open("%s/post/results.muts.vcf"%(tmpDir), "w") as iofile :
       iofile.write(header)

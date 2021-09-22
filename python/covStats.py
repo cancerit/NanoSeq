@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 ########## LICENCE ##########
 # Copyright (c) 2020-2021 Genome Research Ltd
@@ -41,7 +41,7 @@ import os
 import glob
 import gzip
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description="Compute various statistics from coverage (cov) files")
 #arguments for all subcommands
 parser.add_argument('--cov',   action='store', default='./tmpNanoSeq/cov', help='path of the cov directory (./tmpNanoSeq/cov)')
 

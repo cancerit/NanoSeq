@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 ########## LICENCE ##########
 # Copyright (c) 2020-2021 Genome Research Ltd
@@ -31,19 +31,22 @@
 # 2009, 2010, 2011, 2012’.
 ###########################
 
+use warnings;
 use strict;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use File::Which;
 use Capture::Tiny qw(capture);
-my $VERSION="1.0.0";
+my $VERSION="2.0.0";
 
 # 1. Calculate num reads neat bam
 # 2. Calculate num reads merged bam
 # 3. Calculate duplicate rate and number of bases sequenced
 # 4. Get RB conformations - and save
 # 5. Calculate efficiency with my own binomial thingy
-my %opts;
+my %opts = (
+    't' => 1,
+);
 
 GetOptions('n|normal=s'  => \my $neat_bam,
            'd|tumour=s'  => \my $merged_bam,
@@ -63,6 +66,7 @@ pod2usage(2) if ( not defined $output_prefix and not defined $neat_bam and not d
 die ("\nOutput prefix not defined\n") unless( $output_prefix );
 die ("\nMust define the reference\n") unless ( $ref_genome);
 die ("\nReference $ref_genome not found\n") unless ( -e $ref_genome );
+die ("\nReference $ref_genome index not found\n") unless ( -e $ref_genome . ".fai" );
 die ("\nMust define a neat normal BAM\n") unless ( $neat_bam );
 die ("\nFile $neat_bam not found\n") unless ( -e $neat_bam );
 die ("\nIndex for $neat_bam not found\n") unless ( -e "$neat_bam".".bai" );
@@ -72,108 +76,113 @@ die ("\nIndex for $merged_bam not found\n") unless ( -e "$merged_bam".".bai" );
 die ("\nRscript not found in path\n") unless ( which 'Rscript' );
 die ("\nefficiency_nanoseq.R must be in path\n") unless ( which 'efficiency_nanoseq.R' );
 
-my $threads = 1;
-$threads = $opts{'t'} if ( defined $opts{'t'} );
+my $threads = $opts{'t'};
 my $rb_output     = "$output_prefix.RBs";
 my $main_output   = "$output_prefix.tsv";
 # Get the first contig/chr:
-my $region        = `samtools view -H $neat_bam | grep "^\@SQ" | head -1 | cut -f2`;
-$region           =~ s/SN://;
-$region           = chomp($region);
+open(REFI,"<$ref_genome.fai") or die("Couldn't open reference index\n");
+my $region        = ( split(/\t/,<REFI>) )[0];
+close(REFI);
 
 ##########################################################################################
 # Calculating number of reads and duplicate rates
 my($num_unique_reads,$num_sequenced_reads,$dup_rate);
 
-print STDOUT "Calculating number of reads in $neat_bam...\n";
-my ($stdout, $stderr, $exit) = capture {
-    system("samtools view -@ $threads -c $neat_bam");
-};
-die "Error calling samtools view -@ $threads -c $neat_bam, $stderr\n" if ( $exit != 0 );
-chomp( $stdout);
-$num_unique_reads = $stdout;
+sub read_count {
+    my ($threads, $bam, $extra_opts) = @_;
+    $extra_opts = q{} unless(defined $extra_opts);
+    print STDOUT "Calculating number of reads in $bam...\n";
+    my $cmd = sprintf "samtools view $extra_opts -@ %d -c %s", $threads, $bam;
+    my ($stdout, $stderr, $exit) = capture {
+        system($cmd);
+    };
+    die "Error calling $cmd, $stderr\n" if ( $exit != 0 );
+    chomp( $stdout);
+    return $stdout; # reads counted
+}
+
+$num_unique_reads = &read_count($threads, $neat_bam);
+$num_sequenced_reads = &read_count($threads, $merged_bam);
+$dup_rate = ($num_sequenced_reads-$num_unique_reads)/$num_sequenced_reads;
 
 print STDOUT "  Num unique reads=$num_unique_reads\n";
-
-print STDOUT "Calculating number of reads in $merged_bam...\n";
-($stdout, $stderr, $exit) = capture {
-    system("samtools view -@ $threads -c $merged_bam");
-};
-die "Error calling samtools view -@ $threads -c $merged_bam, $stderr\n" if ( $exit != 0 );
-chomp( $stdout);
-$num_sequenced_reads = $stdout;
-
 print STDOUT "  Num sequenced reads=$num_sequenced_reads\n";
-
-$dup_rate = ($num_sequenced_reads-$num_unique_reads)/$num_sequenced_reads;
 print STDOUT "  Duplicate rate=$dup_rate\n";
 
 ##########################################################################################
 # Get read bundle comformations
-my %rbs;
 my $bam = $merged_bam;
+sub count_RB {
+  my %rbs;
+  my ($threads, $flag, $bam, $region) = @_;
+  my $cmd = "samtools view -@ $threads -f $flag $bam $region";
+  open(IN, "$cmd |") || die "Error launching $cmd\n"; 
+  while(<IN>) {
+    chomp;
+    my @tmp = (split(/\t/,$_));
+    my $rb;
+    foreach my $t ( @tmp ) {
+      if ( $t =~ /^RB:Z/ ) {
+        $rb = $t;
+        last;
+      }
+    }
+    $rbs{$rb}++;
+  }
+  close(IN) or die ("error when calling $cmd : $?, $!\n");
+  return( %rbs );
+}
 # Get first reads in reverse:
 print STDOUT "RB comformation: 1st reads in reverse...\n";
-open(IN, "samtools view -@ $threads -f 82 $bam $region |") || die "Error launching samtools view -@ $threads -f 82 $bam $region\n"; 
-while(<IN>) {
-	chomp;
-	my @tmp = (split(/\t/,$_));
-	my $rb;
-	foreach my $t ( @tmp ) {
-		$rb = $t if($t =~ /^RB/);
-	}
-	$rbs{$rb}->{"f2r1"}++;
-}
-close(IN) or die ("error when calling samtools: $?, $!\n");
+my %rbf2r1 = &count_RB($threads, 82, $bam, $region);
 
 print STDOUT "RB comformation: 2nd reads in reverse...\n";
-open(IN, "samtools view -@ $threads -f 146 $bam $region |") || die "samtools view -@ $threads -f 146 $bam $region\n"; 
-while(<IN>) {
-	chomp;
-	my @tmp = (split(/\t/,$_));
-        my $rb;
-        foreach my $t ( @tmp ) {
-                $rb = $t if($t =~ /^RB/);
-        }
-	$rbs{$rb}->{"f1r2"}++;
+my %rbf1r2 = &count_RB($threads, 146, $bam, $region);
+
+foreach my $ikey (keys %rbf2r1) {
+  $rbf1r2{$ikey} = 0 if ( ! exists( $rbf1r2{$ikey}));
 }
-close(IN) or die ("error when calling samtools: $?, $!\n");
+
+foreach my $ikey (keys %rbf1r2) {
+  $rbf2r1{$ikey} = 0 if ( ! exists( $rbf2r1{$ikey}));
+}
 
 open(OUT,">$rb_output") || die "Error openning output $rb_output\n";
-foreach my $rb ( keys %rbs ) {
-	$rbs{$rb}->{"f1r2"} = 0 if(!exists($rbs{$rb}->{"f1r2"}));
-	$rbs{$rb}->{"f2r1"} = 0 if(!exists($rbs{$rb}->{"f2r1"}));
-	print OUT "$rb\t",$rbs{$rb}->{"f1r2"},"\t",$rbs{$rb}->{"f2r1"},"\n";
+foreach my $rb ( keys %rbf1r2 ) {
+  print OUT "$rb\t",$rbf1r2{$rb},"\t",$rbf2r1{$rb},"\n";
 }
 close(OUT);
 
 ##########################################################################################
 # Call R to get the two values that inform on strand misses:
 my($reads_per_rb,$f_eff,$zib_eff,$ok_rbs,$total_rbs,$gc_both,$gc_single,$total_reads);
-print STDOUT "Running: efficiency_nanoseq.R $rb_output $ref_genome\n";
-open(IN, "efficiency_nanoseq.R $rb_output $ref_genome |") || die "Error running efficiency_nanoseq.R $rb_output $ref_genome\n";
-while(<IN>) {
-	print STDOUT "  Routput: ",$_;
-	chomp;
-	if(/READS_PER_RB/) {
-		$reads_per_rb = (split)[1];
-	} elsif(/F-EFF/) {
-		$f_eff = (split)[1];
-	} elsif(/ZIB-EFF/) {
-		$zib_eff = (split)[1];
-	} elsif(/OK_RBS/) {
-		$ok_rbs = (split)[1];
-	} elsif(/TOTAL_RBS/) {
-		$total_rbs = (split)[1];
-	} elsif(/GC_BOTH/) {
-		$gc_both = (split)[1];
-	} elsif(/GC_SINGLE/) {
-		$gc_single = (split)[1];
-	} elsif(/TOTAL_READS/) {
-		$total_reads = (split)[1];
-	}
+my $cmd = "efficiency_nanoseq.R $rb_output $ref_genome ";
+print STDOUT "Running: $cmd\n";
+my ($stdout, $stderr, $exit) = capture {
+  system($cmd);
+};
+die "Error calling $cmd, $stderr\n" if ( $exit != 0 );
+foreach (split('\n',$stdout)) {
+  print STDOUT "  Routput: ",$_,"\n";
+  chomp;
+  if(/READS_PER_RB/) {
+    $reads_per_rb = (split)[1];
+  } elsif(/F-EFF/) {
+    $f_eff = (split)[1];
+  } elsif(/ZIB-EFF/) {
+    $zib_eff = (split)[1];
+  } elsif(/OK_RBS/) {
+    $ok_rbs = (split)[1];
+  } elsif(/TOTAL_RBS/) {
+    $total_rbs = (split)[1];
+  } elsif(/GC_BOTH/) {
+    $gc_both = (split)[1];
+  } elsif(/GC_SINGLE/) {
+    $gc_single = (split)[1];
+  } elsif(/TOTAL_READS/) {
+    $total_reads = (split)[1];
+  }
 }
-close(IN)  or die ("error when calling samtools: $?, $!\n");
 # Check it run properly:
 open(OUT, ">$main_output") || die "Error writing to $main_output\n";
 print OUT "# Whole-genome metrics:\n";
@@ -183,7 +192,7 @@ print OUT "DUPLICATE_RATE\t$dup_rate\n";
 
 print OUT "# RB metrics are reported for chr/contig $region only:\n";
 if(!defined($zib_eff) || $zib_eff eq "") {
-	print STDOUT "ERROR: R script didn't worke correctly\n";
+  print STDOUT "ERROR: R script didn't work correctly\n";
 } 
 my $bases_sequenced = $total_reads * 150;
 my $bases_ok_rbs    = $ok_rbs * (300-50); # assuming mates don't overlap. Removing 50 bps for varios trimmings (rough estimate)
@@ -192,9 +201,7 @@ print OUT "TOTAL_READS_IN_RBS\t$total_reads\n";
 print OUT "OK_RBS(2+2)\t$ok_rbs\n";
 print OUT "READS_PER_RB\t$reads_per_rb\n";
 print OUT "F-EFF\t$f_eff\n";
-#print OUT "ZIB-EFF\t$zib_eff\n";
 print OUT "EFFICIENCY\t",$bases_ok_rbs / $bases_sequenced,"\n";
-#print OUT "EFFICIENCY2\t",$bases_ok_rbs / ($num_sequenced_reads*150),"\n";
 print OUT "GC_BOTH\t$gc_both\n";
 print OUT "GC_SINGLE\t$gc_single\n";
 close(OUT);
