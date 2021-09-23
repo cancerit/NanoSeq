@@ -203,23 +203,23 @@ if [ $ANSWER = 'y' ]; then
   COV_ID=$ID
   echo "submitted cov as $COV_ID"
 
-  get_jobid `bsub -w "exit($COV_ID)" < run_part.bsub`
+  get_jobid `bsub -w "ended($COV_ID)" < run_part.bsub`
   PART_ID=$ID
   echo "submitted part as $PART_ID"
 
-  get_jobid `bsub -w "exit($PART_ID)" < run_dsa.bsub`
+  get_jobid `bsub -w "ended($PART_ID)" < run_dsa.bsub`
   DSA_ID=$ID
   echo "submitted dsa as $DSA_ID"
 
-  get_jobid `bsub -w "exit($DSA_ID)" < run_var.bsub`
+  get_jobid `bsub -w "ended($DSA_ID)" < run_var.bsub`
   VAR_ID=$ID
   echo "submitted var as $VAR_ID"
 
-  get_jobid `bsub -w "exit($DSA_ID)" < run_indel.bsub`
+  get_jobid `bsub -w "ended($DSA_ID)" < run_indel.bsub`
   INDEL_ID=$ID
   echo "submitted indel as $INDEL_ID"
 
-  get_jobid `bsub -w "exit($INDEL_ID) && exit($VAR_ID)" < run_post.bsub`
+  get_jobid `bsub -w "ended($INDEL_ID) && ended($VAR_ID)" < run_post.bsub`
   POST_ID=$ID
   echo "submitted post as $ID"
 fi
