@@ -938,7 +938,7 @@ if (args.subcommand == 'post' ) :
         for (i, ival) in enumerate(iline.rstrip('\n').split(',')) :
           var[fields[i]].append(ival)
       
-    header = vcfHeader( args.ref + '.fai','r' )
+    header = vcfHeader( args.ref + '.fai' )
 
     with open("%s/post/results.muts.vcf"%(tmpDir), "w") as iofile :
       iofile.write(header)
