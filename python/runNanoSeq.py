@@ -521,7 +521,13 @@ if (args.subcommand == 'part'):
     while ( len(tmpIntervals) > 0 ) : 
       xIntervals.extend( xIntervals.pop() + tmpIntervals.pop(0) )
   
-    print("\nExcluding %s intervals\n"% len(xIntervals))
+    print("\nExcluding %s intervals, dumping to BED\n"% len(xIntervals))
+    if ( args.index is None or args.index == 1 ) :
+      with open("%s/part/%s"%(tmpDir,'exclude.bed'), 'w') as iofile :
+        for ii in xIntervals :
+          iofile.write("%s\t%s\t%s\n"%(ii.chr,ii.beg-1,ii.end) )
+      cmd = "bgzip -f %s/part/%s; sleep 3; bgzip -t %s/part/%s; tabix %s/part/%s"%(tmpDir,'exclude.bed',tmpDir,'exclude.bed.gz', tmpDir,'exclude.bed.gz')
+      runCommand( cmd )
 
     #remove the excluded intervals
     iiresult= []
@@ -859,7 +865,7 @@ if (args.subcommand == 'post' ) :
     csvFiles = [ 'Coverage' , 'CallVsQpos', 'PyrVsMask', 'ReadBundles', 'Burdens', 'Variants', 'Mismatches' ]
     csvIO = {}
     for ifile in csvFiles :
-      csvIO[ifile] = open('%s/post/%s.csv' % (tmpDir, ifile.lower()), 'w'),
+      csvIO[ifile] = open('%s/post/%s.csv' % (tmpDir, ifile.lower()), 'w')
 
     #write headers
     csvIO['Coverage'].write('count\n')
