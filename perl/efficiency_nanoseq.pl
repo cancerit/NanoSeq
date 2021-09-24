@@ -213,7 +213,7 @@ efficiency_nanoseq.pl
 
 =head1 SYNOPSIS
 
-efficiency_nanoseq.pl [-h -v] -normal BAM -tumour BAM -o prefix -r reference
+efficiency_nanoseq.pl [-h] [-v] [-t n] -normal BAM -tumour BAM -o prefix -r reference
 
 =head1 OPTIONS
 
