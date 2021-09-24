@@ -257,6 +257,14 @@ class GInterval :
       return False # rule 3
     elif ( ( xc == "X" or xc == "Y" ) and ( yc == "M" or yc == "MT") ):
       return True # rule 3
+    elif ( ( xc == "X" ):
+      return True # rule 3
+    elif ( ( yc == "X") ) :
+      return False # rule 3
+    elif ( ( xc == "Y" ):
+      return True # rule 3
+    elif ( ( yc == "Y") ) :
+      return False # rule 3
     elif ( ( xc == "M" or xc == "MT" ) ):
       return True # rule 3
     elif ( ( yc == "M" or yc == "MT") ) :
@@ -350,16 +358,16 @@ def runCommand(command) :
       raise ValueError(error)
   return
 
-def vcfHeader( fai ) :
+def vcfHeader( args ) :
   header =  '##fileformat=VCFv4.2\n'
   header += '##source=NanoSeq pipeline\n'
   header += '##FILTER=<ID=PASS,Description="All filters passed">\n'
   header += "##reference=file://%s\n"%args.ref
-  with open(fai,'r') as iofile :
+  with open(args.ref +"fai",'r') as iofile :
     for iline in iofile :
       ichr = iline.split('\t')[0]
       ilength = iline.split('\t')[1]
-  header += "##contig=<ID=%s,length=%s>\n"%(ichr,ilength)
+      header += "##contig=<ID=%s,length=%s>\n"%(ichr,ilength)
   header += '##ALT=<ID=*,Description="Represents allele(s) other than observed.">\n'
   header += '##INFO=<ID=TRI,Number=1,Type=String,Description="Pyrimidine context, trinucleotide substitution">\n'
   header += '##INFO=<ID=BBEG,Number=1,Type=String,Description="Read bundle left breakpoint">\n'
@@ -435,7 +443,7 @@ if (args.subcommand == 'cov'):
     if ( os.path.isfile("%s/cov/%s.done"%(tmpDir,ii) ) ):
       inputs.append( (None,None,None,None,None ) ) #restart, don't do anything
     else :
-      inputs.append( (args.tumour,str(args.Q),str(args.win),ichr,"%s/cov/%s"%(tmpDir,ii) ))
+      inputs.append( (args.tumour,str(args.Q),str(args.win),ichr,"%s/cov/%s"%(tmpDir,ii + 1) ))
   if ( args.index is None ) :
     #multiple threads are available
     with open("%s/cov/%s"%(tmpDir,'gIntervals.dat'), 'wb') as iofile :
@@ -473,10 +481,10 @@ if (args.subcommand == 'part'):
     with open(tmpDir+'/cov/nfiles') as iofile :
       nfiles = int(iofile.readline())
   for i in range( nfiles ) :
-    if ( len(glob.glob(tmpDir+"/cov/%s.done"%i)) != 1 ) :
-      sys.exit("\ncov job did not complete correctly\n"%i)
-    if ( len(glob.glob(tmpDir+"/cov/%s.cov.bed.gz"%i)) != 1 ) :
-      sys.exit("\ncov job did not complete correctly\n"%i)
+    if ( len(glob.glob(tmpDir+"/cov/%s.done"%(i+1))) != 1 ) :
+      sys.exit("\ncov job did not complete correctly\n"%(i+1))
+    if ( len(glob.glob(tmpDir+"/cov/%s.cov.bed.gz"%(i+1))) != 1 ) :
+      sys.exit("\ncov job did not complete correctly\n"%(i+1))
 
   if ( args.index is not None and args.index > 1 ) :
     print("\nWarning can only use 1 job of array\n")
@@ -492,7 +500,7 @@ if (args.subcommand == 'part'):
   tmpIntervals = []
   print("\nParsing coverage files\n")
   for i in range(nfiles) :
-    with gzip.open( tmpDir+"/cov/%s.cov.bed.gz"%i,'rt') as iofile :
+    with gzip.open( tmpDir+"/cov/%s.cov.bed.gz"%(i+1),'rt') as iofile :
       for iline in iofile :
         ichr = str(iline.split('\t')[0])
         ib = int(iline.split('\t')[1])
@@ -643,8 +651,8 @@ if (args.subcommand == 'dsa' ) :
   commands = [ ( None, ) ] * njobs
   for i in range(njobs) :
     #check for restarts
-    if ( os.path.isfile("%s/dsa/%s.done"%(tmpDir,i)) and \
-          os.path.isfile("%s/dsa/%s.dsa.bed.gz"%(tmpDir,i)) ):
+    if ( os.path.isfile("%s/dsa/%s.done"%(tmpDir,i+1)) and \
+          os.path.isfile("%s/dsa/%s.dsa.bed.gz"%(tmpDir,i+1)) ):
       continue
 
     #construct dsa commands
@@ -656,9 +664,9 @@ if (args.subcommand == 'dsa' ) :
       pipe = ">" if ii == 0 else ">>" #ensure first command overwrittes
       cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s %s -r %s -b %s -e %s %s %s ;" \
               %(args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, QQ, topt,
-                dsaInt.chr, dsaInt.beg, dsaInt.end,pipe, "%s/dsa/%s.dsa.bed"%(tmpDir,i) )
-    cmd += "bgzip -f -l 2 %s/dsa/%s.dsa.bed; sleep 3; bgzip -t %s/dsa/%s.dsa.bed.gz;"%(tmpDir,i,tmpDir,i)
-    cmd += "touch %s/dsa/%s.done"%(tmpDir,i)
+                dsaInt.chr, dsaInt.beg, dsaInt.end,pipe, "%s/dsa/%s.dsa.bed"%(tmpDir,i + 1) )
+    cmd += "bgzip -f -l 2 %s/dsa/%s.dsa.bed; sleep 3; bgzip -t %s/dsa/%s.dsa.bed.gz;"%(tmpDir,i+1,tmpDir,i+1)
+    cmd += "touch %s/dsa/%s.done"%(tmpDir,i+1)
     commands[i] =  ( cmd , )
   
   if ( args.index is None or args.index == 1 ) :
@@ -692,10 +700,10 @@ if (args.subcommand == 'var' ) :
   njobs = nfiles
 
   for i in range(nfiles ) :
-    if ( len(glob.glob(tmpDir+"/dsa/%s.done"%i)) != 1 ) :
-      sys.exit("\ndsa job %s did not complete correctly\n"%i)
-    if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%i)) != 1 ) :
-      sys.exit("\ndsa job %s did not complete correctly\n"%i)
+    if ( len(glob.glob(tmpDir+"/dsa/%s.done"%(i+1))) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%(i+1))
+    if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%(i+1))) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%(i+1))
 
   #make sure that number of jobs matches what was specified in part
   if ( args.max_index is not None ) :
@@ -715,16 +723,16 @@ if (args.subcommand == 'var' ) :
   commands = [ (None ,) ] * njobs
   for i in range(njobs) :
     #check for restarts
-    if ( os.path.isfile("%s/var/%s.done"%(tmpDir,i)) and \
-        os.path.isfile("%s/var/%s.var"%(tmpDir,i)) and \
-        os.path.isfile("%s/var/%s.cov.bed.gz"%(tmpDir,i)) ):
+    if ( os.path.isfile("%s/var/%s.done"%(tmpDir,i+1)) and \
+        os.path.isfile("%s/var/%s.var"%(tmpDir,i+1)) and \
+        os.path.isfile("%s/var/%s.cov.bed.gz"%(tmpDir,i+1)) ):
       continue
 
     #construct variantcaller commands
     cmd = "variantcaller -B %s -U %s -O %s -a %s -b %s -c %s -d %s -f %s -i %s -m %s -n %s -p %s -q %s -r %s -v %s -x %s -z %s ;" \
-        %("%s/dsa/%s.dsa.bed.gz"%(tmpDir,i),"%s/var/%s.cov.bed"%(tmpDir,i),"%s/var/%s.var"%(tmpDir,i),
+        %("%s/dsa/%s.dsa.bed.gz"%(tmpDir,i+1),"%s/var/%s.cov.bed"%(tmpDir,i+1),"%s/var/%s.var"%(tmpDir,i+1),
           args.a,args.b,args.c, args.d, args.f, args.i, args.m, args.n, args.p, args.q, args.r, args.v, args.x, args.z)
-    cmd += "touch %s/var/%s.done"%(tmpDir,i)
+    cmd += "touch %s/var/%s.done"%(tmpDir,i+1)
     commands[i] = ( cmd , )
 
   if ( args.index is None or args.index == 1 ) :
@@ -758,10 +766,10 @@ if (args.subcommand == 'indel' ) :
   njobs = nfiles
 
   for i in range(nfiles ) :
-    if ( len(glob.glob(tmpDir+"/dsa/%s.done"%i)) != 1 ) :
-      sys.exit("\ndsa job %s did not complete correctly\n"%i)
-    if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%i)) != 1 ) :
-      sys.exit("\ndsa job %s did not complete correctly\n"%i)
+    if ( len(glob.glob(tmpDir+"/dsa/%s.done"%(i+1))) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%(i+1))
+    if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%(i+1))) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%(i+1))
 
   #make sure that number of jobs matches what was specified in part
   if ( args.max_index is not None ) :
@@ -781,20 +789,20 @@ if (args.subcommand == 'indel' ) :
   commands =  [ ( None, ) ] * njobs
   for i in range(njobs) :
     #check for restarts
-    if ( os.path.isfile("%s/indel/%s.done"%(tmpDir,i)) and \
-         os.path.isfile("%s/indel/%s.indel.filtered.vcf.gz"%(tmpDir,i)) ) :
+    if ( os.path.isfile("%s/indel/%s.done"%(tmpDir,i+1)) and \
+         os.path.isfile("%s/indel/%s.indel.filtered.vcf.gz"%(tmpDir,i+1)) ) :
       continue
     
     #construct the indel commands ( 3 steps)
     cmd = "indelCaller_step1.pl -o %s -rb %s -t3 %s -t5 %s -mc %s %s ;"\
-        %("%s/indel/%s.indel.bed.gz"%(tmpDir,i), args.rb, args.t3, args.t5, args.mc, 
-          "%s/dsa/%s.dsa.bed.gz"%(tmpDir,i))
+        %("%s/indel/%s.indel.bed.gz"%(tmpDir,i+1), args.rb, args.t3, args.t5, args.mc, 
+          "%s/dsa/%s.dsa.bed.gz"%(tmpDir,i+1))
     cmd += "indelCaller_step2.pl -o %s -r %s -b %s %s ;"\
-        %("%s/indel/%s.indel"%(tmpDir,i), args.ref, args.tumour,
-          "%s/indel/%s.indel.bed.gz"%(tmpDir,i))
+        %("%s/indel/%s.indel"%(tmpDir,i+1), args.ref, args.tumour,
+          "%s/indel/%s.indel.bed.gz"%(tmpDir,i+1))
     cmd += "indelCaller_step3.R %s %s %s ;"\
-        %(args.ref, "%s/indel/%s.indel.vcf.gz"%(tmpDir,i), args.normal)
-    cmd += "touch %s/indel/%s.done"%(tmpDir,i)
+        %(args.ref, "%s/indel/%s.indel.vcf.gz"%(tmpDir,i+1), args.normal)
+    cmd += "touch %s/indel/%s.done"%(tmpDir,i+1)
     commands[i] =  ( cmd , )
 
   if ( args.index is None or args.index == 1 ) :
@@ -812,7 +820,7 @@ if (args.subcommand == 'indel' ) :
     runCommand( commands[args.index - 1][0] )
   print("Completed indel calculation\n")
 
-#indel section
+#post section
 if (args.subcommand == 'post' ) :
   if ( os.path.isfile(tmpDir+'/post/1.done') ) : sys.exit(0)
   if ( args.index is not None and args.index > 1 ) :
@@ -827,10 +835,10 @@ if (args.subcommand == 'post' ) :
       nfiles = int(iofile.readline())
 
   for i in range(nfiles ) :
-    if ( len(glob.glob(tmpDir+"/dsa/%s.done"%i)) != 1 ) :
-      sys.exit("\ndsa job %s did not complete correctly\n"%i)
-    if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%i)) != 1 ) :
-      sys.exit("\ndsa job %s did not complete correctly\n"%i)
+    if ( len(glob.glob(tmpDir+"/dsa/%s.done"%(i+1))) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%(i+1))
+    if ( len(glob.glob(tmpDir+"/dsa/%s.dsa.bed.gz"%(i+1))) != 1 ) :
+      sys.exit("\ndsa job %s did not complete correctly\n"%(i+1))
 
   #check var
   did_var = False
@@ -839,12 +847,12 @@ if (args.subcommand == 'post' ) :
     with open(tmpDir+'/dsa/nfiles') as iofile :
       nfiles = int(iofile.readline())
     for i in range(nfiles ) :
-      if ( len(glob.glob(tmpDir+"/var/%s.done"%i)) != 1 ) :
-        sys.exit("\nvar job %s did not complete correctly\n"%i)
-      if ( len(glob.glob(tmpDir+"/var/%s.var"%i)) != 1 ) :
-        sys.exit("\nvar job %s did not complete correctly\n"%i)
-      if ( len(glob.glob(tmpDir+"/var/%s.cov.bed.gz"%i)) != 1 ) :
-        sys.exit("\nvar job %s did not complete correctly\n"%i)
+      if ( len(glob.glob(tmpDir+"/var/%s.done"%(i+1))) != 1 ) :
+        sys.exit("\nvar job %s did not complete correctly\n"%(i+1))
+      if ( len(glob.glob(tmpDir+"/var/%s.var"%(i+1))) != 1 ) :
+        sys.exit("\nvar job %s did not complete correctly\n"%(i+1))
+      if ( len(glob.glob(tmpDir+"/var/%s.cov.bed.gz"%(i+1))) != 1 ) :
+        sys.exit("\nvar job %s did not complete correctly\n"%(i+1))
 
   #check indel
   did_indel = False
@@ -853,10 +861,10 @@ if (args.subcommand == 'post' ) :
     with open(tmpDir+'/indel/nfiles') as iofile :
       nfiles = int(iofile.readline())
     for i in range(nfiles ) :
-      if ( len(glob.glob(tmpDir+"/indel/%s.done"%i)) != 1 ) :
-        sys.exit("\nindel job %s did not complete correctly\n"%i)
-      if ( len(glob.glob(tmpDir+"/indel/%s.indel.filtered.vcf.gz"%i)) != 1 ) :
-        sys.exit("\nindel job %s did not complete correctly\n"%i)
+      if ( len(glob.glob(tmpDir+"/indel/%s.done"%(i+1))) != 1 ) :
+        sys.exit("\nindel job %s did not complete correctly\n"%(i+1))
+      if ( len(glob.glob(tmpDir+"/indel/%s.indel.filtered.vcf.gz"%(i+1))) != 1 ) :
+        sys.exit("\nindel job %s did not complete correctly\n"%(i+1))
 
 
   if ( did_var ) :
@@ -895,7 +903,7 @@ if (args.subcommand == 'post' ) :
 
     #wirte body
     for i in range(nfiles ) :
-      ifile = "%s/var/%s.var"%(tmpDir, i )
+      ifile = "%s/var/%s.var"%(tmpDir, i+1 )
       for row in open( ifile, 'rU' ) :
         if ( row[0] == '#') : continue
         arow = row.strip().split('\t')
@@ -910,7 +918,7 @@ if (args.subcommand == 'post' ) :
     outFile = "%s/post/cov.bed"%(tmpDir )
     cmd = "rm -f %s;"%( outFile)
     for i in range(nfiles ) :
-      ifile = "%s/var/%s.cov.bed.gz"%(tmpDir, i )
+      ifile = "%s/var/%s.cov.bed.gz"%(tmpDir, i+1 )
       cmd += "bgzip -dc %s >> %s ;"%( ifile, outFile )
     cmd += "bgzip -@ %s -f %s; sleep 3; bgzip -@ %s -t %s.gz ;"%(args.threads,outFile,args.threads,outFile)
     cmd += "tabix -f %s.gz"%(outFile)
@@ -965,7 +973,7 @@ if (args.subcommand == 'post' ) :
     print("\nMerging vcf files for indel\n")
     vcf2Merge = []
     for i in range (nfiles) :
-      ifile = tmpDir+"/indel/%s.indel.filtered.vcf.gz"%i
+      ifile = tmpDir+"/indel/%s.indel.filtered.vcf.gz"%(i+1)
       vcf2Merge.append( ifile )
     cmd = "bcftools concat --no-version -Oz -o %s/post/results.indel.vcf.gz "%tmpDir 
     for ifile in vcf2Merge :
