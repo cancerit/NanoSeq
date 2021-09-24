@@ -85,7 +85,7 @@ parser_dsa.add_argument('--no_test', action='store_true', help="skip BAM format 
 
 #variant caller
 parser_var = subparsers.add_parser('var', help='variant caller')
-parser_var.add_argument('-a', type=int, action='store', default=2, help="minimum AS-XS (2)")
+parser_var.add_argument('-a', type=int, action='store', default=50, help="minimum AS-XS (50)")
 parser_var.add_argument('-b', type=int, action='store', default=5, help="minimum duplex reads per strand (5)")
 parser_var.add_argument('-c', type=int, action='store', default=0, help="maximum number of clips (0)")
 parser_var.add_argument('-d', type=int, action='store', default=0, help="minimum duplex depth (2)")
