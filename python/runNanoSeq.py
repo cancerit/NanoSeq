@@ -257,13 +257,13 @@ class GInterval :
       return False # rule 3
     elif ( ( xc == "X" or xc == "Y" ) and ( yc == "M" or yc == "MT") ):
       return True # rule 3
-    elif ( ( xc == "X" ):
+    elif ( xc == "X" ):
       return True # rule 3
-    elif ( ( yc == "X") ) :
+    elif ( yc == "X" ) :
       return False # rule 3
-    elif ( ( xc == "Y" ):
+    elif ( xc == "Y" ):
       return True # rule 3
-    elif ( ( yc == "Y") ) :
+    elif ( yc == "Y") :
       return False # rule 3
     elif ( ( xc == "M" or xc == "MT" ) ):
       return True # rule 3
@@ -797,7 +797,7 @@ if (args.subcommand == 'indel' ) :
     cmd = "indelCaller_step1.pl -o %s -rb %s -t3 %s -t5 %s -mc %s %s ;"\
         %("%s/indel/%s.indel.bed.gz"%(tmpDir,i+1), args.rb, args.t3, args.t5, args.mc, 
           "%s/dsa/%s.dsa.bed.gz"%(tmpDir,i+1))
-    cmd += "indelCaller_step2.pl -o %s -r %s -b %s %s ;"\
+    cmd += "indelCaller_step2.pl -t -o %s -r %s -b %s %s ;"\
         %("%s/indel/%s.indel"%(tmpDir,i+1), args.ref, args.tumour,
           "%s/indel/%s.indel.bed.gz"%(tmpDir,i+1))
     cmd += "indelCaller_step3.R %s %s %s ;"\
