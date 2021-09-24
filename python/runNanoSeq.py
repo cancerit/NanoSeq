@@ -362,12 +362,19 @@ def vcfHeader( args ) :
   header =  '##fileformat=VCFv4.2\n'
   header += '##source=NanoSeq pipeline\n'
   header += '##FILTER=<ID=PASS,Description="All filters passed">\n'
-  header += "##reference=file://%s\n"%args.ref
-  with open(args.ref +"fai",'r') as iofile :
+  header += "##reference=file://%s\n"%(args.ref)
+  
+  contigs = []
+  with open(args.ref +".fai",'r') as iofile :
     for iline in iofile :
       ichr = iline.split('\t')[0]
-      ilength = iline.split('\t')[1]
-      header += "##contig=<ID=%s,length=%s>\n"%(ichr,ilength)
+      ilength = int(iline.split('\t')[1])
+      contigs.append(GInterval(ichr,1,ilength))
+  contigs.sort()
+  for ii in ( contigs ) :
+    ichr = ii.chr
+    ilength = ii.end
+    header += "##contig=<ID=%s,length=%s>\n"%(ichr,ilength)
   header += '##ALT=<ID=*,Description="Represents allele(s) other than observed.">\n'
   header += '##INFO=<ID=TRI,Number=1,Type=String,Description="Pyrimidine context, trinucleotide substitution">\n'
   header += '##INFO=<ID=BBEG,Number=1,Type=String,Description="Read bundle left breakpoint">\n'
@@ -946,7 +953,7 @@ if (args.subcommand == 'post' ) :
         for (i, ival) in enumerate(iline.rstrip('\n').split(',')) :
           var[fields[i]].append(ival)
       
-    header = vcfHeader( args.ref + '.fai' )
+    header = vcfHeader( args )
 
     with open("%s/post/results.muts.vcf"%(tmpDir), "w") as iofile :
       iofile.write(header)
