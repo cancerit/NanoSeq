@@ -82,6 +82,8 @@ r-cran-seqinr \
 libxml2 \
 libgsl23 \
 libperl5.30 \
+libcapture-tiny-perl \
+libfile-which-perl \
 unattended-upgrades && \
 unattended-upgrade -d -v && \
 apt-get remove -yq unattended-upgrades && \
@@ -104,7 +106,7 @@ COPY --from=builder $OPT $OPT
 ## USER CONFIGURATION
 RUN adduser --disabled-password --gecos '' ubuntu && chsh -s /bin/bash && mkdir -p /home/ubuntu
 
-USER    ubuntu
-WORKDIR /home/ubuntu
+#USER    ubuntu
+#WORKDIR /home/ubuntu
 
 CMD ["/bin/bash"]
