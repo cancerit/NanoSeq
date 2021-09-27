@@ -50,7 +50,7 @@ $DEPENDS
 
 export PATH=$NANOSEQ_PATH:\$PATH
 
-runNanoSeq.py -k 12 -j \$LSB_JOBINDEX  \\
+runNanoSeq.py -k \$LSB_JOBINDEX_END -j \$LSB_JOBINDEX  \\
   -A $NORMAL \\
   -B $TUMOUR \\
   -R $REF \\
@@ -96,7 +96,7 @@ $DEPENDS
 
 export PATH=$NANOSEQ_PATH:\$PATH
 
-runNanoSeq.py -k $CPU -j \$LSB_JOBINDEX  \\
+runNanoSeq.py -k \$LSB_JOBINDEX_END -j \$LSB_JOBINDEX  \\
   -A $NORMAL \\
   -B $TUMOUR \\
   -R $REF \\
@@ -121,7 +121,7 @@ $DEPENDS
 
 export PATH=$NANOSEQ_PATH:\$PATH
 
-runNanoSeq.py -k $CPU -j \$LSB_JOBINDEX  \\
+runNanoSeq.py -k \$LSB_JOBINDEX_END -j \$LSB_JOBINDEX  \\
   -A $NORMAL \\
   -B $TUMOUR \\
   -R $REF \\
@@ -156,7 +156,7 @@ $DEPENDS
 
 export PATH=$NANOSEQ_PATH:\$PATH
 
-runNanoSeq.py -k $CPU -j \$LSB_JOBINDEX  \\
+runNanoSeq.py -k \$LSB_JOBINDEX_END -j \$LSB_JOBINDEX  \\
   -A $NORMAL \\
   -B $TUMOUR \\
   -R $REF \\
