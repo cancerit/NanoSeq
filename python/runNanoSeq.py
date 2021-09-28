@@ -988,8 +988,5 @@ if (args.subcommand == 'post' ) :
     cmd += ";bcftools index -t -f %s/post/results.indel.vcf.gz "%tmpDir 
     runCommand(cmd)
 
-  print("\nEfficiency computation\n")
-  cmd = "efficiency_nanoseq.pl -normal %s -tumour %s -r %s -o %s -t %s "%(args.normal,args.tumour,args.ref,"%s/post/eff"%(tmpDir), args.threads )
-  runCommand( cmd )
   cmd = "touch %s/post/1.done"%(tmpDir)
   runCommand( cmd )
