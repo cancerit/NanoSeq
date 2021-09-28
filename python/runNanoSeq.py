@@ -110,7 +110,7 @@ parser_indel.add_argument('--mc', type=int, action='store', default=16, help="mi
 
 #carry out gather operations and compute summaries
 parser_post = subparsers.add_parser('post', help='gather final files, compute summaries')
-parser_indel.add_argument('--triNuc', action='store', help="tri-nucleotide correction file")
+parser_post.add_argument('--triNuc', action='store', help="tri-nucleotide correction file")
 args = parser.parse_args()
 
 #check job partition arguments
