@@ -110,7 +110,7 @@ parser_indel.add_argument('--mc', type=int, action='store', default=16, help="mi
 
 #carry out gather operations and compute summaries
 parser_post = subparsers.add_parser('post', help='gather final files, compute summaries')
-
+parser_indel.add_argument('--triNuc', action='store', help="tri-nucleotide correction file")
 args = parser.parse_args()
 
 #check job partition arguments
@@ -158,6 +158,10 @@ if ( hasattr(args,'snp') ) :
 
 if ( hasattr(args,'mask') ) :
   file_chk( args.mask, ".tbi", "Mask")
+
+if ( hasattr(args,'triNuc') and args.triNuc is not None) :
+  if not os.path.isfile( args.triNuc ) :
+    parser.error( "Trinucleotide correction file %s was not found!"%(args.triNuc))
 
 #check that all the dependancies for the analysis are in PATH
 scripts = [ "Rscript", #indel, post
@@ -936,7 +940,7 @@ if (args.subcommand == 'post' ) :
     cmd = "variantcaller.R %s/post/ > %s/post/summary.txt"%(tmpDir,tmpDir)
     runCommand( cmd )
 
-    cmd = "nanoseq_results_plotter.R %s/post %s/post/results"%(tmpDir,tmpDir)
+    cmd = "nanoseq_results_plotter.R %s/post %s/post/results %s"%(tmpDir,tmpDir,args.triNuc or "")
     runCommand( cmd )
 
     print("\nGenerate vcf file from variants.csv\n")
