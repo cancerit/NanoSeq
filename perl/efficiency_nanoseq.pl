@@ -39,7 +39,7 @@ use File::Which;
 use Capture::Tiny qw(capture);
 my $VERSION="2.0.0";
 
-# 1. Calculate num reads neat bam
+# 1. Calculate num reads in the deduplicated bam
 # 2. Calculate num reads merged bam
 # 3. Calculate duplicate rate and number of bases sequenced
 # 4. Get RB conformations - and save
@@ -48,7 +48,7 @@ my %opts = (
     't' => 1,
 );
 
-GetOptions('n|normal=s'  => \my $neat_bam,
+GetOptions('n|normal=s'  => \my $deduplicated_bam,
            'd|tumour=s'  => \my $merged_bam,
            'o|out=s'     => \my $output_prefix,
            'r|ref=s'     => \my $ref_genome,
@@ -61,15 +61,15 @@ if(defined $opts{'v'}) {
   print sprintf "VERSION: %s\n", $VERSION;
   exit 0;
   }
-pod2usage(2) if ( not defined $output_prefix and not defined $neat_bam and not defined $merged_bam and not defined $ref_genome );
+pod2usage(2) if ( not defined $output_prefix and not defined $deduplicated_bam and not defined $merged_bam and not defined $ref_genome );
 
 die ("\nOutput prefix not defined\n") unless( $output_prefix );
 die ("\nMust define the reference\n") unless ( $ref_genome);
 die ("\nReference $ref_genome not found\n") unless ( -e $ref_genome );
 die ("\nReference $ref_genome index not found\n") unless ( -e $ref_genome . ".fai" );
-die ("\nMust define a neat normal BAM\n") unless ( $neat_bam );
-die ("\nFile $neat_bam not found\n") unless ( -e $neat_bam );
-die ("\nIndex for $neat_bam not found\n") unless ( -e "$neat_bam".".bai" );
+die ("\nMust define a deduplicated BAM\n") unless ( $deduplicated_bam );
+die ("\nFile $deduplicated_bam not found\n") unless ( -e $deduplicated_bam );
+die ("\nIndex for $deduplicated_bam not found\n") unless ( -e "$deduplicated_bam".".bai" );
 die ("\nMust define a tumour duplex BAM\n") unless ( $merged_bam );
 die ("\nFile $merged_bam not found\n") unless ( -e $merged_bam );
 die ("\nIndex for $merged_bam not found\n") unless ( -e "$merged_bam".".bai" );
@@ -101,7 +101,7 @@ sub read_count {
     return $stdout; # reads counted
 }
 
-$num_unique_reads = &read_count($threads, $neat_bam);
+$num_unique_reads = &read_count($threads, $deduplicated_bam);
 $num_sequenced_reads = &read_count($threads, $merged_bam);
 $dup_rate = ($num_sequenced_reads-$num_unique_reads)/$num_sequenced_reads;
 
