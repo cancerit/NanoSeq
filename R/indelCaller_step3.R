@@ -77,7 +77,7 @@ out_vcf_file = gsub(".vcf",".filtered.vcf",vcf_file)
 # Create regions:
 #  * For deletions: get pos + length(deletion)   // length(deletion) = length(ref)-1
 #  * For insertions: get pos
-#  * Then, sum +/-5 to each side to count indels in the vecinity
+#  * Then, sum +/-5 to each side to count indels in the vicinity
 cat( "processing: ",vcf_file,"\n")
 if ( nrow(vcf@fix)  != 0 ){
   for(i in c(1:nrow( vcf@fix ))) {
