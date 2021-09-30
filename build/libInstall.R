@@ -32,7 +32,6 @@
 ###########################
 
 #install R packages
-#install R packages
 args = commandArgs(T)
 instLib = args[1] 
 r = getOption("repos") # hard code the UK repo for CRAN
@@ -61,10 +60,6 @@ if( (version$major == 3 && version$minor >=5) || version$major > 3) {
   ipak_bioc(c("deepSNV"))
   ipak_bioc(c("vcfR"))
   ipak_bioc(c("VGAM"))
-  #ipak_bioc(c("data.table"))
-  #ipak_bioc(c("epitools")) 
-  #ipak_bioc(c("gridExtra"))
-  #ipak_bioc(c("seqinr"))
 } else {
   # OLD versions of R
   stop("Must update to R v3.5.0 or greater")
