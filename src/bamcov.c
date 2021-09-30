@@ -197,13 +197,6 @@ void print_hist(FILE *file_out, const sam_hdr_t *h, const stats_aux_t *stats, in
         const int hist_size, const bool full_utf) {
     int i;
 
-    // Calculate histogram that contains percent covered
-    //double hist_data[hist_size];
-    //double max_val = 0.0;
-    //for (i = 0; i < hist_size; ++i) {
-    //    hist_data[i] = 100 * hist[i] / (double) stats[tid].bin_width;
-    //    if (hist_data[i] > max_val) max_val = hist_data[i];
-    //}
     for (i = 0; i < hist_size ; ++i) {
       fprintf(file_out,"%s\t%li\t%li\t%i\n",  
           sam_hdr_tid2name(h, tid), i*stats[tid].bin_width + stats[tid].beg,(i+1)*stats[tid].bin_width  + stats[tid].beg, hist[i]);
