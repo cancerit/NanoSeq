@@ -79,7 +79,7 @@ par(mar=c(2,2,2,2))
        main=paste(rb_file,":",round(reads_per_RB,3),sep=""))
   # Count how many do we have with size >= 4
   # Define sizes 4, 5..., >=10
-  # Para cada size, estimar cuántos esperamos que tengan una sola strand (12.5% para 4, 6.25 para 5...)
+  # For each size estimate how many we expect to have one strad ( 12.5% for 4, 6.25 for 5...)
   rbs$size = rbs$x + rbs$y
   rbs$size = pmin(rbs$size,10)
   total_missed = 0
