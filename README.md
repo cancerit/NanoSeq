@@ -164,7 +164,7 @@ runNanoSeq.py -t 60 \
 ```
 ### Post processing (post)
 
-Merge final files, produce summaries, compute efficiency. Results can be found in here.
+Merge final files, produce summaries, compute efficiency. Results can be found in tmpNanoSeq/post.
 
 ```
 runNanoSeq.py -t 2 \
@@ -175,7 +175,7 @@ runNanoSeq.py -t 2 \
 ```
 ### Note
 
-A bash script is provided in the LSF directory to facilitate generation and running of all the steps with LSF job arrays. Script should be edited for each analyisis.
+A bash script is provided in the LSF directory as a template for execution of all the steps in an computing environment using the LSF job scheduler. Script should be edited to fit individual needs.
 
 ## Output
 
