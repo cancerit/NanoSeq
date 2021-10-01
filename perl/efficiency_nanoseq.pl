@@ -37,7 +37,6 @@ use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 use File::Which;
 use Capture::Tiny qw(capture);
-my $VERSION="2.0.0";
 
 # 1. Calculate num reads in the deduplicated bam
 # 2. Calculate num reads merged bam
@@ -48,19 +47,14 @@ my %opts = (
     't' => 1,
 );
 
-GetOptions('n|normal=s'  => \my $deduplicated_bam,
-           'd|tumour=s'  => \my $merged_bam,
+GetOptions('d|dedup=s'   => \my $deduplicated_bam,
+           'x|duplex=s'  => \my $merged_bam,
            'o|out=s'     => \my $output_prefix,
            'r|ref=s'     => \my $ref_genome,
            't|threads=i' => \$opts{'t'},
-           'h|help'      => \$opts{'h'},
-           'v|version'   => \$opts{'v'},
+           'h|help'      => \$opts{'h'}
 ) or pod2usage(2);
-pod2usage(-verbose => 1) if(defined $opts{'h'});
-if(defined $opts{'v'}) {
-  print sprintf "VERSION: %s\n", $VERSION;
-  exit 0;
-  }
+pod2usage(-verbose => 1, -exitval => 0) if(defined $opts{'h'});
 pod2usage(2) if ( not defined $output_prefix and not defined $deduplicated_bam and not defined $merged_bam and not defined $ref_genome );
 
 die ("\nOutput prefix not defined\n") unless( $output_prefix );
@@ -213,19 +207,28 @@ efficiency_nanoseq.pl
 
 =head1 SYNOPSIS
 
-efficiency_nanoseq.pl [-h] [-v] [-t n] -normal BAM -tumour BAM -o prefix -r reference
+efficiency_nanoseq.pl [-h] [-t n] -dedup BAM -duplex BAM -o prefix -r reference
+
+    -dedup             -d   Deduplicated BAM
+    -duplex            -x   Duplex BAM
+    -ref               -r   reference file
+    -out               -o   Ouptup prefix
+
+  Optional parameters:
+    -threads           -t   Threads (1)
+    -help              -h
 
 =head1 OPTIONS
 
 =over 8
 
-=item B<-normal>
+=item B<-dedup>
 
-Normal BAM with index
+Deduplicated BAM (neat) and index. The BAM after being processed by randomreadinbundle.
 
-=item B<-normal>
+=item B<-duplex>
 
-Tumour (Duplex) BAM with index
+Duplex BAM and index. BAM prior to being processed by randomreadinbundle.
 
 =item B<-out>
 
@@ -233,7 +236,7 @@ Output prefix
 
 =item B<-ref>
 
-Reference file
+Reference file and index
 
 =item B<-threads>
 

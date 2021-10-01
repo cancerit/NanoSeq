@@ -47,7 +47,6 @@ use File::Which;
 use File::Temp qw/ tempfile tempdir /;
 use File::Basename;
 use Capture::Tiny qw(capture);
-my $VERSION="2.0.0";
 
 my %opts;
 GetOptions('b|bam=s'    => \my $botseq_bam_file,
@@ -57,14 +56,9 @@ GetOptions('b|bam=s'    => \my $botseq_bam_file,
            'k|keep'     => \$opts{'k'},
            't|sort'     => \$opts{'t'},
            'i|index'    => \$opts{'i'},
-           'h|help'     => \$opts{'h'},
-           'v|version'  => \$opts{'v'},
+           'h|help'     => \$opts{'h'}
 ) or pod2usage(2);
-pod2usage(-verbose => 1) if(defined $opts{'h'});
-if(defined $opts{'v'}) {
-  print sprintf "VERSION: %s\n", $VERSION;
-  exit 0;
-  }
+pod2usage(-verbose => 1,  -exitval => 0) if(defined $opts{'h'});
 pod2usage(2) if( @ARGV != 1 );
 die ("samtools not found in path\n") unless ( which 'samtools' );
 die ("bcftools not found in path\n") unless ( which 'bcftools' );
@@ -328,7 +322,6 @@ indelCaller_step2.pl  [options] -r ref -b BAM -o prefix input.bed.gz
     -sample            -s   Sample name ( sample_1 )
     -sort              -t   Put contigs in normal order
     -help              -h
-    -version           -v
 
 =head1 OPTIONS
 

@@ -35,8 +35,6 @@ use strict;
 use Getopt::Long qw(:config no_ignore_case);
 use Pod::Usage;
 
-my $VERSION="2.0.0";
-
 my %opts;
 my $min_size_subfam = 2; #Minimum number of family size 2 for 2+2, 3 for 3+3, etc
 my $filter_5_prime  = 10; #Number of bases to be trimmed from 5'. Set as 0 if no filter is wanted. Example: 10 for the first 10 bases
@@ -48,14 +46,9 @@ GetOptions('rb|reads-bundle=i'  => \$min_size_subfam,
            't5|trim5=i'  => \$filter_5_prime, 
            'mc|min-coverage=i' => \$bulk_min_cov,
            'o|out=s' => \$opts{'o'},
-           'h|help' => \$opts{'h'},
-           'v|version' => \$opts{'v'},
+           'h|help' => \$opts{'h'}
 ) or pod2usage(2);
-pod2usage(-verbose => 1) if(defined $opts{'h'});
-if(defined $opts{'v'}) {
-  print sprintf "VERSION: %s\n", $VERSION;
-  exit 0;
-  }
+pod2usage(-verbose => 1, -exitval => 0) if(defined $opts{'h'});
 pod2usage(2) if( @ARGV != 1 );
 die ("\nOutput file not defined\n") unless(defined $opts{'o'});
 open(OUT,"| gzip >$opts{'o'}") or die ("\nCouldn't stream to output file $!\n");
