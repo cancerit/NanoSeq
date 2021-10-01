@@ -41,6 +41,9 @@ import os
 import glob
 import gzip
 
+#simple script to compute statistics from cov files. The coverage values in these files are computed
+#in windows of 100bp so they differer from single base coverage statistics.
+
 parser = argparse.ArgumentParser(description="Compute various statistics from coverage (cov) files")
 #arguments for all subcommands
 parser.add_argument('--cov',   action='store', default='./tmpNanoSeq/cov', help='path of the cov directory (./tmpNanoSeq/cov)')
