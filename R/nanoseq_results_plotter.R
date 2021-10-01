@@ -30,6 +30,14 @@
 # identical to a statement that reads ‘Copyright (c) 2005, 2006, 2007, 2008,
 # 2009, 2010, 2011, 2012’.
 
+suppressPackageStartupMessages({
+  library(data.table)
+  library(epitools)
+  library(gridExtra)
+  library(grid)
+  library(Biostrings)
+})
+
 options(stringsAsFactors=FALSE)
 READ_LENGTH = 151
 
@@ -73,14 +81,6 @@ if(length(args) == 3) {
 if (! dir.exists(dir_res)){
   stop("Directory : ",dir_res," not found", call.=FALSE)
 }
-
-suppressPackageStartupMessages({
-  library(data.table)
-  library(epitools)
-  library(gridExtra)
-  library(grid)
-  library(Biostrings)
-})
 
 # builds the following objects
 #   burdens

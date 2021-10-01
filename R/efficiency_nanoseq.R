@@ -31,6 +31,15 @@
 # 2009, 2010, 2011, 2012’.
 ###########################
 
+suppressPackageStartupMessages({
+  library(VGAM)
+  library(Biostrings)
+  library(Rsamtools)
+  library(GenomicRanges)
+  library(stringr)
+  library(seqinr)
+})
+
 args       = commandArgs(trailingOnly=TRUE)
 
 if (length(args)!=2) {
@@ -48,15 +57,6 @@ if (! file.exists(genomeFile)){
 if (! file.exists(rb_file)){
   stop("readbundle file not found : ",rb_file, call.=FALSE)
 }
-
-suppressPackageStartupMessages({
-  library(VGAM)
-  library(Biostrings)
-  library(Rsamtools)
-  library(GenomicRanges)
-  library(stringr)
-  library(seqinr)
-})
 
 pdf(paste(rb_file,".pdf",sep=""),width=6,height=6)
 par(mar=c(2,2,2,2))

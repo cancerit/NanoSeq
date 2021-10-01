@@ -39,6 +39,14 @@
 #      2. The name of the output file from step 2 of indelCaller
 #      3. The BAM file containing the matched normal
 
+suppressPackageStartupMessages({
+  library(deepSNV)
+  library(vcfR)
+  library("GenomicRanges")
+  library("Rsamtools")
+  library("MASS")
+})
+
 args = commandArgs(trailingOnly=TRUE)
 
 if (length(args)!=3) {
@@ -59,14 +67,6 @@ if (! file.exists(vcf_file) ){
 if (! file.exists(bam_file) ){
   stop("Matched BAM file not found : ",bam_file, call.=FALSE)
 }
-
-suppressPackageStartupMessages({
-  library(deepSNV)
-  library(vcfR)
-  library("GenomicRanges")
-  library("Rsamtools")
-  library("MASS")
-})
 
 FLANK = 5
 
