@@ -68,9 +68,6 @@ dirname <- sub("/$", "", dirname)
 
 # read in csv files
 cat(getwd())
-cat("\n")
-cat( paste(dirname, 'burdens.csv', sep="/") )
-cat("\n")
 burdens     <- fread(paste(dirname, 'burdens.csv', sep="/"))
 callsvsqpos <- fread(paste(dirname, 'callvsqpos.csv', sep="/"))
 coverage    <- fread(paste(dirname, 'coverage.csv', sep="/"))
