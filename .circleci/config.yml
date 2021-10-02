@@ -46,7 +46,6 @@ jobs:
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH gridsearch -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH randomreadinbundle -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH statistics -h
-            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH gridsearch_merge.py -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH variantcaller_merge.py -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH bamcov -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH efficiency_nanoseq.pl -h
