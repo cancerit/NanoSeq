@@ -1,23 +1,34 @@
-/**   LICENCE
-* Copyright (c) 2020 Genome Research Ltd.
-* 
-* Author: Cancer Genome Project <cgphelp@sanger.ac.uk>
-* 
-* This file is part of NanoSeq.
-* 
-* NanoSeq is free software: you can redistribute it and/or modify it under
-* the terms of the GNU Affero General Public License as published by the Free
-* Software Foundation; either version 3 of the License, or (at your option) any
-* later version.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-* FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
-* details.
-* 
-* You should have received a copy of the GNU Affero General Public License
-* along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+/*########## LICENCE ##########
+# Copyright (c) 2020-2021 Genome Research Ltd
+# 
+# Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
+# 
+# This file is part of NanoSeq.
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+# 
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# 
+# 1. The usage of a range of years within a copyright statement contained within
+# this distribution should be interpreted as being equivalent to a list of years
+# including the first and last year specified and all consecutive years between
+# them. For example, a copyright statement that reads ‘Copyright (c) 2005, 2007-
+# 2009, 2011-2012’ should be interpreted as being identical to a statement that
+# reads ‘Copyright (c) 2005, 2007, 2008, 2009, 2011, 2012’ and a copyright
+# statement that reads ‘Copyright (c) 2005-2012’ should be interpreted as being
+# identical to a statement that reads ‘Copyright (c) 2005, 2006, 2007, 2008,
+# 2009, 2010, 2011, 2012’.
+##########################*/
+
 
 #include "pileup.h"
 
@@ -89,25 +100,24 @@ bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, int i) {
 
 void Pileup::Initiate(Options *opts) {
   //test that we can write output file
-  std::ofstream test_file( opts-> oname );
-  if (test_file.is_open()) {
-    test_file.close();
-  } else {
-    std::stringstream er;
-    er << "Error: cannot write output file ";
-    er << opts-> oname;
-    er << std::endl;
-    throw std::runtime_error(er.str());
+  if ( not opts-> out2stdout ) {
+    std::ofstream test_file( opts-> oname );
+    if (test_file.is_open()) {
+      test_file.close();
+    } else {
+      std::stringstream er;
+      er << "Error: cannot write output file ";
+      er << opts-> oname;
+      er << std::endl;
+      throw std::runtime_error(er.str());
+    }
+    this->gzout.open( opts-> oname);
   }
-  this->gzout.open( opts-> oname);
-  this->gzout << "# Version 1.0 January 2019\n";
-  this->gzout << "#\n";
-  this->gzout << "# INTERVALS FROM BED FILES\n";
   this->opts = opts;
   this->snp.Load(this->opts->beds[0], this->opts->rname, this->opts->beg,
-    this->opts->end, this->gzout);
+    this->opts->end + 1, this->gzout, this->opts->out2stdout);
   this->mask.Load(this->opts->beds[1], this->opts->rname, this->opts->beg,
-    this->opts->end, this->gzout);
+    this->opts->end + 1, this->gzout, this->opts->out2stdout);
   this->fai = fai_load(this->opts->fasta);
   if (this->fai == NULL) {
     std::stringstream er;
@@ -148,13 +158,15 @@ void Pileup::Initiate(Options *opts) {
       er << std::endl;
       throw std::runtime_error(er.str());
     }
-    if (BamIsCorrectlyPreprocessed(this->data[i]->head, i) == false) {
-      std::stringstream er;
-      er << "Error : bam ";
-      er << this->opts->bams[i];
-      er << " is not properly preprocessed.";
-      er << std::endl;
-      throw std::runtime_error(er.str());
+    if (  this->opts->doTests   ) { //allow to skip tests
+      if (BamIsCorrectlyPreprocessed(this->data[i]->head, i) == false) {
+        std::stringstream er;
+        er << "Error : bam ";
+        er << this->opts->bams[i];
+        er << " is not properly preprocessed.";
+        er << std::endl;
+        throw std::runtime_error(er.str());
+      }
     }
     hts_idx_t *idx = NULL;
     idx = sam_index_load(this->data[i]->fp, this->opts->bams[i] );
@@ -167,7 +179,7 @@ void Pileup::Initiate(Options *opts) {
     }
     this->tid = sam_hdr_name2tid(this->data[i]->head, this->opts->rname);
     if (  this->tid < 0 ) exit(1);
-    this->data[i]->iter = sam_itr_queryi(idx, this->tid, opts->beg, opts->end);
+    this->data[i]->iter = sam_itr_queryi(idx, this->tid, opts->beg, opts->end + 1 );
     if (this->data[i]->iter == NULL) {
       std::stringstream er;
       er << "Error : failed to parse region";
@@ -175,7 +187,43 @@ void Pileup::Initiate(Options *opts) {
       throw std::runtime_error(er.str());
     }
     hts_idx_destroy(idx);
-    sam_hdr_destroy(this->data[i]->head);
+  }
+  if ( this->opts->doTests ) {
+    //Check that the headers of both BAMs match each other
+    int n_targets0 = sam_hdr_nref( this->data[0]->head );
+    int n_targets1 = sam_hdr_nref( this->data[1]->head );
+    if ( n_targets0 != n_targets1 ){
+      std::stringstream er;
+      er << "Error : number of chromosomes in bulk and duplex don't match (" << n_targets0 << ":" << n_targets1 << ")";
+      er << std::endl;
+      throw std::runtime_error(er.str());
+    }
+    for (int i = 0; i < n_targets0; i++) {
+      if (strcmp(sam_hdr_tid2name(this->data[0]->head,i), sam_hdr_tid2name(this->data[1]->head,i))){
+        std::stringstream er;
+        er << "Error : order of chromosomes in bulk and duplex BAMs don't match";
+        er << std::endl;
+        throw std::runtime_error(er.str());
+      }
+    }
+    //Check BAM contig names against the reference
+    for (int i = 0; i < n_targets0; i++) {
+      if ( ! faidx_has_seq( this->fai, sam_hdr_tid2name(this->data[0]->head,i))){
+        std::stringstream er;
+        er << "Error: BAM file chromosome " << sam_hdr_tid2name(this->data[0]->head,i) << " doesn't match any reference chromosome";
+        er << std::endl;
+        throw std::runtime_error(er.str());
+      }
+    }
+    //Check that the BAM chomosome lenghts match the reference
+    for (int i = 0; i < n_targets0; i++) {
+      if ( sam_hdr_tid2len( this->data[0]->head,i ) != faidx_seq_len( this->fai, sam_hdr_tid2name(this->data[0]->head,i))){
+        std::stringstream er;
+        er << "Error: BAM file chromosome length for " << sam_hdr_tid2name(this->data[0]->head,i) << " doesn't match reference chromosome length";
+        er << std::endl;
+        throw std::runtime_error(er.str());
+      }
+    }
   }
   this->mplp  = bam_mplp_init(n, RetrieveAlignments, reinterpret_cast<void**>
     (this->data));
@@ -327,6 +375,12 @@ char* Pileup::GetTrinucleotideContext(int pos) {
   return fai_fetch(this->fai, region.str().c_str(), &seq_len);
 }
 
+char* UpperCase(char *in) {
+   for (char *iter = in; *iter != '\0'; ++iter){
+       *iter = std::toupper(*iter);
+   }
+  return in;
+}
 
 std::string Pileup::PositionString(int pos) {
   char* context = Pileup::GetTrinucleotideContext(pos);
@@ -339,7 +393,7 @@ std::string Pileup::PositionString(int pos) {
   ss << "\t";
   ss << pos + 1;
   ss << "\t";
-  ss << context;
+  ss << UpperCase(context);
   ss << "\t";
   ss << is_snp;
   ss << "\t";
@@ -351,7 +405,9 @@ std::string Pileup::PositionString(int pos) {
 
 
 void Pileup::MultiplePileup() {
-  this->gzout << Pileup::Header() << std::endl;
+  if ( not opts-> out2stdout ) {
+    this->gzout << Pileup::Header() << std::endl;
+  }
   int pos;
   while (bam_mplp_auto(this->mplp, &this->tid, &pos, this->n_plp,
     this->plp) > 0) {
@@ -374,7 +430,7 @@ void Pileup::MultiplePileup() {
       // output
       std::unique_ptr<WriteOut> out (new WriteOut());
       std::string posn = Pileup::PositionString(pos);
-      out->WriteRows(bulk, dplx, posn, this->gzout);
+      out->WriteRows(bulk, dplx, posn, this->gzout, this->opts->out2stdout);
     }
     if (pos > opts->end) {
       break;
@@ -389,8 +445,11 @@ void Pileup::MultiplePileup() {
     if (this->data[i]->iter) {
       hts_itr_destroy(this->data[i]->iter);
     }
+    sam_hdr_destroy(this->data[i]->head);
     free(this->data[i]);
   }
   free(this->data);
-  this->gzout.close();
+  if ( not opts-> out2stdout ) {
+    this->gzout.close();
+  }
 }

@@ -1,32 +1,29 @@
 # NanoSeq
 
-NanoSeq is a protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)) that allows detection of low occurrence mutations with a high degree of confience. (add citation NanoSeq).
+NanoSeq is a protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)) that allows detection of low occurrence mutations with a high degree of confience. ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)).
 
-Note that some of the code might use the term BotSeq or NanoSeq interchangebly due to legacy reasons but all the code in this repository is intended for use in the analysis of NanoSeq experiments.
+## Dependencies
 
-## Quick installation
+Execution of the scripts from this repo requires that these dependencies be on PATH :
+
+* samtools
+* bcftools
+* Rscript
+
+## Installation
 
 ```
-./setup.sh path_to_install_to
-export PATH=$PATH:path_to_install_to/bin
-Rscript ./build/libInstall.R <R libraries path>
+./setup.sh path_to_install                       #install code from this repo
+export PATH=$PATH:path_to_install/bin
+Rscript ./build/manualInstall.R <R libraries path>  #install all the required R libraries
 ```
-Samtools must be in execution path for use of the wrapper script.
 
-## General workflow
-
-For a bulk/duplex (normal/tumour) pair of samples an analysis would require:
+## FASTQ and BAM processing of NanoSeq libraries
 
 1) Mapping of trimmed fastq files for each sample (`extract_tags.py`)
 2) Appending RB: tag (read bundle) to reads (`bamaddreadbundles`)
-3) Contamination check of each sample (`verifyBAMId`)
-4) Generation of tables files (`dsa`)
-5) Generation of variant files (`variants`)
-6) Summarizing of results (`variantcaller.R` & `botseq_results_plotter.R`)
 
-A wrapper script is provided to facilitate parallel execution of steps 4,5 & 6.
-
-## Mapping of NanoSeq reads
+### Mapping of NanoSeq reads
 
 Prior to mapping fastq files must be pre-processed with `extract_tags.py` in order to trim adapter sequences and to add the appropiate tags (rb,mb) to the read headers.
 ```
@@ -37,7 +34,7 @@ python extract-tags.py -a 1_R1.fastq -b 1_R2.fastq -c 70#1R1.fastq -d 70#1R2.fas
 bwa mem -C hs37d5.fa 70#1R1.fastq.gz 70#1R2.fastq > 70#1.sam
 ```
 
-## Appending read bundle tag
+### Appending read bundle tag
 
 The read bundle tag ( RB: ) must be appended to each read-pair of a BAM. The tag consists of : read coordinate, mate corrdinate, read rb tag, mate mb tag (RG:rc,mc,rb,mb).
 
@@ -51,42 +48,134 @@ bamsormadup inputformat=sam rcsupport=1 threads=1 < 70#1.sam > 70#1.bam
 bamaddreadbundles -I 70#1.bam -O 70#1.tag.bam
 ```
 
-## Processing of normal
+### Processing of normal
 
 The NanoSeq analysis uses a normal/tumour sample pair. If the normal happens to be a NanoSeq experiment it must be processed further as to just keep one read-pair from each read bundle to produce a 'neat' normal.
 
 ```
 randomreadinbundle -I 70#1.tag.bam -O 70#1.neat.bam
 ```
+### Note
 
-## Contamination check
+Correct pre-processing means that duplex BAMs must have @PG tags for bamsormadup , bammarkduplicatesopt & bamaddreadbundles. A neat bulk (NanoSeq library) BAM must have a @PG tag for bamaddreadbundles & randomreadinbundle. A WGS bulk will NOT have a tag for bamaddreadbundles
+
+### Contamination check
 
 It is highly recommended to carry out a contamination check of the sample pair with [`verifyBAMId`](https://github.com/Griffan/VerifyBamID). This contamination check must be done on a bam generated with `randomreadinbundle`, where only one read per read bundle is kept in the bam (see above).
 An alpha < 0.005 would be acceptable for most situations.
 
+
 ## NanoSeq analysis
 
-The wrapper script `runBotSeq.py` provides a convinient way of running the NanoSeq analyisis. It wraps calls to `dsa` (generation of tables), `variants` (generation of variant files), `variantcaller.R` & `botseq_results_plotter.R` (creation of summary csv files, plots and vcf file). All of these programs should be present in the execution path.
+For a bulk/duplex (normal/tumour) pair of samples an analysis requires the following steps:
 
+1) Generation of tables files (`dsa`)
+2) Generation of variant files (`variants`)
+3) Indel identification (`indelCaller_step1.pl`, `indelCaller_step2.pl` & `indelCaller_step3.R`)
+4) Summarizing of results (`variantcaller.R` & `nanoseq_results_plotter.R`)
 
+The wrapper script `runNanoSeq.py` provides a convinient way of running all the steps of a NanoSeq analyisis. It is meant to be run as a job array or in a multithreaded environment.
 
-A typical execution with 8 threads would be:
+The wrapper scrpt has subcommands that that are meant to roughly follow the same steps that were outlined before. The steps are: cov, part, dsa, var, indel & post. Output for each step is located in the tmpNanoSeq directory.
+
+### Coverage (cov)
+
+A coverage histogram is computed for the bulk BAM.
 
 ```
-runBotSeq.py -t 8 -A 70#1.neat.bam -B 80#1.bam -C SNP.sorted.bed.gz -D NOISE.sorted.bed.gz -R hs37d5.fa -b 0 -o ./output
+runNanoSeq.py -t 10 \
+  -A normal.bam \
+  -B tumour.bam \
+  -R genome.fa \
+  cov \
+  -Q 0 \
+  --exclude "MT,GL%,NC_%,hs37d5"
 ```
-Where 
--   -A is the normal (bulk) BAM
--   -B is the tumour (duplex) BAM
--   -C BED SNP mask. Common SNPs (need to add link to file)
--   -D BED Noise mask. Sites that are unreliable or artefactual (need to add link to file)
--   -R reference fasta
--   -b optimal parameter for variantcaller for a neat normal ( -b 5 for WGS normal)
--   -o output directory 
 
-The wrapper can pass several advanced parameters to the variantcaller program. The default values have been found to be optimal for most cases.
+### Partition (part)
 
-** Note to assure correct pre-processing, duplex BAMs must have @PG tags for bamsormadup , bammarkduplicatesopt & bamaddreadbundles. A neat bulk (NanoSeq library) BAM must have a @PG tag for bamaddreadbundles & randomreadinbundle. A WGS bulk must NOT have a tag for bamaddreadbundles **
+Divide the coverage so that each job in the NanoSeq analysis gets roughly the same work. The -n argument idicates the number of tasks that will be used in the dsa, var and indel steps.
+
+```
+runNanoSeq.py -t 1 \
+  -A normal.bam \
+  -B tumour.bam \
+  -R genome.fa \
+  part \
+  -n 60 \
+```
+
+### dsa beds (dsa)
+
+Compute the dsa bed files. SNP and NOISE BED files contain sites to be marked on the output VCF file.
+
+```
+runNanoSeq.py -t 60 \
+  -A normal.bam \
+  -B tumour.bam \
+  -R genome.fa \
+  dsa \
+  -C SNP.sorted.bed.gz \
+  -D NOISE.sorted.bed.gz \
+  -d 2 \
+  -q 30 \
+```
+
+### Variant tables (var)
+
+Compute variants tables.
+
+```
+runNanoSeq.py -t 60 \
+  -A normal.bam \
+  -B tumour.bam \
+  -R genome.fa \
+  var \
+  -a 2 \
+  -b 5 \
+  -c 0 \
+  -f 0.9 \
+  -i 1 \
+  -m 8 \
+  -n 3 \
+  -p 0 \
+  -q 60 \
+  -r 144 \
+  -v 0.01 \
+  -x 8 \
+  -z 12
+```
+
+### Indel vcfs (indel)
+
+Compute vcf files for indels.
+
+```
+runNanoSeq.py -t 60 \
+  -A normal.bam \
+  -B tumour.bam \
+  -R genome.fa \
+  indel \
+  -s sample \
+  --rb 2 \
+  --t3 135 \
+  --t5 10 \
+  --mc 16
+```
+### Post processing (post)
+
+Merge final files, produce summaries, compute efficiency. Results can be found in tmpNanoSeq/post.
+
+```
+runNanoSeq.py -t 2 \
+  -A normal.bam \
+  -B tumour.bam \
+  -R genome.fa \
+  post
+```
+### Note
+
+A bash script is provided in the LSF directory as a template for execution of all the steps in an computing environment using the LSF job scheduler. Script should be edited to fit individual needs.
 
 ## Output
 
