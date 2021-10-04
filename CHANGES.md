@@ -1,5 +1,13 @@
 # CHANGES
 
+## 2.0.0
+
+* Fixed 1-off error in dsa code.
+* Incorporated Indel scripts.
+* Incorporated new code for quick coverage estimation.
+* Rewrote Python wrapper.
+* Updated licenses.
+
 ## 1.5.3
 
 * Fixed bug with last interval for outlier case
