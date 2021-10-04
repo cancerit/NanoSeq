@@ -1,4 +1,6 @@
-/*########## LICENCE ##########
+#!/usr/bin/env Rscript
+
+########## LICENCE ##########
 # Copyright (c) 2020-2021 Genome Research Ltd
 # 
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
@@ -27,30 +29,44 @@
 # statement that reads ‘Copyright (c) 2005-2012’ should be interpreted as being
 # identical to a statement that reads ‘Copyright (c) 2005, 2006, 2007, 2008,
 # 2009, 2010, 2011, 2012’.
-##########################*/
+###########################
 
+#install R packages
+#install R packages
+args = commandArgs(T)
+instLib = args[1] 
+r = getOption("repos") # hard code the UK repo for CRAN
+r["CRAN"] = "http://cran.uk.r-project.org"
+options(repos = r)
+rm(r)
 
-#ifndef OPTIONS_H_
-#define OPTIONS_H_
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg))
+    biocLite(new.pkg, ask=FALSE, lib=instLib, lib.loc=instLib)
+  sapply(pkg, library, character.only = TRUE)
+}
 
-#include <array>
+ipak_bioc <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg))
+    BiocManager::install(new.pkg, ask=FALSE, lib=instLib, lib.loc=instLib)
+  sapply(pkg, library, character.only = TRUE)
+}
 
-struct Options {
-  std::array<const char*, 2> bams;
-  std::array<const char*, 2> beds;
-  const char* fasta;
-  const char* rname;
-  char* oname;
-  int min_base_quality;
-  int min_mapQ;
-  int max_plp_depth;
-  int min_dplx_depth;
-  int max_dplx_depth;
-  int offset;
-  int beg;
-  int end;
-  bool out2stdout;
-  bool doTests;
-};
-
-#endif  // OPTIONS_H_
+if( (version$major == 3 && version$minor >=5) || version$major > 3) {
+  # biocmanager versions of R
+  if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+  BiocManager::install(ask=FALSE, lib=instLib, lib.loc=instLib)
+  ipak_bioc(c("deepSNV"))
+  ipak_bioc(c("vcfR"))
+  ipak_bioc(c("VGAM"))
+  ipak_bioc(c("ggplot2"))
+  ipak_bioc(c("data.table"))
+  ipak_bioc(c("epitools")) 
+  ipak_bioc(c("gridExtra"))
+  ipak_bioc(c("seqinr"))
+} else {
+  # OLD versions of R
+  stop("Must update to R v3.5.0 or greater")
+}
