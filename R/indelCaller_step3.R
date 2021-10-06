@@ -50,7 +50,7 @@ suppressPackageStartupMessages({
 args = commandArgs(trailingOnly=TRUE)
 
 if (length(args)!=3) {
-  cat("indelCaller_step3.R  reference  vcf  bam\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM file for the matched normal\n\n")
+  cat("indelCaller_step3.R  reference  vcf  bam\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM/CRAM file for the matched normal\n\n")
   quit(save="no",status=0)
 }
 
@@ -65,7 +65,7 @@ if (! file.exists(vcf_file) ){
   stop("VCF file not found : ",vcf_file, call.=FALSE)
 }
 if (! file.exists(bam_file) ){
-  stop("Matched BAM file not found : ",bam_file, call.=FALSE)
+  stop("Matched BAM (CRAM) file not found : ",bam_file, call.=FALSE)
 }
 
 FLANK = 5

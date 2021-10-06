@@ -70,8 +70,10 @@ die ("\nMust define the reference\n") unless ( $ref_genome);
 die ("\nReference $ref_genome not found\n") unless ( -e $ref_genome );
 
 die ("\nMust a BAM file\n") unless ( $botseq_bam_file );
-die ("\nBAM $botseq_bam_file not found\n") unless ( -e $botseq_bam_file );
-die ("\nBAM index for $botseq_bam_file not found\n") unless ( -e $botseq_bam_file .".bai");
+die ("\nBAM / CRAM $botseq_bam_file not found\n") unless ( -e $botseq_bam_file );
+my ($ext) = $botseq_bam_file =~ /(\.[^.]+)$/;
+$ext =~ s/.$/i/;
+die ("\nBAM / CRAM index for $botseq_bam_file not found\n") unless ( -e $botseq_bam_file . $ext);
 
 $sample_name = "sample_1" unless ( $sample_name);
 
@@ -314,7 +316,7 @@ indelCaller_step2.pl  [options] -r ref -b BAM -o prefix input.bed.gz
 
     -out               -o   Output prefix
     -ref               -r   reference
-    -bam               -b   bam file
+    -bam               -b   bam / cram file
 
   Optional parameters:
     -keep              -k   Keep intermediate files
@@ -338,7 +340,7 @@ Reference file
 
 =item B<-bam>
 
-Original NanoSeq BAM for sample.
+Original NanoSeq BAM (CRAM) for sample.
 
 =item B<-keep>
 
