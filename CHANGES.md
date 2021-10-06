@@ -1,5 +1,9 @@
 # CHANGES
 
+## 2.1.0
+
+* Added CRAM support
+
 ## 2.0.0
 
 * Fixed 1-off error in dsa code.
