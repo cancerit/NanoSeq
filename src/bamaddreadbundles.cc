@@ -31,21 +31,6 @@
 #include "bamaddreadbundles.h"
 
 
-/*std::vector<std::string> RNAMES =
-  { "1", "2", "3", "4", "5", "6", "7", "8", "9",
-    "10", "11", "12", "13", "14", "15", "16", "17",
-    "18", "19", "20", "21", "22", "X", "Y" };*/
-
-// Added by fa8 to include the mitochondrial chromosome!
-
-// Commented by fa8 to make it work for cross-species:
-//std::vector<std::string> RNAMES =
-//  { "1", "2", "3", "4", "5", "6", "7", "8", "9",
-//    "10", "11", "12", "13", "14", "15", "16", "17",
-//    "18", "19", "20", "21", "22", "X", "Y", "MT" };
-
-
-
 void BamAddReadBundles::LoadFiles() {
   this->in = hts_open(this->infile, "r");
   if (this->in == 0) {
@@ -62,7 +47,16 @@ void BamAddReadBundles::LoadFiles() {
     er << std::endl;
     throw std::runtime_error(er.str());
   }
-  this->out = hts_open(this->outfile, "wb");
+  
+  char * mode = sam_open_mode_opts( this->outfile,"w",NULL);
+  if ( mode == NULL ) {
+      std::stringstream er;
+      er << "Error : Output extension must be .bam or .cram";
+      er << std::endl;
+      throw std::runtime_error(er.str());
+  }
+  this->out = hts_open(this->outfile, mode);
+
   if (!this->out) {
     std::stringstream er;
     er << "Error: failed to open ";
@@ -121,9 +115,6 @@ bool BamAddReadBundles::ReadIsUsable(bam1_t* b) {
   int has_mb    = (BamAddReadBundles::HasAux(b, "mb"))? 1 : 0;
   if (((suppl + qcfail + unmapped + secondary + has_od) == 0) &&
       ((paired  + has_rc + has_mc + has_rb + has_mb) == 5)) {
-  // commented by fa8 to make it work for other species
-  //if (((suppl + qcfail + unmapped + secondary + has_od) == 0) &&
-  //    ((paired + maps + has_rc + has_mc + has_rb + has_mb) == 6)) {
     return true;
   }
   return false;
@@ -226,7 +217,7 @@ void BamAddReadBundles::CleanUp() {
 void Usage() {
   fprintf(stderr, "\nUsage:\n");
   fprintf(stderr, "\t-I\tInput BAM/CRAM file name\n");
-  fprintf(stderr, "\t-O\tOutput BAM file name\n");
+  fprintf(stderr, "\t-O\tOutput BAM/CRAM file name\n");
   fprintf(stderr, "\t-h\tHelp\n");
 }
 

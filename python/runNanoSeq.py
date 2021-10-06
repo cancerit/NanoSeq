@@ -46,7 +46,7 @@ import time
 import re
 import tempfile
 
-version='2.0.0'
+version='2.1.0'
 
 parser = argparse.ArgumentParser()
 #arguments for all subcommands
@@ -55,8 +55,8 @@ parser.add_argument('-j','--index', type=int, action='store', help='index of the
 parser.add_argument('-k','--max_index', type=int, action='store', help='maximum index of the LSF job array')
 parser.add_argument('-t','--threads', type=int, action='store', default= 1, help='number of threads (1)')
 parser.add_argument('-R','--ref', action='store', required=True, help="referene sequence")
-parser.add_argument('-A','--normal', action='store', required=True, help="normal BAM")
-parser.add_argument('-B','--tumour', action='store', required=True, help="tumour (duplex) BAM")
+parser.add_argument('-A','--normal', action='store', required=True, help="normal BAM / CRAM")
+parser.add_argument('-B','--tumour', action='store', required=True, help="tumour (duplex) BAM / CRAM")
 parser.add_argument('-v','--version', action='version', version=version)
 
 #subcommands and their arguments
@@ -145,10 +145,12 @@ def file_chk(fn, idx_ext, msg_prefix):
     parser.error(f"{msg_prefix} index file {fn}{idx_ext} was not found!")
 
 if ( hasattr(args,'tumour') ) :
-  file_chk( args.tumour, ".bai", "BAM")
+  ext = os.path.splitext(args.tumour)[1][0:-1] + "i"
+  file_chk( args.tumour, ext, "BAM/CRAM")
 
 if ( hasattr(args,'normal') ) :
-  file_chk( args.normal, ".bai", "BAM")
+  ext = os.path.splitext(args.normal)[1][0:-1] + "i"
+  file_chk( args.normal, ext, "BAM/CRAM")
 
 if ( hasattr(args,'ref') ) :
   file_chk( args.ref, ".fai", "Reference")

@@ -29,14 +29,6 @@
 # 2009, 2010, 2011, 2012’.
 ##########################*/
 
-
-/*
-
-Run:
-  ./randomreadinbundle -I in.bam -O out.bam -m 1
-
-*/
-
 #include "randomreadinbundle.h"
 
 std::vector<std::string> tokenize(std::string str, char delimiter) {
@@ -71,7 +63,16 @@ void RandomlySelectOneReadPerBundle::LoadFiles() {
       er << std::endl;
       throw std::runtime_error(er.str());
     }
-  this->out = hts_open(this->outfile, "wb");
+
+  char * mode = sam_open_mode_opts( this->outfile,"w",NULL);
+  if ( mode == NULL ) {
+      std::stringstream er;
+      er << "Error : Output extension must be .bam or .cram";
+      er << std::endl;
+      throw std::runtime_error(er.str());
+  }
+  this->out = hts_open(this->outfile, mode);
+
   if (!this->out) {
     std::stringstream er;
     er << "Error: failed to open ";
@@ -200,7 +201,7 @@ void RandomlySelectOneReadPerBundle::SelectReads() {
 void Usage() {
   fprintf(stderr, "\nUsage:\n");
   fprintf(stderr, "\t-I\tInput BAM/CRAM file name\n");
-  fprintf(stderr, "\t-O\tOutput BAM file name\n");
+  fprintf(stderr, "\t-O\tOutput BAM/CRAM file name\n");
   fprintf(stderr, "\t-m\tMinimum number of reads in read-bundle\n");
   fprintf(stderr, "\t-h\tHelp\n");
 }

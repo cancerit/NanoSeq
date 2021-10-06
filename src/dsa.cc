@@ -36,8 +36,8 @@ char buffer[400];
 
 void Usage() {
   fprintf(stderr, "\nUsage:\n");
-  fprintf(stderr, "\t-A\tBulk BAM file name\n");
-  fprintf(stderr, "\t-B\tDuplex BAM file name\n");
+  fprintf(stderr, "\t-A\tBulk BAM/CRAM file name\n");
+  fprintf(stderr, "\t-B\tDuplex BAM/CRAM file name\n");
   fprintf(stderr, "\t-C\tSNP BED file name\n");
   fprintf(stderr, "\t-D\tMask BED file name\n");
   fprintf(stderr, "\t-R\tReference sequence file (faidx indexed)\n");
