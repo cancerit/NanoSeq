@@ -443,7 +443,7 @@ if (args.subcommand == 'cov'):
       iofile.write(str(len(chrList) ))
   inputs = []
   for ii,ichr in enumerate(chrList) :
-    if ( os.path.isfile("%s/cov/%s.done"%(tmpDir,ii) ) ):
+    if ( os.path.isfile("%s/cov/%s.done"%(tmpDir,ii + 1) ) ):
       inputs.append( (None,None,None,None,None ) ) #restart, don't do anything
     else :
       inputs.append( (args.tumour,str(args.Q),str(args.win),ichr,"%s/cov/%s"%(tmpDir,ii + 1) ))
