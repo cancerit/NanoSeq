@@ -27,7 +27,7 @@ DEALINGS IN THE SOFTWARE.  */
  * simultaneously, to achieve random access and to use the BED interface.
  * To compile this program separately, you may:
  *
- * gcc -g -Wall -O2 -I. -I../htslib -o bamcov  bamcov.c sam_opts.c sam_utils.c  ../htslib/libhts.a  -lz  -lbz2  -lcurl -llzma -lm  -lpthread
+ * gcc -g -Wall -O2 -I. -I../htslib -o bamcov  bamcov.c sam_opts.c sam_utils.c  ../htslib/libhts.a  -lz  -lbz2  -lcurl -llzma -lm  -lpthread -lcrypto
  * 
  */
 
@@ -484,9 +484,13 @@ int main_coverage(int argc, char *argv[]) {
         }
     }
 
-    if (tid == -1 && opt_reg && *opt_reg != '*')
+    if (tid == -1 && opt_reg && *opt_reg != '*') {
         // Region specified but no data covering it.
         tid = data[0]->iter->tid;
+        n_bins = ceil( 1.0*(stats[tid].end-stats[tid].beg )/opt_win);
+        stats[tid].bin_width = opt_win;
+        hist = (uint32_t*) calloc(n_bins, sizeof(uint32_t));
+    }
 
     if (tid < n_targets && tid >=0) {
         print_hist(file_out, h, stats, tid, hist, n_bins, opt_full_utf);
