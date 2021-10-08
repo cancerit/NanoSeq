@@ -1,5 +1,10 @@
 # CHANGES
 
+## 2.1.1
+
+* Fixed issue with coverage done files
+* Fixed bamcov so that it handles chromosomes without coverage
+
 ## 2.1.0
 
 * Added CRAM support
