@@ -46,7 +46,7 @@ import time
 import re
 import tempfile
 
-version='2.1.0'
+version='2.1.1'
 
 parser = argparse.ArgumentParser()
 #arguments for all subcommands
