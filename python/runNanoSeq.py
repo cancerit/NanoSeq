@@ -331,27 +331,6 @@ class GInterval :
     else :
       return False
 
-# compute coverage histogram
-def runBamcov(bam, mapQ, window, ichr, out) :
-  if (bam is None ) : return
-  out = out+".cov.bed"
-  p = subprocess.Popen(['bamcov','-q',mapQ,'-w',window,'-r',ichr,'-o',out, bam],stderr=subprocess.PIPE)
-  p.wait()
-  if (p.returncode != 0 ) : 
-    error = p.stderr.read().decode()
-    sys.stderr.write("\n!Error running bamcov for chr %s (cov): %s\n"%(ichr,error))
-    raise ValueError(error)
-  p = subprocess.Popen(['bgzip','-l','2','-f', out],stderr=subprocess.PIPE)
-  p.wait()
-  if (p.returncode != 0 ) : 
-    error = p.stderr.read().decode()
-    sys.stderr.write("\n!Error while compressing %s with gzip (cov) : %s\n"%(out,error))
-    raise ValueError(error)
-  outdone = re.sub('cov.bed$','done',out)
-  open(outdone,'w').close()
-  return
-
-#run an external command
 def runCommand(command) :
   if ( command is None ) : return
   for ijob in command.rstrip(';').split(';') :
@@ -363,6 +342,17 @@ def runCommand(command) :
       sys.stderr.write("\n!Error processing:  %s\n"%ijob )
       raise ValueError(error)
   return
+
+# compute coverage histogram
+def runBamcov(bam, mapQ, window, ichr, out) :
+  if (bam is None ) : return
+  out = out+".cov.bed"
+  runCommand("bamcov -q %s -w %s -r %s -o %s %s"%(mapQ, window, ichr, out, bam))
+  runCommand("bgzip -l 2 -f %s"%(out))
+  outdone = re.sub('cov.bed$','done',out)
+  open(outdone,'w').close()
+  return
+
 
 def vcfHeader( args ) :
   header =  '##fileformat=VCFv4.2\n'
@@ -495,9 +485,9 @@ if (args.subcommand == 'part'):
       nfiles = int(iofile.readline())
   for i in range( nfiles ) :
     if ( len(glob.glob(tmpDir+"/cov/%s.done"%(i+1))) != 1 ) :
-      sys.exit("\ncov job did not complete correctly\n"%(i+1))
+      sys.exit("\ncov job %s did not complete correctly\n"%(i+1))
     if ( len(glob.glob(tmpDir+"/cov/%s.cov.bed.gz"%(i+1))) != 1 ) :
-      sys.exit("\ncov job did not complete correctly\n"%(i+1))
+      sys.exit("\ncov job %s did not complete correctly\n"%(i+1))
 
   if ( args.index is not None and args.index > 1 ) :
     print("\nWarning can only use 1 job of array\n")
