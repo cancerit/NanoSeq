@@ -90,24 +90,26 @@ if ( defined $opts{'k'} ){
 
 #chromosomes in biological order
 sub cmp_chr {
-  $a=~s/^chr//;
-  $b=~s/^chr//;
-  if ($a !~ /\D/ ) {
-    if ($b !~ /\D/ ) {
-      return ( $a <=> $b);
+  my $ca = $a;
+  my $cb = $b;
+  $ca=~s/^chr//;
+  $cb=~s/^chr//;
+  if ($ca !~ /\D/ ) {
+    if ($cb !~ /\D/ ) {
+      return ( $ca <=> $cb);
     }
     else { return -1; }
   }
-  elsif ($b !~ /\D/) { return 1;}
-  elsif (($a eq "M" or $a eq "MT") and ( $b eq "X" or $b eq "Y") ) { return 1;}
-  elsif (($a eq "X" or $a eq "Y" ) and ( $b eq "M" or $b eq "MT")) { return -1;}
-  elsif ( $a eq "X" ) {return -1;}
-  elsif ( $b eq "X" ) {return 1;}
-  elsif ( $a eq "Y" ) {return -1;}
-  elsif ( $b eq "Y" ) {return 1;}
-  elsif ( $a eq "M" or $a eq "MT") {return -1;}
-  elsif ( $b eq "M" or $b eq "MT") {return 1;}
-  else { return $a cmp $b;}
+  elsif ($cb !~ /\D/) { return 1;}
+  elsif (($ca eq "M" or $ca eq "MT") and ( $cb eq "X" or $cb eq "Y") ) { return 1;}
+  elsif (($ca eq "X" or $ca eq "Y" ) and ( $cb eq "M" or $cb eq "MT")) { return -1;}
+  elsif ( $ca eq "X" ) {return -1;}
+  elsif ( $cb eq "X" ) {return 1;}
+  elsif ( $ca eq "Y" ) {return -1;}
+  elsif ( $cb eq "Y" ) {return 1;}
+  elsif ( $ca eq "M" or $ca eq "MT") {return -1;}
+  elsif ( $cb eq "M" or $cb eq "MT") {return 1;}
+  else { return $ca cmp $cb;}
 }
 
 sub runCmd {
@@ -272,12 +274,12 @@ if ( defined $opts{'t'}) {
     my ($ichr,$ilength) = split;
     $chrdic{ $ichr} = $ilength;
   }
+  close(REFI);
   my @sortedChr = sort cmp_chr (keys %chrdic);
   my $newHead = "";
   foreach my $ichr ( @sortedChr ) {
     $newHead.="##contig=<ID=".$ichr.",length=".$chrdic{$ichr}.">\n";
   } 
-
   open(VCFI,"<$tempdir/$out_name.vcf") or die ("Couldn't open $tempdir/$out_name.vcf\n");
   open(VCFO,">$tempdir/$out_name.sorted.vcf") or die ("Couldn't write to $out_dir/$out_name.sorted.vcf\n");
   my $writeNewHead = 1;
