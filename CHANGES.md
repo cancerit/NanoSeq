@@ -3,6 +3,7 @@
 ## 2.1.0
 
 * Added CRAM support
+* Fixed issue with sort in indel pipeline
 
 ## 2.0.0
 
