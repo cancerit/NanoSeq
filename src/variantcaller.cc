@@ -465,8 +465,6 @@ void VariantCaller::CollectMetrics() {
       }
       if (row.f1r2_call == row.f2r1_call) {
         row.call = row.f1r2_call;
-        //fa8:
-        //std::cerr << "passes" << std::endl;
         //fa8: moved this so we know if it is variant or not before applying the NM filter:
         row.isvariant  = VariantCaller::IsVariant(&row);
         if (VariantCaller::PassesFilter(&row)) {
@@ -515,8 +513,8 @@ void VariantCaller::CollectMetrics() {
       }
     }
   }
-  //wirte last line to coverage file
-  if(this->outfile_coverage != NULL) {
+  //write last line to coverage file
+  if(this->outfile_coverage != NULL and curr != -1 ) {
     this->gzout_coverage << lastRow.chrom;
     this->gzout_coverage << "\t";
     this->gzout_coverage << lastRow.chrom_beg;
