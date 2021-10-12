@@ -90,7 +90,7 @@ parser_var.add_argument('-b', type=int, action='store', default=5, help="minimum
 parser_var.add_argument('-c', type=int, action='store', default=0, help="maximum number of clips (0)")
 parser_var.add_argument('-d', type=int, action='store', default=0, help="minimum duplex depth (2)")
 parser_var.add_argument('-f', type=float, action='store', default=0.9, help="minimum fraction of reads for consensus (0.9)")
-parser_var.add_argument('-i', type=int, action='store', default=1, help="maximum fraction of reads with an indel (1)")
+parser_var.add_argument('-i', type=float, action='store', default=1, help="maximum fraction of reads with an indel (1.0)")
 parser_var.add_argument('-m', type=int, action='store', default=8, help="minimum cycle number (8)")
 parser_var.add_argument('-n', type=int, action='store', default=3, help="maximun number of mismatches (3)")
 parser_var.add_argument('-p', type=int, action='store', default=0, help="minimum fraction of reads that are proper-pairs (0)")
