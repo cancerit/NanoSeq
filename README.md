@@ -131,7 +131,7 @@ runNanoSeq.py -t 60 \
   -B tumour.bam \
   -R genome.fa \
   var \
-  -a 2 \
+  -a 50 \
   -b 5 \
   -c 0 \
   -f 0.9 \
