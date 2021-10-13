@@ -179,7 +179,9 @@ A bash script is provided in the LSF directory as a template for execution of al
 
 ## Output
 
-Intermediate files are placed in the tables and variants. The resulting files and plots are placed in the summary folder.
+### Efficiency
+
+### Summary
 
 The most relevant summary files include the following.
 
