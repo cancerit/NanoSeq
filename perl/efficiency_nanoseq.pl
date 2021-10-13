@@ -63,10 +63,14 @@ die ("\nReference $ref_genome not found\n") unless ( -e $ref_genome );
 die ("\nReference $ref_genome index not found\n") unless ( -e $ref_genome . ".fai" );
 die ("\nMust define a deduplicated BAM\n") unless ( $deduplicated_bam );
 die ("\nFile $deduplicated_bam not found\n") unless ( -e $deduplicated_bam );
-die ("\nIndex for $deduplicated_bam not found\n") unless ( -e "$deduplicated_bam".".bai" );
+my ($ext) = $deduplicated_bam  =~ /(\.[^.]+)$/;
+$ext =~ s/.$/i/;
+die ("\nIndex for $deduplicated_bam not found\n") unless ( -e "$deduplicated_bam".$ext );
 die ("\nMust define a tumour duplex BAM\n") unless ( $merged_bam );
 die ("\nFile $merged_bam not found\n") unless ( -e $merged_bam );
-die ("\nIndex for $merged_bam not found\n") unless ( -e "$merged_bam".".bai" );
+($ext) = $merged_bam  =~ /(\.[^.]+)$/;
+$ext =~ s/.$/i/;
+die ("\nIndex for $merged_bam $ext not found!\n") unless ( -e "$merged_bam".$ext );
 die ("\nRscript not found in path\n") unless ( which 'Rscript' );
 die ("\nefficiency_nanoseq.R must be in path\n") unless ( which 'efficiency_nanoseq.R' );
 
