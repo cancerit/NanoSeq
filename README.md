@@ -131,7 +131,7 @@ runNanoSeq.py -t 60 \
   -B tumour.bam \
   -R genome.fa \
   var \
-  -a 2 \
+  -a 50 \
   -b 5 \
   -c 0 \
   -f 0.9 \
@@ -179,7 +179,9 @@ A bash script is provided in the LSF directory as a template for execution of al
 
 ## Output
 
-Intermediate files are placed in the tables and variants. The resulting files and plots are placed in the summary folder.
+### Efficiency
+
+### Summary
 
 The most relevant summary files include the following.
 
