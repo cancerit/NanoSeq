@@ -130,6 +130,7 @@ parser_indel._action_groups.append(parser_indelO)
 parser_post = subparsers.add_parser('post', help='gather final files, compute summaries')
 parser_postO = parser_post._action_groups.pop()
 parser_postR = parser_post.add_argument_group('required arguments')
+parser_postO.add_argument('--name', action='store', default='results', help="name for output files (results)")
 parser_postO.add_argument('--triNuc', action='store', help="tri-nucleotide correction file")
 parser_post._action_groups.append(parser_postO)
 
@@ -940,7 +941,7 @@ if (args.subcommand == 'post' ) :
 
     print("\nMerge coverage files for var\n")
     #merge coverage files
-    outFile = "%s/post/cov.bed"%(tmpDir )
+    outFile = "%s/post/%s.cov.bed"%(tmpDir,args.name)
     cmd = "rm -f %s;"%( outFile)
     for i in range(nfiles ) :
       ifile = "%s/var/%s.cov.bed.gz"%(tmpDir, i+1 )
@@ -954,7 +955,7 @@ if (args.subcommand == 'post' ) :
     cmd = "variantcaller.R %s/post/ > %s/post/summary.txt"%(tmpDir,tmpDir)
     runCommand( cmd )
 
-    cmd = "nanoseq_results_plotter.R %s/post %s/post/results %s"%(tmpDir,tmpDir,args.triNuc or "")
+    cmd = "nanoseq_results_plotter.R %s/post %s/post/%s %s"%(tmpDir,tmpDir, args.name ,args.triNuc or "")
     runCommand( cmd )
 
     print("\nGenerate vcf file from variants.csv\n")
@@ -973,7 +974,7 @@ if (args.subcommand == 'post' ) :
       
     header = vcfHeader( args )
 
-    with open("%s/post/results.muts.vcf"%(tmpDir), "w") as iofile :
+    with open("%s/post/%s.muts.vcf"%(tmpDir,args.name), "w") as iofile :
       iofile.write(header)
       for i in range( nVariants) :
         iline = "%s\t%s\t%s\t%s\t%s\t.\t"% \
@@ -989,8 +990,8 @@ if (args.subcommand == 'post' ) :
            var['qpos'][i],var['dplxfwdTotal'][i],var['dplxrevTotal'][i],var['bulkForwardTotal'][i], \
            var['bulkReverseTotal'][i] ) 
         iofile.write(iline)
-    cmd = "bgzip -@ %s -f %s/post/results.muts.vcf; sleep 3; bgzip -@ %s -t %s/post/results.muts.vcf.gz;"%(args.threads, tmpDir,args.threads,tmpDir)
-    cmd += "bcftools index -t -f %s/post/results.muts.vcf.gz "%tmpDir
+    cmd = "bgzip -@ %s -f %s/post/%s.muts.vcf; sleep 3; bgzip -@ %s -t %s/post/%s.muts.vcf.gz;"%(args.threads, tmpDir,args.name,args.threads,tmpDir,args.name)
+    cmd += "bcftools index -t -f %s/post/%s.muts.vcf.gz "%(tmpDir,args.name)
     runCommand(cmd)
     
   
@@ -1000,10 +1001,10 @@ if (args.subcommand == 'post' ) :
     for i in range (nfiles) :
       ifile = tmpDir+"/indel/%s.indel.filtered.vcf.gz"%(i+1)
       vcf2Merge.append( ifile )
-    cmd = "bcftools concat --no-version -Oz -o %s/post/results.indel.vcf.gz "%tmpDir 
+    cmd = "bcftools concat --no-version -Oz -o %s/post/%s.indel.vcf.gz "%(tmpDir,args.name)
     for ifile in vcf2Merge :
       cmd += "%s "%ifile
-    cmd += ";bcftools index -t -f %s/post/results.indel.vcf.gz "%tmpDir 
+    cmd += ";bcftools index -t -f %s/post/%s.indel.vcf.gz "%(tmpDir, args.name)
     runCommand(cmd)
 
   cmd = "touch %s/post/1.done"%(tmpDir)
