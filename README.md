@@ -64,6 +64,19 @@ Correct pre-processing means that duplex BAMs must have @PG tags for bamsormadup
 It is highly recommended to carry out a contamination check of the sample pair with [`verifyBAMId`](https://github.com/Griffan/VerifyBamID). This contamination check must be done on a bam generated with `randomreadinbundle`, where only one read per read bundle is kept in the bam (see above).
 An alpha < 0.005 would be acceptable for most situations.
 
+### Efficiency
+
+The script efficiency_nanoseq.pl analyse the information in the NanoSeq original bam and its deduplicated version.
+The output provides information on duplicate rates, read counts... Theoretically, the optimal duplicate rate in terms of efficiency (duplex bases / sequenced bases) is 81% for read bundles of size >= 2+2, with 65% and 90% yielding ≥80% of the maximum of efficiency. Empirically the optimal duplicate rate is 75-76%.
+
+Apart of the duplicate rate, the following outputs are important to assess the quality of the experiment: F-EFF, EFFICIENCY, GC_BOTH/GC_SINGLE
+
+F-EFF or strand drop out fraction: This shows the fraction of read bundles missing one of the two original strands beyond what would be expected under random sampling (assuming a binomial process). Good values are between 10-30%, and larger values are likely due to DNA damage such as modified bases or internal nicks that prevent amplification of one of the two strands. 
+
+EFFICIENCY: This is the number of duplex bases divided by the number of sequenced bases. Efficiency is maximised to ~0.07 when duplicate rates and strand drop outs are optimal
+
+GC_BOTH and GC_SINGLE: the GC content of RBs with both strands and with just one strand. The two values should be similar between them and similar to the genome average. If there are large deviations that is possibly due to biases during PCR amplification. If GC_BOTH is substantially larger than GC_SINGLE, DNA denaturation before dilution may have taken place.
+
 
 ## NanoSeq analysis
 
@@ -131,7 +144,7 @@ runNanoSeq.py -t 60 \
   -B tumour.bam \
   -R genome.fa \
   var \
-  -a 2 \
+  -a 50 \
   -b 5 \
   -c 0 \
   -f 0.9 \
@@ -179,7 +192,7 @@ A bash script is provided in the LSF directory as a template for execution of al
 
 ## Output
 
-Intermediate files are placed in the tables and variants. The resulting files and plots are placed in the summary folder.
+### Summary
 
 The most relevant summary files include the following.
 

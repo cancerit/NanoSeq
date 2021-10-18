@@ -126,8 +126,7 @@ isvariant)]
 variants[, pyrkey:=paste(chrom, chromStart, pyrsub, sep=","),
          by=seq_len(nrow(variants))]
 setkey(variants, pyrkey)
-unique_variants <- unique(variants)
-
+unique_variants <- variants[!duplicated(variants[,c("chrom","chromStart","pyrsub")]),]
 
 # strand context versus query position
 #   used to study asymmetries

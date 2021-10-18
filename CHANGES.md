@@ -2,8 +2,12 @@
 
 ## 2.1.1
 
+* Tested with targeted data
 * Fixed issue with coverage done files
 * Fixed bamcov so that it handles chromosomes without coverage
+* Fixed required/optional arguments from docustring
+* Fixed incorrect default argument (-d)
+* Added argument for file name of results
 
 ## 2.1.0
 
