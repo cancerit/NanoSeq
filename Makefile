@@ -23,7 +23,7 @@ LFLAGS= -L$(HTSLIB)
 INSTALL=$(PREFIX)/bin
 
 # define any libraries to link into executable:
-LIBS =-l:libhts.a -l:libdeflate.a -lgzstream -lz -lpthread -lcurl -ldl -llzma -lbz2 -lm
+LIBS =-l:libhts.a -l:libdeflate.a -lgzstream -lz -lpthread -lcurl -ldl -llzma -lbz2 -lm -lcrypto
 
 # define the C source files
 SRCS=./src/bamaddreadbundles.cc ./src/statistics.cc ./src/dsa.cc ./src/read_bundler.cc ./src/randomreadinbundle.cc ./gridsearch/gridsearch.cc ./src/bed_reader.cc ./src/pileup.cc ./src/writeout.cc ./src/variantcaller.cc ./src/bamcov.c ./src/sam_opts.c ./src/sam_utils.c

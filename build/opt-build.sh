@@ -126,7 +126,7 @@ else
   cd htslib
   export CFLAGS="-I$INST_PATH/include"
   export LDFLAGS="-L$INST_PATH/lib"
-  ./configure --enable-plugins  --enable-libcurl --with-libdeflate --prefix=$INST_PATH
+  ./configure --disable-plugins  --enable-libcurl --with-libdeflate --prefix=$INST_PATH
   make -j$CPU
   make install
   mkdir $INST_PATH/include/cram
