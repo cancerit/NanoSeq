@@ -1,6 +1,6 @@
 # NanoSeq
 
-Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutation with single molecule resolution and extremely low error rates. ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code here are for preprocessing NanoSeq sequencing data and assess its quality, and for calling mutations (substitutions and indels) and estimating mutation burdens and substitution profiles.
+Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutation with single molecule resolution and extremely low error rates ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code here are for preprocessing NanoSeq sequencing data and assess its quality, and for calling mutations (substitutions and indels) as well as estimating mutation burdens and substitution profiles.
 
 ## Dependencies
 
