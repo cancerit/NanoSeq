@@ -1,10 +1,10 @@
 # NanoSeq
 
-NanoSeq is a protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)) that allows detection of low occurrence mutations with a high degree of confience. ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)).
+Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutation with single molecule resolution and extremely low error rates. ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code here are for preprocessing NanoSeq sequencing data and assess its quality, and for calling mutations (substitutions and indels) and estimating mutation burdens and substitution profiles.
 
 ## Dependencies
 
-Execution of the scripts from this repo requires that these dependencies be on PATH :
+Execution of the scripts from this repository requires that these dependencies are on PATH :
 
 * samtools
 * bcftools
@@ -13,7 +13,7 @@ Execution of the scripts from this repo requires that these dependencies be on P
 ## Installation
 
 ```
-./setup.sh path_to_install                       #install code from this repo
+./setup.sh path_to_install                          #install code from this repo
 export PATH=$PATH:path_to_install/bin
 Rscript ./build/manualInstall.R <R libraries path>  #install all the required R libraries
 ```
