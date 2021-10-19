@@ -8,6 +8,7 @@
 * Fixed required/optional arguments from docustring
 * Fixed incorrect default argument (-d)
 * Added argument for file name of results
+* Removed plugin option from htslib that was causing issues with CRAM
 
 ## 2.1.0
 
