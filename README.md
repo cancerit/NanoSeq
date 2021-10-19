@@ -43,36 +43,38 @@ bwa mem -C reference_genome.fa extrR1.fastq extrR2.fastq > mapped.sam
 
 A read bundle tag must be appended to each read-pair of a BAM to determine which reads are PCR duplicates. The tag consists of: chromosome, read coordinate, mate corrdinate, read rb tag, and mate mb tag (RB:rc,mc,rb,mb).
 
-With bamsormadup the rc and mc tags are added. We also recommend running `bammarkduplicatesopt` with optminpixeldif=2500 to flag optical duplicates.
+With `bamsormadup` the rc and mc tags are added. We also recommend running `bammarkduplicatesopt` with optminpixeldif=2500 to flag optical duplicates.
 
 ```
 #(sort sam with biobambam, append rc & mc tags)
 bamsormadup inputformat=sam rcsupport=1 threads=1 < mapped.sam > mapped_od.bam
 ```
 
-With bamaddreadbundles, optical duplicates and unpaired mates are filtered and the RB tag is created:
+With `bamaddreadbundles`, optical duplicates and unpaired mates are filtered and the RB tag is created:
 ```
 #(append RB tag, filter OD and unpaired read mates)
 bamaddreadbundles -I mapped_od.bam -O filtered.bam
 ```
 
-### Processing of normal
+## Preparation of a matched normal
 
-The NanoSeq analysis uses a normal/tumour sample pair. If the normal happens to be a NanoSeq experiment it must be processed further as to just keep one read-pair from each read bundle to produce a 'neat' normal.
+The NanoSeq analysis requires a matched normal to filter germline SNPs. Sequencing undiluted NanoSeq libraries is the most cost-efficient solution because all the coverage will concentrate in the fraction of the genome "seen" with the selected restriction enzyme. If the matched normal happens to be an undiluted NanoSeq library it must be processed further as to just keep one read-pair from each read bundle to produce a 'neat' normal (i.e. to remove PCR duplicates).
 
 ```
-randomreadinbundle -I 70#1.tag.bam -O 70#1.neat.bam
+randomreadinbundle -I filtered.bam -O neat.bam
 ```
 ### Note
 
-Correct pre-processing means that duplex BAMs must have @PG tags for bamsormadup , bammarkduplicatesopt & bamaddreadbundles. A neat bulk (NanoSeq library) BAM must have a @PG tag for bamaddreadbundles & randomreadinbundle. A WGS bulk will NOT have a tag for bamaddreadbundles
+Correct pre-processing means that duplex BAMs must have @PG tags for `bamsormadup` , `bammarkduplicatesopt` and `bamaddreadbundles`. A neat bulk (NanoSeq library) BAM must have a @PG tag for `bamaddreadbundles` & `randomreadinbundle`. A WGS bulk will NOT have a tag for `bamaddreadbundles`. 
 
-### Contamination check
+The pipeline checks that all these programs have been run on the bam, exiting with an error otherwise. At users' own risk, the bam header checking can be disabled using option `--no_test` in `dsa`.
+
+## Contamination check
 
 It is highly recommended to carry out a contamination check of the sample pair with [`verifyBAMId`](https://github.com/Griffan/VerifyBamID). This contamination check must be done on a bam generated with `randomreadinbundle`, where only one read per read bundle is kept in the bam (see above).
 An alpha < 0.005 would be acceptable for most situations.
 
-### Efficiency
+## Efficiency
 
 The script efficiency_nanoseq.pl analyse the information in the NanoSeq original bam and its deduplicated version.
 The output provides information on duplicate rates, read counts... Theoretically, the optimal duplicate rate in terms of efficiency (duplex bases / sequenced bases) is 81% for read bundles of size >= 2+2, with 65% and 90% yielding ≥80% of the maximum of efficiency. Empirically the optimal duplicate rate is 75-76%.
