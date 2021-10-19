@@ -2,6 +2,8 @@
 
 Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutation with single molecule resolution and extremely low error rates ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code here are for preprocessing NanoSeq sequencing data and assess its quality, and for calling mutations (substitutions and indels) as well as estimating mutation burdens and substitution profiles.
 
+The wet-lab protocol is described in the original publication ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)) and on ([ProtocolExchange] (https://protocolexchange.researchsquare.com/article/pex-1298/v1)).
+
 ## Dependencies
 
 Execution of the scripts from this repository requires that these dependencies are on PATH :
@@ -18,7 +20,7 @@ export PATH=$PATH:path_to_install/bin
 Rscript ./build/manualInstall.R <R libraries path>  #install all the required R libraries
 ```
 
-## FASTQ and BAM processing of NanoSeq libraries
+## Preprocessing of the sequencing data
 
 1) Mapping of trimmed fastq files for each sample (`extract_tags.py`)
 2) Appending RB: tag (read bundle) to reads (`bamaddreadbundles`)
