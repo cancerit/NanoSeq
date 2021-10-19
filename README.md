@@ -2,7 +2,7 @@
 
 Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutation with single molecule resolution and extremely low error rates ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code here are for preprocessing NanoSeq sequencing data and assess its quality, and for calling mutations (substitutions and indels) as well as estimating mutation burdens and substitution profiles.
 
-The wet-lab protocol is described in the original publication ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)) and on ([ProtocolExchange] (https://protocolexchange.researchsquare.com/article/pex-1298/v1)).
+The wet-lab protocol is described in the original publication ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)) and on ProtocolExchange ([Lensing et al, 2021](https://protocolexchange.researchsquare.com/article/pex-1298/v1)).
 
 ## Dependencies
 
@@ -11,6 +11,8 @@ Execution of the scripts from this repository requires that these dependencies a
 * samtools
 * bcftools
 * Rscript
+* biobambam
+* bwa
 
 ## Installation
 
@@ -22,32 +24,36 @@ Rscript ./build/manualInstall.R <R libraries path>  #install all the required R 
 
 ## Preprocessing of the sequencing data
 
-1) Mapping of trimmed fastq files for each sample (`extract_tags.py`)
-2) Appending RB: tag (read bundle) to reads (`bamaddreadbundles`)
+1) Extract the duplex barcodes from the fastq files and add them to the fastq header of each read (`extract_tags.py`)
+2) Map reads to the reference genome using bwa with option -C to add the barcodes as tags in the bam
+3) Add rc and mc tags, mark optical duplicates, and filter the bam for unpaired reads, creating a molecule-unique read bundle (RB) tag identifier for each read pair.
 
-### Mapping of NanoSeq reads
+### 1/2. Extract barcodes and map reads
 
-Prior to mapping fastq files must be pre-processed with `extract_tags.py` in order to trim adapter sequences and to add the appropiate tags (rb,mb) to the read headers.
+Prior to mapping, fastq files must be pre-processed with `extract_tags.py` in order to trim adapter sequences and to add the appropiate tags (rb,mb) to the read headers.
 ```
-#(trim 3 bases, skip 4 bases, add rb & mb tags)
-python extract-tags.py -a 1_R1.fastq -b 1_R2.fastq -c 70#1R1.fastq -d 70#1R2.fastq -m 3 -s 4 -l 151
+#(trim 3 bases, skip 4 bases, add rb & mb tags), for reads of read length 151 bps
+python extract-tags.py -a R1.fastq -b R2.fastq -c extrR1.fastq -d extrR2.fastq -m 3 -s 4 -l 151
 
 #(align with bwa appending rb & mb tags)
-bwa mem -C hs37d5.fa 70#1R1.fastq.gz 70#1R2.fastq > 70#1.sam
+bwa mem -C reference_genome.fa extrR1.fastq extrR2.fastq > mapped.sam
 ```
 
-### Appending read bundle tag
+### 3. Add rc and mc tags, mark optical duplicates, create read bundle tags
 
-The read bundle tag ( RB: ) must be appended to each read-pair of a BAM. The tag consists of : read coordinate, mate corrdinate, read rb tag, mate mb tag (RG:rc,mc,rb,mb).
+A read bundle tag must be appended to each read-pair of a BAM to determine which reads are PCR duplicates. The tag consists of: chromosome, read coordinate, mate corrdinate, read rb tag, and mate mb tag (RB:rc,mc,rb,mb).
 
-This can be accomplished doing the following:
+With bamsormadup the rc and mc tags are added. We also recommend running `bammarkduplicatesopt` with optminpixeldif=2500 to flag optical duplicates.
 
 ```
 #(sort sam with biobambam, append rc & mc tags)
-bamsormadup inputformat=sam rcsupport=1 threads=1 < 70#1.sam > 70#1.bam
+bamsormadup inputformat=sam rcsupport=1 threads=1 < mapped.sam > mapped_od.bam
+```
 
-#(append RB tag)
-bamaddreadbundles -I 70#1.bam -O 70#1.tag.bam
+With bamaddreadbundles, optical duplicates and unpaired mates are filtered and the RB tag is created:
+```
+#(append RB tag, filter OD and unpaired read mates)
+bamaddreadbundles -I mapped_od.bam -O filtered.bam
 ```
 
 ### Processing of normal
