@@ -156,9 +156,10 @@ else
   export CFLAGS="-I$INST_PATH/include -D HAVE_LIBDEFLATE"
   export LDFLAGS="-L$INST_PATH/lib"
   #do this to force libdeflate to be statically liked, (for tabix and bgzip)
+  #so that programs can be executed directly after a setup installation
   export HAVE_LIBDEFLATE=1
   export LIBS="-l:libdeflate.a"
-  ./configure --enable-plugins  --enable-libcurl --without-libdeflate --prefix=$INST_PATH
+  ./configure --disable-plugins  --enable-libcurl --without-libdeflate --prefix=$INST_PATH
   make -j$CPU
   make install
   mkdir -p $INST_PATH/include/cram
