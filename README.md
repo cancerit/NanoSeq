@@ -200,45 +200,27 @@ runNanoSeq.py -t 2 \
 
 A bash script is provided in the LSF directory as a template for execution of all the steps in an computing environment using the LSF job scheduler. Script should be edited to fit individual needs.
 
+### Genomic masks
+
+Genomic masks for common SNP masking and detection of noisy/variable genomic sites. Masks for GRCh37 are available [here](https://drive.google.com/drive/folders/1wqkgpRTuf4EUhqCGSLA4fIg9qEEw3ZcL?usp=sharing). 
+
+When running NanoSeq on a species for which no common SNP data is available, an empty bed file should be used.
+
+
 ## Output
 
 ### Summary
 
 The most relevant summary files include the following.
 
-- **muts.vcf**
-
-    This file provides the standard variant information with the following flags for each variant:
-    
-    - PASS these are SNVs of interest
-    - SNVs occurring at common SNP sites (DBSNP mask)
-    - SHEARWATER marks error-prone sites defined from a large panel of normals
-
-    Note that contaminated samples will usually show many mutations that overlap with DBSNP sites.
-
-- **burden.masked-vs-unmasked.pdf**
-
-    Provides a qualitative look at contamination. Burdens should be similar for both bars.
-
-- **mut_burden.tsv**
-
-    Summarizes the mutation burden estimates, observed and corrected. Burdens are expressed as number of mutations per base. The correction is done to account for differences between the trinucleotide frequencies of the genome and of NanoSeq data.
-
-- **trint_counts_and_ratio2genome.tsv**
-
-    File providing information on the frequency of each 32 pyrimidine trinucleotide in the NanoSeq data and the ratio to the genome frequency.
-
-    tri_bg is the trinucleotide frequency. ratio2genome is the trinucleotide frequency vs that seen in the genome
-
-- **subs_obs_corrected**
-
-    Shows the correction for each of the 96 trinucleotides substitutions, using the results in **trint_counts_and_ratio2genome.tsv**.
-
-- **trinuc-profiles.pdf**
-
-    Shows the observed substitution profile, the corrected substitution profile, and the actual mutation rates
+* `muts.vcf.gz / muts.tsv`: substitutions called in vcf and tsv format. "PASS" substitutions are those not filtered by the common SNP and noisy sites masks (see Genomic masks).
+* `indels.vcf.gz`: indel calls
+* `burden.masked-vs-unmasked.pdf`: estimated burden before and after filtering common SNPs. Provides a qualitative view on contamination.
+* `mut_burden.tsv`: estimated substitution burden with Poisson confidence intervals. The corrected burden shows the burden after normalising observed trinucleotide frequencies to the genomic trinucleotide frequencies.
+* `trinuc-profiles.pdf / trint_subs_obs_corrected.tsv / trint_counts_and_ratio2genome.tsv`: Trinucleotide substitution profiles (observed and corrected), using the trinucleotide substitution counts in `trint_subs_obs_corrected.tsv` and the normalisation of trinucleotide frequencies in `trint_counts_and_ratio2genome.tsv`. Normalization is required because NanoSeq results are depleted of trinucleotides overlapping the restriction site and of CpGs due to extensive filtering of common SNPs.
+* `cov.bed.gz`: large file containing the effective duplex coverage for each genomic site, also showing the trinucleotide context of each site. This file is required to to calculate burdens and substitution profiles in sets of specific genomic regions (e.g. highly expressed genes, heterochromatine, ...).
+* `subst_asym.pdf / subst_asym_and_rates_binned.pdf / subst_asym_binned.tsv / subst_asym.pvals / subst_asym.tsv`: These files are not generally needed for NanoSeq analysis. They have been employed to detect asymetries in the end repair of the original BotSeq protocol. 
+* `mismatches.trinuc-profile.pdf / mismatches.subst_asym.pdf / mismatches.subst_asym.pvals / mismatches.subst_asym.tsv`: These files show the asymmetries and pyrimidine/purine-based trinucleotide substitution profiles for single-strand consensus calls. These profiles are useful to understand DNA damage during library preparation.
+* `DSC_errors_per_channel.pdf / DSC_estimated_error_rates.pdf / estimated_error_rates.tsv / SSC-mismatches-Both.triprofiles.tsv / SSC-mismatches-Purine.triprofiles.tsv / SSC-mismatches-Pyrimidine.triprofiles.tsv`: Based on the independent error rates in the purine and pyrimidine channels (e.g. G>T and C>A), we calculate how likely is to have double errors affecting both strands and resulting in double-strand consensus.
 
 
-- **subst_asym**
-
-    These files are not generally needed for NanoSeq analysis. They have been employed to detect asymetries in the end repair of the original BotSeq protocol.
