@@ -153,6 +153,8 @@ else
   mkdir -p htslib
   tar --strip-components 1 -C htslib -jxf htslib.tar.bz2
   cd htslib
+  #make SEQS_PER_SLICE 1000 for improved CRAM handling
+  sed -ri 's/#define +SEQS_PER_SLICE .+/#define SEQS_PER_SLICE 1000/' ./cram/cram_structs.h
   export CFLAGS="-I$INST_PATH/include -D HAVE_LIBDEFLATE"
   export LDFLAGS="-L$INST_PATH/lib"
   #do this to force libdeflate to be statically liked, (for tabix and bgzip)
