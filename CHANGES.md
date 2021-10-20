@@ -9,6 +9,7 @@
 * Fixed incorrect default argument (-d)
 * Added argument for file name of results
 * Removed plugin option from htslib that was causing issues with CRAM
+* Set seqs_per_slice to 1000 in htslib for improved CRAM streaming 
 
 ## 2.1.0
 
