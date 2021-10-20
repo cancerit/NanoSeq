@@ -209,8 +209,6 @@ When running NanoSeq on a species for which no common SNP data is available, an 
 
 ## Output
 
-### Summary
-
 The most relevant summary files include the following.
 
 * `muts.vcf.gz / muts.tsv`: substitutions called in vcf and tsv format. "PASS" substitutions are those not filtered by the common SNP and noisy sites masks (see Genomic masks).
