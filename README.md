@@ -93,7 +93,7 @@ GC_BOTH and GC_SINGLE: the GC content of RBs with both strands and with just one
 
 ## NanoSeq analysis
 
-For a bulk/duplex (normal/tumour) pair of samples an analysis requires the following steps:
+For a matched normal and a duplex pair of samples (hereafter referred to as "normal" and "tumour") an analysis requires the following steps:
 
 1) Generation of tables files (`dsa`)
 2) Generation of variant files (`variants`)
