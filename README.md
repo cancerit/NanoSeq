@@ -1,6 +1,6 @@
 # NanoSeq
 
-Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutation with single molecule resolution and extremely low error rates ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code here are for preprocessing NanoSeq sequencing data and assess its quality, and for calling mutations (substitutions and indels) as well as estimating mutation burdens and substitution profiles.
+Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutations with single molecule resolution and extremely low error rates ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code in this repository cover the preprocessing of NanoSeq sequencing data, the assessment of data quality and efficiency, and the calling of mutations (substitutions and indels) and the estimating mutation burdens and substitution profiles.
 
 The wet-lab protocol is described in the original publication ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)) and on ProtocolExchange ([Lensing et al, 2021](https://protocolexchange.researchsquare.com/article/pex-1298/v1)).
 
@@ -58,11 +58,14 @@ bamaddreadbundles -I mapped_od.bam -O filtered.bam
 
 ## Preparation of a matched normal
 
-The NanoSeq analysis requires a matched normal to filter germline SNPs. Sequencing undiluted NanoSeq libraries is the most cost-efficient solution because all the coverage will concentrate in the fraction of the genome "seen" with the selected restriction enzyme. If the matched normal happens to be an undiluted NanoSeq library it must be processed further as to just keep one read-pair from each read bundle to produce a 'neat' normal (i.e. to remove PCR duplicates).
+The NanoSeq analysis requires a matched normal to distinguish somatic mutations from germline SNPs. Sequencing undiluted NanoSeq libraries is the most cost-efficient solution to create a matched normal because all the coverage will concentrate in the fraction of the genome "seen" with the selected restriction enzyme. If the matched normal happens to be an undiluted NanoSeq library it must be processed further as to just keep one read-pair from each read bundle to produce a 'neat' normal (i.e. to remove PCR duplicates).
 
 ```
 randomreadinbundle -I filtered.bam -O neat.bam
 ```
+
+Deduplication of bams with `randomreadinbundle` is also required to run VerifyBamId and the efficiency estimates (`efficiency_nanoseq.pl`).
+
 ### Note
 
 Correct pre-processing means that duplex BAMs must have @PG tags for `bamsormadup` , `bammarkduplicatesopt` and `bamaddreadbundles`. A neat bulk (NanoSeq library) BAM must have a @PG tag for `bamaddreadbundles` & `randomreadinbundle`. A WGS bulk will NOT have a tag for `bamaddreadbundles`. 
@@ -76,7 +79,7 @@ An alpha < 0.005 would be acceptable for most situations.
 
 ## Efficiency
 
-The script efficiency_nanoseq.pl analyse the information in the NanoSeq original bam and its deduplicated version.
+The script efficiency_nanoseq.pl analyses the information in the NanoSeq original bam and its deduplicated version.
 The output provides information on duplicate rates, read counts... Theoretically, the optimal duplicate rate in terms of efficiency (duplex bases / sequenced bases) is 81% for read bundles of size >= 2+2, with 65% and 90% yielding ≥80% of the maximum of efficiency. Empirically the optimal duplicate rate is 75-76%.
 
 Apart of the duplicate rate, the following outputs are important to assess the quality of the experiment: F-EFF, EFFICIENCY, GC_BOTH/GC_SINGLE
@@ -90,7 +93,7 @@ GC_BOTH and GC_SINGLE: the GC content of RBs with both strands and with just one
 
 ## NanoSeq analysis
 
-For a bulk/duplex (normal/tumour) pair of samples an analysis requires the following steps:
+For a matched normal and a duplex pair of samples (hereafter referred to as "normal" and "tumour") an analysis requires the following steps:
 
 1) Generation of tables files (`dsa`)
 2) Generation of variant files (`variants`)
@@ -214,11 +217,11 @@ The most relevant summary files include the following.
 * `muts.vcf.gz / muts.tsv`: substitutions called in vcf and tsv format. "PASS" substitutions are those not filtered by the common SNP and noisy sites masks (see Genomic masks).
 * `indels.vcf.gz`: indel calls
 * `burden.masked-vs-unmasked.pdf`: estimated burden before and after filtering common SNPs. Provides a qualitative view on contamination.
-* `mut_burden.tsv`: estimated substitution burden with Poisson confidence intervals. The corrected burden shows the burden after normalising observed trinucleotide frequencies to the genomic trinucleotide frequencies.
-* `trinuc-profiles.pdf / trint_subs_obs_corrected.tsv / trint_counts_and_ratio2genome.tsv`: Trinucleotide substitution profiles (observed and corrected), using the trinucleotide substitution counts in `trint_subs_obs_corrected.tsv` and the normalisation of trinucleotide frequencies in `trint_counts_and_ratio2genome.tsv`. Normalization is required because NanoSeq results are depleted of trinucleotides overlapping the restriction site and of CpGs due to extensive filtering of common SNPs.
-* `cov.bed.gz`: large file containing the effective duplex coverage for each genomic site, also showing the trinucleotide context of each site. This file is required to to calculate burdens and substitution profiles in sets of specific genomic regions (e.g. highly expressed genes, heterochromatine, ...).
-* `subst_asym.pdf / subst_asym_and_rates_binned.pdf / subst_asym_binned.tsv / subst_asym.pvals / subst_asym.tsv`: These files are not generally needed for NanoSeq analysis. They were originally used to detect asymetries in the original DuplexSeq & BotSeq protocols. 
+* `mut_burden.tsv`: estimated substitution burden with Poisson confidence intervals. The corrected burden shows the burden after normalizing observed trinucleotide frequencies to the genomic trinucleotide frequencies.
+* `trinuc-profiles.pdf / trint_subs_obs_corrected.tsv / trint_counts_and_ratio2genome.tsv`: Trinucleotide substitution profiles (observed and corrected), using the trinucleotide substitution counts in `trint_subs_obs_corrected.tsv` and the normalization of trinucleotide frequencies in `trint_counts_and_ratio2genome.tsv`. Normalization is required because NanoSeq results are depleted of trinucleotides overlapping the restriction site and of CpGs due to extensive filtering of common SNPs.
+* `cov.bed.gz`: large file containing the effective duplex coverage for each genomic site, also showing the trinucleotide context of each site. This file is required to to calculate burdens and substitution profiles in sets of specific genomic regions (e.g. highly expressed genes, heterochromatin, ...).
+* `subst_asym.pdf / subst_asym_and_rates_binned.pdf / subst_asym_binned.tsv / subst_asym.pvals / subst_asym.tsv`: These files are not generally needed for NanoSeq analysis. They were originally used to detect asymmetries in the original DuplexSeq & BotSeqS protocols. 
 * `mismatches.trinuc-profile.pdf / mismatches.subst_asym.pdf / mismatches.subst_asym.pvals / mismatches.subst_asym.tsv`: These files show the asymmetries and pyrimidine/purine-based trinucleotide substitution profiles for single-strand consensus calls. These profiles are useful to understand DNA damage during library preparation.
-* `DSC_errors_per_channel.pdf / DSC_estimated_error_rates.pdf / estimated_error_rates.tsv / SSC-mismatches-Both.triprofiles.tsv / SSC-mismatches-Purine.triprofiles.tsv / SSC-mismatches-Pyrimidine.triprofiles.tsv`: Based on the independent error rates in the purine and pyrimidine channels (e.g. G>T and C>A), we calculate the probability of having independent errors affecting both strands and and resulting in double-strand consensus.
+* `DSC_errors_per_channel.pdf / DSC_estimated_error_rates.pdf / estimated_error_rates.tsv / SSC-mismatches-Both.triprofiles.tsv / SSC-mismatches-Purine.triprofiles.tsv / SSC-mismatches-Pyrimidine.triprofiles.tsv`: Based on the independent error rates in the purine and pyrimidine channels (e.g. G>T and C>A), we calculate the probability of having independent errors affecting both strands and resulting in double-strand consensus.
 
 

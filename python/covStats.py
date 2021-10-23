@@ -59,16 +59,16 @@ else :
     nfiles = int(iofile.readline())
 
 for i in range( nfiles ) :
-  if ( len(glob.glob(tmpDir+"/%s.done"%i)) != 1 ) :
-    sys.exit("\ncov job did not complete correctly\n"%i)
-  if ( len(glob.glob(tmpDir+"/%s.cov.bed.gz"%i)) != 1 ) :
-    sys.exit("\ncov job did not complete correctly\n"%i)
+  if ( len(glob.glob(tmpDir+"/%s.done"%(i+1) )) != 1 ) :
+    sys.exit("\ncov job %s did not complete correctly\n"%(i+1))
+  if ( len(glob.glob(tmpDir+"/%s.cov.bed.gz"%(i+1))) != 1 ) :
+    sys.exit("\ncov job %s did not complete correctly\n"%(i+1))
 
 
 print("\nParsing coverage files\n")
 coverageL = []
 for i in range(nfiles) :
-  with gzip.open( tmpDir+"/%s.cov.bed.gz"%i,'rt') as iofile :
+  with gzip.open( tmpDir+"/%s.cov.bed.gz"%(i+1),'rt') as iofile :
     for iline in iofile :
       ichr = str(iline.split('\t')[0])
       ib = int(iline.split('\t')[1])
