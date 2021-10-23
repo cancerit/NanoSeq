@@ -586,7 +586,7 @@ if (args.subcommand == 'part'):
     for iinterval in xIntervals :
       ichar =iinterval.chr
       ibeg = iinterval.beg - 1
-      iend = iinterval.end
+      iend = iinterval.end - 1
       for i in range(math.floor(ibeg/oargs['win']), math.floor(iend/oargs['win'])+ 1 ):
         j = i + chrOffset[ ichar ]
         xSumCov += coverage[j][1]
@@ -606,19 +606,19 @@ if (args.subcommand == 'part'):
     iinterval = gIntervals.pop(0)
     ichar =iinterval.chr
     ibeg = iinterval.beg - 1
-    iend = iinterval.end
+    iend = iinterval.end - 1
     for i in range(math.floor(ibeg/oargs['win']), math.floor(iend/oargs['win'])+ 1 ):
       j = i + chrOffset[ ichar ]
       sumCov += coverage[j][1]
       if ( sumCov > basesPerCPU ) :
         jend = min( [ coverage[j][0] + oargs['win'], iend ] ) 
-        oIntervals.append(GInterval(ichar, ibeg + 1, jend ))
+        oIntervals.append(GInterval(ichar, ibeg + 1, jend + 1))
         intervalsPerCPU.append( oIntervals)
         oIntervals = [] 
         sumCov = 0
         ibeg=  jend
-    if ( iend >= (ibeg + 1)) : 
-      oIntervals.append(GInterval(ichar, ibeg + 1, iend))
+    if ( iend > ibeg ) : 
+      oIntervals.append(GInterval(ichar, ibeg + 1, iend + 1))
   if ( len(oIntervals) > 0 ) : intervalsPerCPU.append( oIntervals)
 
   #check partitioning code is working as expected
@@ -930,7 +930,7 @@ if (args.subcommand == 'post' ) :
     #wirte body
     for i in range(nfiles ) :
       ifile = "%s/var/%s.var"%(tmpDir, i+1 )
-      for row in open( ifile, 'rU' ) :
+      for row in open( ifile, 'r' ) :
         if ( row[0] == '#') : continue
         arow = row.strip().split('\t')
         if csvIO.get(arow[0], None):
