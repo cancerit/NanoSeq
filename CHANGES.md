@@ -1,6 +1,6 @@
 # CHANGES
 
-## 2.1.1
+## 2.2.0
 
 * Tested with targeted data
 * Fixed issue with coverage done files
@@ -10,7 +10,8 @@
 * Added argument for file name of results
 * Removed plugin option from htslib that was causing issues with CRAM
 * Set seqs_per_slice to 1000 in htslib for improved CRAM streaming 
-* fixed off by one error in part
+* Fixed off by one errors in part
+* Fixed interval test in part
 
 ## 2.1.0
 
