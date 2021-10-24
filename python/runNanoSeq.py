@@ -45,6 +45,7 @@ import shutil
 import time
 import re
 import tempfile
+import copy
 
 version='2.1.1'
 
@@ -305,7 +306,8 @@ class GInterval :
   def __eq__(self,other) :
     if ( self.chr == other.chr ) :
       if ( self.beg == other.beg ) :
-        return True
+        if ( self.end == other.end ) : 
+          return True
     return False
 
   def __ne__(self,other) :
@@ -555,7 +557,7 @@ if (args.subcommand == 'part'):
     while ( len(tmpIntervals) > 0 ) : 
       xIntervals.extend( xIntervals.pop() + tmpIntervals.pop(0) )
   
-    print("\nExcluding %s intervals, dumping to BED\n"% len(xIntervals))
+    print("\nExcluding %s intervals, dumping to BED file : %s \n"%(len(xIntervals), "%s/part/exclude.bed"%tmpDir))
     if ( args.index is None or args.index == 1 ) :
       with open("%s/part/%s"%(tmpDir,'exclude.bed'), 'w') as iofile :
         for ii in xIntervals :
@@ -602,6 +604,7 @@ if (args.subcommand == 'part'):
   sumCov = 0
   oIntervals = []
   intervalsPerCPU = []
+  gIntervalsCopy = copy.deepcopy(gIntervals)
   while ( len(gIntervals) > 0 ):
     iinterval = gIntervals.pop(0)
     ichar =iinterval.chr
@@ -612,26 +615,37 @@ if (args.subcommand == 'part'):
       sumCov += coverage[j][1]
       if ( sumCov > basesPerCPU ) :
         jend = min( [ coverage[j][0] + oargs['win'], iend ] ) 
-        oIntervals.append(GInterval(ichar, ibeg + 1, jend + 1))
+        oIntervals.append(GInterval(ichar, ibeg + 1, jend + 1 ))
         intervalsPerCPU.append( oIntervals)
         oIntervals = [] 
         sumCov = 0
-        ibeg=  jend
+        ibeg=  jend + 1
     if ( iend > ibeg ) : 
       oIntervals.append(GInterval(ichar, ibeg + 1, iend + 1))
   if ( len(oIntervals) > 0 ) : intervalsPerCPU.append( oIntervals)
 
   #check partitioning code is working as expected
-  #compare merged partitioned intervals to original gIntervals
+  #compare merged partitioned intervals to original gIntervals (copy)
+  print("\nChecking partition of intervals..", end = '' )
   flatInt = [item for sublist in intervalsPerCPU for item in sublist]
+  nbases1 = 0
+  for i in flatInt :
+    nbases1 += i.l
+  nbases2 = 0
+  for i in gIntervalsCopy :
+    nbases2 += i.l
+  if (nbases1 != nbases2 ) :
+    print("partitioned intevals have overlaps\n")
+    sys.exit(1)
+  print("..", end = '')
   mIntervals = [ flatInt.pop(0) ]
   while ( len(flatInt) > 0 ) : 
     mIntervals.extend( mIntervals.pop() + flatInt.pop(0) )
-  for (i,ival) in enumerate(gIntervals) :
-    if ( ival != mIntervals[i] ) :
-      print("mismatch for interval %s should be %s\n"%(mIntervals[i], ival ) )
+  for (i,ival) in enumerate(gIntervalsCopy) :
+    if ( not (ival == mIntervals[i] ) ):
+      print("mismatch after part, for interval %s should be %s\n"%(mIntervals[i], ival ) )
       sys.exit(1)
-
+  print(" OK\n")
   with open("%s/part/%s"%(tmpDir,'intervalsPerCPU.dat'), 'wb') as iofile :
     pickle.dump(intervalsPerCPU,iofile)
   cmd = "touch %s/part/1.done"%(tmpDir) 
