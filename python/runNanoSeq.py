@@ -378,6 +378,23 @@ def runBamcov(bam, mapQ, window, ichr, out) :
   open(outdone,'w').close()
   return
 
+def getBAMcontigs(bam) :
+  contigs = []
+  if (bam is None ) : return contigs
+  job = "samtools view -H %s"%bam
+  p = subprocess.Popen(job,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+  while True:
+    output = p.stdout.readline().decode()
+    if output == '' and p.poll() is not None:
+      break
+    if ( re.match("@SQ",output) ):
+      contigs.append( output.strip() )
+  rc = p.poll()
+  if ( rc != 0 ) :
+    error = p.stderr.read().decode()
+    sys.stderr.write("\n!Error processing:  %s\n"%job )
+    raise ValueError(error)
+  return contigs
 
 def vcfHeader( args ) :
   header =  '##fileformat=VCFv4.2\n'
@@ -451,6 +468,40 @@ if (args.subcommand == 'cov'):
         if ( ilength <= args.larger ) : continue
         chrList.append(ichr)
         rnames[ichr] = ilength
+
+  #BAMs vs reference sanity checks for contigs
+  bamNContigs = {}
+  bamNOrder = []
+  for iline in  getBAMcontigs(args.normal) :
+    ichr = iline.split('\t')[1].replace('SN:','')
+    ilength = int( iline.split('\t')[2].replace('LN:','') )
+    bamNContigs[ichr] = ilength
+    bamNOrder.append( ichr )
+
+  bamTContigs = {}
+  bamTOrder = []
+  for iline in  getBAMcontigs(args.tumour) :
+    ichr = iline.split('\t')[1].replace('SN:','')
+    ilength = int( iline.split('\t')[2].replace('LN:','') )
+    bamTContigs[ichr] = ilength
+    bamTOrder.append( ichr )
+
+  for icontig in rnames :
+    if ( not ( icontig in bamNContigs ) ) :
+      sys.exit( "Reference contig %s was not found in normal BAM" % icontig)
+    if ( bamNContigs[icontig] != rnames[icontig] ) :
+      sys.exit( "Length of contig %s in normal BAM doesn't match reference (%s vs %s)" %(icontig, bamNContigs[icontig], rnames[icontig] ))
+
+  for icontig in rnames :
+    if ( not ( icontig in bamTContigs ) ) :
+      sys.exit( "Reference contig %s was not found in tumour BAM" % icontig)
+    if ( bamTContigs[icontig] != rnames[icontig] ) :
+      sys.exit( "Length of contig %s in tumour BAM doesn't match reference (%s vs %s)" %(icontig, bamTContigs[icontig], rnames[icontig] ))
+
+  #if order of BAMs is not the same mpilupe bogus results
+  for icontig in rnames :
+    if ( bamNOrder.index( icontig) != bamTOrder.index( icontig) ) :
+      sys.exit( "Contigs in BAM files must have the same order ( check order in headers )" )
 
   gintervals = []
   for ichr in chrList :
@@ -635,16 +686,14 @@ if (args.subcommand == 'part'):
   for i in gIntervalsCopy :
     nbases2 += i.l
   if (nbases1 != nbases2 ) :
-    print("partitioned intevals have overlaps\n")
-    sys.exit(1)
+    sys.exit("partitioned intevals have overlaps\n")
   print("..", end = '')
   mIntervals = [ flatInt.pop(0) ]
   while ( len(flatInt) > 0 ) : 
     mIntervals.extend( mIntervals.pop() + flatInt.pop(0) )
   for (i,ival) in enumerate(gIntervalsCopy) :
     if ( not (ival == mIntervals[i] ) ):
-      print("mismatch after part, for interval %s should be %s\n"%(mIntervals[i], ival ) )
-      sys.exit(1)
+      sys.exit("mismatch after part, for interval %s should be %s\n"%(mIntervals[i], ival ) )
   print(" OK\n")
   with open("%s/part/%s"%(tmpDir,'intervalsPerCPU.dat'), 'wb') as iofile :
     pickle.dump(intervalsPerCPU,iofile)
