@@ -84,7 +84,7 @@ The output provides information on duplicate rates, read counts... Theoretically
 
 Apart of the duplicate rate, the following outputs are important to assess the quality of the experiment: F-EFF, EFFICIENCY, GC_BOTH/GC_SINGLE
 
-F-EFF or strand drop out fraction: This shows the fraction of read bundles missing one of the two original strands beyond what would be expected under random sampling (assuming a binomial process). Good values are between 10-30%, and larger values are likely due to DNA damage such as modified bases or internal nicks that prevent amplification of one of the two strands. 
+F-EFF or strand drop out fraction: This shows the fraction of read bundles missing one of the two original strands beyond what would be expected under random sampling (assuming a binomial process). Good values are between 0.10-0.30, and larger values are likely due to DNA damage such as modified bases or internal nicks that prevent amplification of one of the two strands. Larger values do not impact the quality of the results, just reduce the efficiency of the protocol.
 
 EFFICIENCY: This is the number of duplex bases divided by the number of sequenced bases. Efficiency is maximised to ~0.07 when duplicate rates and strand drop outs are optimal
 
