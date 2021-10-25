@@ -12,6 +12,7 @@
 * Set seqs_per_slice to 1000 in htslib for improved CRAM streaming 
 * Fixed off by one errors in part
 * Fixed interval test in part
+* Added consistency checks for contigs in BAM files 
 
 ## 2.1.0
 
