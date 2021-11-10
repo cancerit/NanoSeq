@@ -1,5 +1,9 @@
 # CHANGES
 
+## 2.3.0
+
+* Cleaned up/ simplified variantcaller.R
+
 ## 2.2.0
 
 * Tested with targeted data
