@@ -3,6 +3,7 @@
 ## 2.3.0
 
 * Cleaned up/ simplified variantcaller.R
+* Added extra check for turncated dsa output
 
 ## 2.2.0
 
