@@ -436,6 +436,7 @@ void Pileup::MultiplePileup() {
       break;
     }
   }
+  std::cout << std::flush;
   fai_destroy(this->fai);
   free(this->n_plp);
   free(this->plp);
