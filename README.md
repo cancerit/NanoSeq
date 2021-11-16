@@ -192,7 +192,7 @@ runNanoSeq.py -t 60 \
 ```
 ### Post processing (post)
 
-Merge final files, produce summaries, compute efficiency. Results can be found in tmpNanoSeq/post.
+Merge final files, produce summaries. Results can be found in tmpNanoSeq/post.
 
 ```
 runNanoSeq.py -t 2 \
