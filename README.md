@@ -27,7 +27,7 @@ Rscript ./build/manualInstall.R <R libraries path>  #install all the required R 
 ### Steps overview
 
 1) Extract the duplex barcodes from the fastq files and add them to the fastq header of each read (`extract_tags.py`)
-2) Map reads to the reference genome using bwa with option -C to add the barcodes as tags in the bam
+2) Map reads to the reference genome using `bwa` with option -C to add the barcodes as tags in the bam
 3) Add rc and mc tags, mark optical duplicates, and filter the bam for unpaired reads, creating a molecule-unique read bundle (RB) tag identifier for each read pair.
 
 ### 1/2. Extract barcodes and map reads
