@@ -47,7 +47,7 @@ import re
 import tempfile
 import copy
 
-version='2.3.0'
+version='2.3.1'
 
 parser = argparse.ArgumentParser()
 #arguments for all subcommands
@@ -440,7 +440,7 @@ tmpDir = args.out + "/tmpNanoSeq"
 if (args.subcommand == 'cov'):
   for idir in ('cov','part', 'dsa', 'var', 'indel', 'post') :
     if (not os.path.isdir(tmpDir+'/'+idir) ) :
-      os.makedirs(tmpDir+'/'+idir)
+      os.makedirs(tmpDir+'/'+idir, exist_ok=True )
 
 if ( args.index is None or args.index == 1 ) :
   with open("%s/%s/args.json"%(tmpDir,args.subcommand), "w") as jsonOut :
