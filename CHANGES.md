@@ -1,5 +1,9 @@
 # CHANGES
 
+## 2.3.1
+
+* Added safe creation of tmp dir
+
 ## 2.3.0
 
 * Cleaned up/ simplified variantcaller.R
