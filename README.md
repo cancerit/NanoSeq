@@ -1,6 +1,6 @@
 # NanoSeq
 
-Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutations with single molecule resolution and extremely low error rates ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code in this repository cover the preprocessing of NanoSeq sequencing data, the assessment of data quality and efficiency, and the calling of mutations (substitutions and indels) and the estimating mutation burdens and substitution profiles.
+Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutations with single molecule resolution and extremely low error rates ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code in this repository cover the preprocessing of NanoSeq sequencing data, the assessment of data quality and efficiency, and the calling of mutations (substitutions and indels) and the estimation of mutation burdens and substitution profiles.
 
 The wet-lab protocol is described in the original publication ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)) and on ProtocolExchange ([Lensing et al, 2021](https://protocolexchange.researchsquare.com/article/pex-1298/v1)).
 
@@ -24,8 +24,10 @@ Rscript ./build/manualInstall.R <R libraries path>  #install all the required R 
 
 ## Preprocessing of the sequencing data
 
+### Steps overview
+
 1) Extract the duplex barcodes from the fastq files and add them to the fastq header of each read (`extract_tags.py`)
-2) Map reads to the reference genome using bwa with option -C to add the barcodes as tags in the bam
+2) Map reads to the reference genome using `bwa` with option `-C to add the barcodes as tags in the bam
 3) Add rc and mc tags, mark optical duplicates, and filter the bam for unpaired reads, creating a molecule-unique read bundle (RB) tag identifier for each read pair.
 
 ### 1/2. Extract barcodes and map reads
@@ -190,7 +192,7 @@ runNanoSeq.py -t 60 \
 ```
 ### Post processing (post)
 
-Merge final files, produce summaries, compute efficiency. Results can be found in tmpNanoSeq/post.
+Merge final files, produce summaries. Results can be found in tmpNanoSeq/post.
 
 ```
 runNanoSeq.py -t 2 \
