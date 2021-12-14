@@ -3,6 +3,7 @@
 ## 2.3.1
 
 * Added safe creation of tmp dir
+* Re-read input file to reduce mem usage in efficiency calculation
 
 ## 2.3.0
 
