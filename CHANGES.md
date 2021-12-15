@@ -1,5 +1,9 @@
 # CHANGES
 
+## 2.3.2
+
+* Reverted to old efficiency calculation
+
 ## 2.3.1
 
 * Added safe creation of tmp dir
