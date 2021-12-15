@@ -65,7 +65,7 @@ par(mar=c(2,2,2,2))
 
   rbs$x = pmin(rbs[,1],10)
   rbs$y = pmin(rbs[,2],10)
-  #rbs_bck = rbs;
+  rbs_bck = rbs;
   kk=as.data.frame(table(rbs[,c("x","y")]))
   kk$point_size = kk$Freq/max(kk$Freq)
   reads_per_RB = sum(c(rbs$x,rbs$y))/nrow(rbs)
@@ -116,8 +116,7 @@ cat("TOTAL_READS\t",sum(c(rbs_bck$x,rbs_bck$y))*2,"\n",sep="") #by 2 because we 
 
 ##########################################################################################
 # Now GC content:
-  #rbs = rbs_bck
-  rbs      = read.table(rb_file,sep="\t",header=F,row.names=1)
+  rbs = rbs_bck
 
   colnames(rbs)[1:2] = c("plus","minus")
   rbs$id = rownames(rbs)
@@ -156,8 +155,7 @@ cat("GC_SINGLE\t",gc_single,"\n",sep="")
 
 ##########################################################################################
 # RB sizes vs GC content & insert sizes:
-  #rbs = rbs_bck
-  rbs      = read.table(rb_file,sep="\t",header=F,row.names=1)
+  rbs = rbs_bck
 
   colnames(rbs)[1:2] = c("plus","minus")
   rbs$id = rownames(rbs)
