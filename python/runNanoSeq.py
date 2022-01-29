@@ -360,7 +360,7 @@ def runCommand(command) :
   if ( command is None ) : return
   for ijob in command.rstrip(';').split(';') :
     print("\nExecuting: %s\n"%ijob)
-    p = subprocess.Popen(ijob,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    p = subprocess.Popen(ijob,shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
     p.wait()
     if (p.returncode != 0 ) :
       error = p.stderr.read().decode()
