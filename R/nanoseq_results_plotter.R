@@ -552,6 +552,9 @@ n_variants_masked    <- burdens[ismasked == 0][isvariant == 1]$count
 n_reference_masked   <- burdens[ismasked == 0][isvariant == 0]$count
 n_variants_unmasked  <- sum(burdens[isvariant == 1]$count)
 n_reference_unmasked <- sum(burdens[isvariant == 0]$count)
+if (n_variants_unmasked == 0) { #ao7
+  n_variants_masked = 0
+}
 burden_masked   = n_variants_masked  /(n_reference_masked + n_variants_masked)
 burden_unmasked = n_variants_unmasked/(n_reference_unmasked + n_variants_unmasked)
 pdf(width=5,height=5,file=paste(out_name,".burden.masked-vs-unmasked.pdf",sep=""))
