@@ -372,7 +372,7 @@ def runCommand(command) :
 def runBamcov(bam, mapQ, window, ichr, out) :
   if (bam is None ) : return
   out = out+".cov.bed"
-  runCommand("bamcov -q %s -w %s -r %s -o %s %s"%(mapQ, window, ichr, out, bam))
+  runCommand("bamcov -q %s -w %s -r \"%s\" -o %s %s"%(mapQ, window, ichr, out, bam))
   runCommand("bgzip -l 2 -f %s"%(out))
   outdone = re.sub('cov.bed$','done',out)
   open(outdone,'w').close()
@@ -751,7 +751,7 @@ if (args.subcommand == 'dsa' ) :
     for (ii , iinterval) in enumerate( intervalsPerCPU[i] ):
       dsaInt = iinterval.convert2DSAInput()
       pipe = ">" if ii == 0 else ">>" #ensure first command overwrittes
-      cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s %s -r %s -b %s -e %s %s %s ;" \
+      cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s %s -r \"%s\" -b %s -e %s %s %s ;" \
               %(args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, QQ, topt,
                 dsaInt.chr, dsaInt.beg, dsaInt.end,pipe, "%s/dsa/%s.dsa.bed"%(tmpDir,i + 1) )
     #check number of fields in the last line it has to have 45 fields
