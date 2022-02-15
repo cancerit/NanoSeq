@@ -671,7 +671,7 @@ if (args.subcommand == 'part'):
         oIntervals = [] 
         sumCov = 0
         ibeg=  jend + 1
-    if ( iend > ibeg ) : 
+    if ( iend >= ibeg ) : 
       oIntervals.append(GInterval(ichar, ibeg + 1, iend + 1))
   if ( len(oIntervals) > 0 ) : intervalsPerCPU.append( oIntervals)
 
