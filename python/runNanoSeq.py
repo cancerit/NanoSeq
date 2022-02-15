@@ -686,14 +686,14 @@ if (args.subcommand == 'part'):
   for i in gIntervalsCopy :
     nbases2 += i.l
   if (nbases1 != nbases2 ) :
-    sys.exit("partitioned intevals have overlaps\n")
+    sys.exit("Internal check failed: intervals after part have overlaps\n")
   print("..", end = '')
   mIntervals = [ flatInt.pop(0) ]
   while ( len(flatInt) > 0 ) : 
     mIntervals.extend( mIntervals.pop() + flatInt.pop(0) )
   for (i,ival) in enumerate(gIntervalsCopy) :
     if ( not (ival == mIntervals[i] ) ):
-      sys.exit("mismatch after part, for interval %s should be %s\n"%(mIntervals[i], ival ) )
+      sys.exit("Internal check failed: mismatch after part (interval %s should be %s)\n"%(mIntervals[i], ival ) )
   print(" OK\n")
   with open("%s/part/%s"%(tmpDir,'intervalsPerCPU.dat'), 'wb') as iofile :
     pickle.dump(intervalsPerCPU,iofile)
