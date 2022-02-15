@@ -820,9 +820,9 @@ if (args.subcommand == 'dsa'):
     with open(tmpDir+"/part/intervalsPerCPU.dat", 'rb') as iofile:
         intervalsPerCPU = pickle.load(iofile)
 
-    QQ = None
+    mapQ = None
     with open(tmpDir+'/cov/args.json') as iofile:
-        QQ = json.load(iofile)['Q']
+        mapQ = json.load(iofile)['Q']
 
     commands = [(None, )] * njobs
     for i in range(njobs):
@@ -833,14 +833,14 @@ if (args.subcommand == 'dsa'):
 
         # construct dsa commands
         cmd = ""
-        topt = ""
+        testOpt = ""
         if (args.no_test):
-            topt = "-t"
+            testOpt = "-t"
         for (ii, iinterval) in enumerate(intervalsPerCPU[i]):
             dsaInt = iinterval.convert2DSAInput()
             pipe = ">" if ii == 0 else ">>"  # ensure first command overwrittes
             cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s %s -r \"%s\" -b %s -e %s %s %s ;" \
-                % (args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, QQ, topt,
+                % (args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, mapQ, testOpt,
                    dsaInt.chr, dsaInt.beg, dsaInt.end, pipe, "%s/dsa/%s.dsa.bed" % (tmpDir, i + 1))
         # check number of fields in the last line it has to have 45 fields
         cmd += "awk  \'END{  if (NF != 45)  print \"Truncated dsa output file for job %s !\" > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' %s/dsa/%s.dsa.bed;" % (i+1, tmpDir, i+1)
