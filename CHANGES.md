@@ -1,5 +1,11 @@
 # CHANGES
 
+## 2.3.3
+
+* Added quotes add various places to support ant chromosomes
+* Fixed error with 1 bp intervals
+* Fixed efficiency calculation problem with coordinates outside of chr ends
+
 ## 2.3.2
 
 * Reverted to old efficiency calculation
