@@ -113,7 +113,7 @@ my $bam = $merged_bam;
 sub count_RB {
   my %rbs;
   my ($threads, $flag, $bam, $region) = @_;
-  my $cmd = "samtools view -@ $threads -f $flag $bam $region";
+  my $cmd = "samtools view -@ $threads -f $flag $bam \"$region\"";
   open(IN, "$cmd |") || die "Error launching $cmd\n"; 
   while(<IN>) {
     chomp;
