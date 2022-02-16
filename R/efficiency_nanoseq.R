@@ -100,40 +100,36 @@ par(mar=c(2,2,2,2))
   rbs$max = apply(rbs[,c("x","y")],1,max)
   rbs$y = rbs$min
   rbs$x = rbs$max
-  fit <- vglm(cbind(y, size - y) ~ 1, zibinomialff, data = rbs, trace = TRUE)
-  zib_coef1     = coef(fit)[1]
-  zib_coef2     = coef(fit)[2]
-  zib_prob      = Coef(fit)[1]
-  zib_onempstr0 = Coef(fit)[2]
 dev.off()
 
 cat("READS_PER_RB\t",reads_per_RB,"\n",sep="")
 cat("F-EFF\t",total_missed_fraction,"\n",sep="")
-cat("ZIB-EFF\t",1-zib_onempstr0,"\n",sep="")
 cat("OK_RBS\t",nrow(rbs_bck[which(rbs_bck$x>=2 & rbs_bck$y>=2),]),"\n",sep="")
 cat("TOTAL_RBS\t",nrow(rbs_bck),"\n",sep="")
 cat("TOTAL_READS\t",sum(c(rbs_bck$x,rbs_bck$y))*2,"\n",sep="") #by 2 because we look only at one of the mates
 
 ##########################################################################################
 # Now GC content:
-  rbs = rbs_bck
+  #rbs = rbs_bck
 
   colnames(rbs)[1:2] = c("plus","minus")
   rbs$id = rownames(rbs)
+  kk=str_split_fixed(rbs$id, "[:,]", 7)
+  rbs$chr   = kk[,3]
+  rbs$start = as.numeric(kk[,4])
+  rbs$end   = as.numeric(kk[,5])
+ 
+# Remove RBs with end breakpoints beyond chr/contig size
+  chr_coords =  as.data.frame(scanFaIndex(genomeFile))
+  rownames(chr_coords) = chr_coords$seqnames
+  rbs$chr_end = chr_coords[rbs$chr,"end"]
+  rbs = rbs[which(rbs$end<rbs$chr_end),]
   
   rbs_both = rbs[which(rbs$minus+rbs$plus>=4 & rbs$minus >= 2 & rbs$plus >= 2),]
   rbs_both = rbs_both[sample(1:nrow(rbs_both),min(10000,nrow(rbs_both))),] # 1000 random
-  kk=str_split_fixed(rbs_both$id, "[:,]", 7)
-  rbs_both$chr   = kk[,3]
-  rbs_both$start = as.numeric(kk[,4])
-  rbs_both$end   = as.numeric(kk[,5])
-  
+    
   rbs_single = rbs[which(rbs$minus+rbs$plus>4 & (rbs$minus == 0 | rbs$plus == 0)),]
   rbs_single = rbs_single[sample(1:nrow(rbs_single),min(10000,nrow(rbs_single))),] # 1000 random
-  kk=str_split_fixed(rbs_single$id, "[:,]", 7)
-  rbs_single$chr   = kk[,3]
-  rbs_single$start = as.numeric(kk[,4])
-  rbs_single$end   = as.numeric(kk[,5])
   
   seqs_both = as.vector(scanFa(genomeFile,GRanges(rbs_both$chr, IRanges(start=rbs_both$start, end=rbs_both$end))))
   seqs_single = as.vector(scanFa(genomeFile,GRanges(rbs_single$chr, IRanges(start=rbs_single$start, end=rbs_single$end))))
@@ -157,6 +153,7 @@ cat("GC_SINGLE\t",gc_single,"\n",sep="")
 # RB sizes vs GC content & insert sizes:
   rbs = rbs_bck
 
+
   colnames(rbs)[1:2] = c("plus","minus")
   rbs$id = rownames(rbs)
   rbs$size = rbs$plus + rbs$minus
@@ -165,6 +162,13 @@ cat("GC_SINGLE\t",gc_single,"\n",sep="")
   rbs$start = as.numeric(kk[,4])
   rbs$end   = as.numeric(kk[,5])
   rbs$insert = rbs$end - rbs$start
+
+# Remove RBs with end breakpoints beyond chr/contig size
+  chr_coords =  as.data.frame(scanFaIndex(genomeFile))
+  rownames(chr_coords) = chr_coords$seqnames
+  rbs$chr_end = chr_coords[rbs$chr,"end"]
+  rbs = rbs[which(rbs$end<rbs$chr_end),]
+
 
 res = as.data.frame(matrix(nrow=7,ncol=3))
 colnames(res) = c("size","GC","insert_len")
