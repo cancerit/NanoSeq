@@ -233,5 +233,5 @@ The most relevant summary files include the following.
 [quay-status]: https://quay.io/repository/wtsicgp/nanoseq/status
 [quay-repo]: https://quay.io/repository/wtsicgp/nanoseq
 [quay-builds]: https://quay.io/repository/wtsicgp/nanoseq?tab=builds
-[circleci-status]: https://circleci.com/gh/cancerit/NanoSeq.svg?style=svg
+[circleci-status]: https://circleci.com/gh/cancerit/NanoSeq.svg?style=shield
 [circleci-pipeline]: https://circleci.com/gh/cancerit/NanoSeq
