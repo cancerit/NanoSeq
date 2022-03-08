@@ -1,4 +1,6 @@
 # NanoSeq
+[![CircleCI][circleci-status]][circleci-pipeline]
+[![Quay Badge][quay-status]][quay-repo]
 
 Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutations with single molecule resolution and extremely low error rates ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code in this repository cover the preprocessing of NanoSeq sequencing data, the assessment of data quality and efficiency, and the calling of mutations (substitutions and indels) and the estimation of mutation burdens and substitution profiles.
 
@@ -227,3 +229,9 @@ The most relevant summary files include the following.
 * `DSC_errors_per_channel.pdf / DSC_estimated_error_rates.pdf / estimated_error_rates.tsv / SSC-mismatches-Both.triprofiles.tsv / SSC-mismatches-Purine.triprofiles.tsv / SSC-mismatches-Pyrimidine.triprofiles.tsv`: Based on the independent error rates in the purine and pyrimidine channels (e.g. G>T and C>A), we calculate the probability of having independent errors affecting both strands and resulting in double-strand consensus.
 
 
+<!-- Quay.io -->
+[quay-status]: https://quay.io/repository/wtsicgp/nanoseq/status
+[quay-repo]: https://quay.io/repository/wtsicgp/nanoseq
+[quay-builds]: https://quay.io/repository/wtsicgp/nanoseq?tab=builds
+[circleci-status]: https://circleci.com/gh/cancerit/NanoSeq.svg?style=svg
+[circleci-pipeline]: https://circleci.com/gh/cancerit/NanoSeq
