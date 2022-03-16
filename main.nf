@@ -3,7 +3,7 @@
 params.duplex = "$baseDir/33526_2#4.bam"
 params.normal = "$baseDir/33526_2#10.neat.bam"
 params.ref = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/genome.fa"
-params.jobs = 4
+params.jobs = 80
 
 // indexes
 d_i_ext = "." + params.duplex.split("\\.")[-1][0..1] + "i"
@@ -137,7 +137,7 @@ process dsa {
     memory '1 GB'
    
     """
-    rm -f $baseDir/tmpNanoSeq/cov/${ii}.done;
+    rm -f $baseDir/tmpNanoSeq/dsa/${ii}.done;
     runNanoSeq.py -R $ref -A $normal -B $duplex --out $baseDir -j $ii -k $np dsa -C $snp_bed -D $noise_bed -d $d -q $q --no_test;
     date > done
     """
