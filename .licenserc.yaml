@@ -45,6 +45,8 @@ header:
     - 'Makefile'
     - 'README.md'
     - 'EXAMPLE'
+    - 'main.nf'
+    - 'nextflow.config'
     - '**/*.yaml'
     - 'src/bamcov.c'
     - 'src/sam_opts.*'
