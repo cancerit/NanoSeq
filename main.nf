@@ -1,5 +1,6 @@
 #!/usr/bin/env nextflow
 
+params.outDir = baseDir
 params.duplex = "$baseDir/33526_2#4.bam"
 params.normal = "$baseDir/33526_2#10.neat.bam"
 params.ref = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/genome.fa"
@@ -46,13 +47,22 @@ params.indel_t3 = 135
 params.indel_t5 = 10
 params.indel_mc = 16
 
+// post paramaters
+params.post_name = "results"
+params.post_triNuc = ""
+if ( params.post_triNuc == "" ) {
+    triNuc_fh = file('NO_FILE')
+} else {
+    triNuc_fh = file(params.post_triNuc, checkIfExists: true)
+}
+
 println "run arguments: $params"
 
 /*
  * coverage calculation (cov)
  */
-njobs = 12 //fixed
-jobIndexes = Channel.of(1..njobs) //fixed
+
+cov_cpus = 12 //fixed
 
 process cov {
     input :
@@ -64,19 +74,25 @@ process cov {
     path ni from normal_index
     val q from params.cov_q
     val exclude from params.cov_exclude
-    val ii from jobIndexes
+
+    publishDir "$params.outDir/tmpNanoSeq/cov", mode: 'link', overwrite: true
 
     output :
-    val ii into cov_out
-    file "done" into done_cov //extra protection from error
+    path '*.done' into cov_files_done
+    path '*.cov.bed.gz' into cov_files_bed
+    path 'gIntervals.dat' into cov_files_dat
+    path 'args.json' into cov_files_json
+    path 'nfiles' into cov_files_n
 
-    cpus 1
-    memory '1 GB'
+    cpus cov_cpus 
+    memory { 500.MB * cov_cpus}
 
     """
-    rm -f $baseDir/tmpNanoSeq/cov/*.done;
-    runNanoSeq.py -R $ref -A $normal -B $duplex -j $ii -k $njobs --out $baseDir cov -Q $q --exclude \"$exclude\";
-    date > done; 
+    rm -f $params.outDir/tmpNanoSeq/cov/*; #allow clean resume for hard links
+
+    runNanoSeq.py -R $ref -A $normal -B $duplex -t $cov_cpus --out $params.outDir cov -Q $q --exclude \"$exclude\";
+    
+    mv $params.outDir/tmpNanoSeq/cov/* .
     """
 }
 
@@ -91,19 +107,25 @@ process part {
     path di from duplex_index
     path normal from params.normal
     path ni from normal_index
-    val cov from cov_out.collect()
+    path ifiles from cov_files_done.collect()
     val np from params.jobs
 
+    publishDir "$params.outDir/tmpNanoSeq/part", mode: 'link', overwrite: true
+
     output :
-    file "done" into done_part
+    path 'intervalsPerCPU.dat' into part_files_dat
+    path 'args.json' into part_files_json
+    path '1.done' into part_files_done
 
     cpus 1
     memory '9 GB'
 
     """
-    rm -f $baseDir/tmpNanoSeq/part/1.done;
-    runNanoSeq.py -R $ref -A $normal -B $duplex --out $baseDir part -n $np;
-    date > done
+    rm -f $params.outDir/tmpNanoSeq/part/*; #allow clean resume for hard links
+
+    runNanoSeq.py -R $ref -A $normal -B $duplex --out $params.outDir part -n $np;
+    
+    mv $params.outDir/tmpNanoSeq/part/* .
     """
 }
 
@@ -119,7 +141,7 @@ process dsa {
     path di from duplex_index
     path normal from params.normal
     path ni from normal_index
-    path done from done_part
+    path ifile from part_files_done
     val np from params.jobs
     val snp_bed from params.snp_bed
     val s_b_index from snp_bed_index
@@ -129,21 +151,32 @@ process dsa {
     val q from params.dsa_q
     val ii from jobIndexes
 
+    publishDir "$params.outDir/tmpNanoSeq/dsa", mode: 'link', overwrite: true
+
     output :
     val ii into dsa_out
-    file "done" into done_dsa
+    path "${ii}.done" into dsa_files_done
+    path "${ii}.dsa.bed.gz" into dsa_files_bed
+    path "nfiles" optional true into dsa_files_n
+    path "args.json" optional true into dsa_files_json
 
     cpus 1
     memory '1 GB'
    
     """
-    rm -f $baseDir/tmpNanoSeq/dsa/${ii}.done;
-    runNanoSeq.py -R $ref -A $normal -B $duplex --out $baseDir -j $ii -k $np dsa -C $snp_bed -D $noise_bed -d $d -q $q --no_test;
-    date > done
+    rm -f $params.outDir/tmpNanoSeq/dsa/${ii}.done; #allow clean resume for hard links
+    rm -f $params.outDir/tmpNanoSeq/dsa/${ii}.dsa.bed.gz;
+    if [ $ii -eq 1 ]; then rm -f $params.outDir/tmpNanoSeq/dsa/nfiles; rm -f $params.outDir/tmpNanoSeq/dsa/args.json; fi;
+
+    runNanoSeq.py -R $ref -A $normal -B $duplex --out $params.outDir -j $ii -k $np dsa -C $snp_bed -D $noise_bed -d $d -q $q --no_test;
+    
+    mv $params.outDir/tmpNanoSeq/dsa/${ii}.* . ;
+    if [ $ii -eq 1 ]; then mv $params.outDir/tmpNanoSeq/dsa/nfiles .; mv $params.outDir/tmpNanoSeq/dsa/args.json .; fi
     """
 }
 
-dsa_out.into{dsa_out1;dsa_out2;dsa_out3;dsa_out4}
+dsa_out.into{dsa_out1;dsa_out2}
+dsa_files_done.into{dsa_files_done1;dsa_files_done2}
 /*
  * variant calculation (var)
  */
@@ -156,7 +189,7 @@ process var {
     path normal from params.normal
     path ni from normal_index
     val ii from dsa_out1
-    val jj from dsa_out2.collect() // wait until all dsa jobs are done
+    path ifiles from dsa_files_done1.collect() // wait until all dsa jobs are done
     val np from params.jobs
     val a from params.var_a
     val b from params.var_b
@@ -173,18 +206,29 @@ process var {
     val x from params.var_x
     val z from params.var_z
 
+    publishDir "$params.outDir/tmpNanoSeq/var", mode: 'link', overwrite: true
+
     output :
-    val ii into var_out
-    file "done" into done_var
+    path "${ii}.done" into var_files_done
+    path "${ii}.var" into var_files_var
+    path "${ii}.cov.bed.gz" into var_files_bed
+    path "nfiles" optional true into var_files_n
+    path "args.json" optional true into var_files_json
 
     cpus 1
     memory '1 GB'
 
     """
-    rm -f $baseDir/tmpNanoSeq/var/${ii}.done;
-    runNanoSeq.py -R $ref -A $normal -B $duplex --out $baseDir -j $ii -k $np var -a $a -b $b -c $c -d $d -f $f -i $i \
+    rm -f $params.outDir/tmpNanoSeq/var/${ii}.done; #allow clean resume for hard links
+    rm -f $params.outDir/tmpNanoSeq/var/${ii}.var;
+    rm -f $params.outDir/tmpNanoSeq/var/${ii}.cov.bed.gz;
+    if [ $ii -eq 1 ]; then rm -f $params.outDir/tmpNanoSeq/var/nfiles; rm -f $params.outDir/tmpNanoSeq/var/args.json; fi;
+
+    runNanoSeq.py -R $ref -A $normal -B $duplex --out $params.outDir -j $ii -k $np var -a $a -b $b -c $c -d $d -f $f -i $i \
         -m $m -n $n -p $p -q $q -r $r -v $v -x $x -z $z;
-    date > done
+    
+    mv $params.outDir/tmpNanoSeq/var/${ii}.* . ;
+    if [ $ii -eq 1 ]; then mv $params.outDir/tmpNanoSeq/var/nfiles .; mv $params.outDir/tmpNanoSeq/var/args.json .; fi
     """
 }
 
@@ -199,25 +243,38 @@ process indel {
     path di from duplex_index
     path normal from params.normal
     path ni from normal_index
-    val ii from dsa_out3
-    val jj from dsa_out4.collect() // wait until all dsa jobs are done
+    val ii from dsa_out2
+    path ifiles from dsa_files_done2.collect() // wait until all dsa jobs are done
     val np from params.jobs
     val rb from params.indel_rb
     val t3 from params.indel_t3
     val t5 from params.indel_t5
     val mc from params.indel_mc
 
+    publishDir "$params.outDir/tmpNanoSeq/indel", mode: 'link', overwrite: true
+
     output :
-    val ii into indel_out
-    file "done" into done_indel
+    path "${ii}.done" into indel_files_done
+    path "${ii}.indel.filtered.vcf.gz" into indel_files_vcf
+    path "${ii}.indel.filtered.vcf.gz.tbi" into indel_files_tbi
+    path "nfiles" optional true into indel_files_n
+    path "args.json" optional true into indel_files_json
 
     cpus 1
     memory '1 GB'
 
     """
-    rm -f $baseDir/tmpNanoSeq/indel/${ii}.done;
-    runNanoSeq.py -R $ref -A $normal -B $duplex --out $baseDir -j $ii -k $np indel --rb $rb --t3 $t3 --t5 $t5 --mc $mc;
-    date > done
+    rm -f $params.outDir/tmpNanoSeq/indel/${ii}.done; #allow clean resume for hard links
+    rm -f $params.outDir/tmpNanoSeq/indel/${ii}.indel.filtered.vcf.gz;
+    rm -f $params.outDir/tmpNanoSeq/indel/${ii}.indel.filtered.vcf.gz.tbi;
+    if [ $ii -eq 1 ]; then rm -f $params.outDir/tmpNanoSeq/indel/nfiles; rm -f $params.outDir/tmpNanoSeq/indel/args.json; fi;
+
+    runNanoSeq.py -R $ref -A $normal -B $duplex --out $params.outDir -j $ii -k $np indel --rb $rb --t3 $t3 --t5 $t5 --mc $mc;
+    
+    rm $params.outDir/tmpNanoSeq/indel/${ii}.indel.bed.gz; #not required for final calculations
+    rm $params.outDir/tmpNanoSeq/indel/${ii}.indel.vcf.gz; #not required for final calculations
+    mv $params.outDir/tmpNanoSeq/indel/${ii}.* . ;
+    if [ $ii -eq 1 ]; then mv $params.outDir/tmpNanoSeq/indel/nfiles .; mv $params.outDir/tmpNanoSeq/indel/args.json .; fi
     """
 }
 
@@ -232,19 +289,29 @@ process post {
     path di from duplex_index
     path normal from params.normal
     path ni from normal_index
-    val ii from var_out.collect() // wait until all var jobs are done
-    val jj from indel_out.collect() // wait until all indel jobs are done
+    val name from params.post_name
+    val ii from var_files_done.collect() // wait until all var jobs are done
+    val jj from indel_files_done.collect() // wait until all indel jobs are done
+    file triNuc from triNuc_fh
+
+    publishDir "$params.outDir/tmpNanoSeq/post", mode: 'link', overwrite: true
 
     output :
-    val "done" into post_out
-    file "done" into done_post
+    val true into post_out
+    path '*' into post_files_out
 
     cpus 3
     memory '9 GB'
 
+    script:
+    def triNuc_arg = triNuc.name != 'NO_FILE' ? "--triNuc $triNuc" : ''
+
     """
-    rm -f $baseDir/tmpNanoSeq/post/1.done;
-    runNanoSeq.py -R $ref -A $normal -B $duplex --out $baseDir -t 3 post;
-    date > done
+    rm -f $params.outDir/tmpNanoSeq/post/*;
+
+    runNanoSeq.py -R $ref -A $normal -B $duplex --out $params.outDir -t 3 post --name $name $triNuc_arg;
+    
+    mv $params.outDir/tmpNanoSeq/post/* . ;
+    
     """
 }
