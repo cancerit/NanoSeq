@@ -1,5 +1,7 @@
 #!/usr/bin/env nextflow
 
+nextflow.enable.dsl=1
+
 params.outDir = baseDir
 params.duplex = "$baseDir/33526_2#4.bam"
 params.normal = "$baseDir/33526_2#10.neat.bam"
@@ -26,12 +28,12 @@ params.dsa_d = 2
 params.dsa_q = 30
 
 // variantcaller parameters
-params.var_a = 2 
+params.var_a = 50
 params.var_b = 5
 params.var_c = 0
 params.var_d = 2
 params.var_f = 0.9
-params.var_i = 1
+params.var_i = 1.0
 params.var_m = 8
 params.var_n = 3
 params.var_p = 0
@@ -85,7 +87,7 @@ process cov {
     path 'nfiles' into cov_files_n
 
     cpus cov_cpus 
-    memory { 500.MB * cov_cpus}
+    memory { 100.MB * cov_cpus}
 
     """
     rm -f $params.outDir/tmpNanoSeq/cov/*; #allow clean resume for hard links
@@ -216,7 +218,7 @@ process var {
     path "args.json" optional true into var_files_json
 
     cpus 1
-    memory '1 GB'
+    memory '400 MB'
 
     """
     rm -f $params.outDir/tmpNanoSeq/var/${ii}.done; #allow clean resume for hard links
@@ -261,7 +263,7 @@ process indel {
     path "args.json" optional true into indel_files_json
 
     cpus 1
-    memory '1 GB'
+    memory '1.2 GB'
 
     """
     rm -f $params.outDir/tmpNanoSeq/indel/${ii}.done; #allow clean resume for hard links
@@ -300,8 +302,8 @@ process post {
     val true into post_out
     path '*' into post_files_out
 
-    cpus 3
-    memory '9 GB'
+    cpus 2
+    memory '1 GB'
 
     script:
     def triNuc_arg = triNuc.name != 'NO_FILE' ? "--triNuc $triNuc" : ''
@@ -309,7 +311,7 @@ process post {
     """
     rm -f $params.outDir/tmpNanoSeq/post/*;
 
-    runNanoSeq.py -R $ref -A $normal -B $duplex --out $params.outDir -t 3 post --name $name $triNuc_arg;
+    runNanoSeq.py -R $ref -A $normal -B $duplex --out $params.outDir -t 2 post --name $name $triNuc_arg;
     
     mv $params.outDir/tmpNanoSeq/post/* . ;
     
