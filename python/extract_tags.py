@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# coding=utf-8
+#!/usr/bin/env python3
 
 ########## LICENCE ##########
 # Copyright (c) 2020-2021 Genome Research Ltd
