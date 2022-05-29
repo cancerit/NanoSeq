@@ -1122,7 +1122,7 @@ if (args.subcommand == 'post'):
             tmpDir, tmpDir)
         runCommand(cmd)
 
-        cmd = "nanoseq_results_plotter.R %s/post %s/post/%s %s" % (
+        cmd = "nanoseq_results_plotter.R %s/post %s/post/%s %s || true" % (
             tmpDir, tmpDir, args.name, args.triNuc or "")
         runCommand(cmd)
 
