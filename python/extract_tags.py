@@ -160,7 +160,6 @@ class ExtractTags:
         """
         count = 0
         for header1 in self.in1:
-            count += 1
             r1 = Read(self.readlength)
             r2 = Read(self.readlength)
             # header
@@ -192,8 +191,6 @@ class ExtractTags:
                                                      r1.quality))
                 self.out2.write('%s\n%s\n+\n%s\n' % (r2.header, r2.sequence,
                                                      r2.quality))
-        if (count % 4 != 0 ) :
-          raise ValueError('Wrong number of lines in fastq1')
         if (self.in2.readline() != "" ) :
           raise ValueError('Files are not in sync')
 
