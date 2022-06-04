@@ -167,8 +167,6 @@ foreach (split('\n',$stdout)) {
     $reads_per_rb = (split)[1];
   } elsif(/F-EFF/) {
     $f_eff = (split)[1];
-  } elsif(/ZIB-EFF/) {
-    $zib_eff = (split)[1];
   } elsif(/OK_RBS/) {
     $ok_rbs = (split)[1];
   } elsif(/TOTAL_RBS/) {
@@ -189,9 +187,7 @@ print OUT "NUM_SEQUENCED_READS\t$num_sequenced_reads\n";
 print OUT "DUPLICATE_RATE\t$dup_rate\n";
 
 print OUT "# RB metrics are reported for chr/contig $region only:\n";
-if(!defined($zib_eff) || $zib_eff eq "") {
-  print STDOUT "ERROR: R script didn't work correctly\n";
-} 
+
 my $bases_sequenced = $total_reads * 150;
 my $bases_ok_rbs    = $ok_rbs * (300-50); # assuming mates don't overlap. Removing 50 bps for varios trimmings (rough estimate)
 print OUT "TOTAL_RBS\t$total_rbs\n";
