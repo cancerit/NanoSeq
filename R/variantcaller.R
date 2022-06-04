@@ -49,61 +49,60 @@ suppressPackageStartupMessages({
 
 
 # directory name from args
-args = commandArgs(trailingOnly=TRUE)
+args = commandArgs(trailingOnly = TRUE)
 
 if (length(args) != 1) {
   cat("Directory name argument must be supplied\n")
-  quit(save="no",status=0)
+  quit(save = "no", status = 1)
 }
 
 dirname <- args[1]
 
-if (! dir.exists(dirname)){
-  stop("Input directory not found : ", dirname, call.=FALSE)
+if (!dir.exists(dirname)) {
+  stop("Input directory not found : ", dirname, call. = FALSE)
 }
 
 # remove trailing forward slash from dirname
 dirname <- sub("/$", "", dirname)
 
 # read in csv files
-cat(getwd())
-burdens     <- fread(paste(dirname, 'burdens.csv', sep="/"))
-callsvsqpos <- fread(paste(dirname, 'callvsqpos.csv', sep="/"))
-coverage    <- fread(paste(dirname, 'coverage.csv', sep="/"))
-pyrvsmask   <- fread(paste(dirname, 'pyrvsmask.csv', sep="/"))
-readbundles <- fread(paste(dirname, 'readbundles.csv', sep="/"))
-variants    <- fread(paste(dirname, 'variants.csv', sep="/"))
-mismatches  <- fread(paste(dirname, 'mismatches.csv', sep="/"))
+burdens <- fread(paste(dirname, 'burdens.csv', sep = "/"))
+callsvsqpos <- fread(paste(dirname, 'callvsqpos.csv', sep = "/"))
+coverage <- fread(paste(dirname, 'coverage.csv', sep = "/"))
+pyrvsmask <- fread(paste(dirname, 'pyrvsmask.csv', sep = "/"))
+readbundles <- fread(paste(dirname, 'readbundles.csv', sep = "/"))
+variants <- fread(paste(dirname, 'variants.csv', sep = "/"))
+mismatches <- fread(paste(dirname, 'mismatches.csv', sep = "/"))
 
 
 # combine burdens from merged bed files
-burdens <- burdens[, .(count=sum(count)), by=.(ismasked, isvariant)]
+burdens <- burdens[, .(count = sum(count)), by = .(ismasked, isvariant)]
 
 # combine call vs qpos from merged bed files
-callsvsqpos <- callsvsqpos[, .(count=sum(count)), by=.(base, qpos, ismasked)]
+callsvsqpos <- callsvsqpos[, .(count = sum(count)), by = .(base, qpos, ismasked)]
 
 # combine coverage from merged bed files
 coverage <- sum(as.double(coverage$count))
 
 # combine pyrimidine vs mask from merged bed files
-pyrvsmask <- pyrvsmask[, .(count=sum(count)), by=.(pyrcontext, ismasked)]
+pyrvsmask <- pyrvsmask[, .(count = sum(count)), by = .(pyrcontext, ismasked)]
 
 # combine read bundles from merged bed files
-readbundles <- readbundles[, .(count=sum(count)), by=.(fwd, rev, ismasked,
+readbundles <- readbundles[, .(count = sum(count)), by = .(fwd, rev, ismasked,
 isvariant)]
 
 # unique variants
 #   unique defined by (chromosome, coordinate and substitution)
-variants[, pyrkey:=paste(chrom, chromStart, pyrsub, sep=","),
-         by=seq_len(nrow(variants))]
+variants[, pyrkey := paste(chrom, chromStart, pyrsub, sep = ","),
+         by = seq_len(nrow(variants))]
 setkey(variants, pyrkey)
 unique_variants <- unique(variants)
 
 # summary metrics
 #   unmasked
-n_variants  <- burdens[ismasked == 0][isvariant == 1]$count
+n_variants <- burdens[ismasked == 0][isvariant == 1]$count
 n_reference <- burdens[ismasked == 0][isvariant == 0]$count
-n_unique    <- nrow(unique_variants[ismasked == 0])
+n_unique <- nrow(unique_variants[ismasked == 0])
 
 metrics <- data.frame("Metric" = c("total variants", "unique variants", "reference",
   "total variant + reference", "uncorrected burden", "physical coverage"),
@@ -111,7 +110,6 @@ metrics <- data.frame("Metric" = c("total variants", "unique variants", "referen
               format(n_unique, scientific = FALSE),
               format(n_reference, scientific = FALSE),
               format((n_variants + n_reference), scientific = FALSE),
-              (n_variants/(n_variants + n_reference)), coverage))
+              (n_variants / (n_variants + n_reference)), coverage))
 
 print(metrics)
-
