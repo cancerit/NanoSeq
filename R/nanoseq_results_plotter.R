@@ -42,7 +42,16 @@ options(stringsAsFactors = FALSE)
 READ_LENGTH = 151
 
 args = commandArgs(TRUE)
-if (length(args) < 2) {
+
+if (length(args) == 0) {
+  cat("nanoseq_results_plotter.R  directory  output_prefix [trinucleotide_frequencies_file]\n\n")
+  cat("Must specify a directory with the various CSV files and a prefix for the output files.\n")
+  cat("Optionally a file containing the background genomic (pyrimidine-based) trinucleotide absolute counts (for normalization purposes). If not provided, human frequencies will be assumed.\n\n")
+  cat("This script generates a series of plots and tables summarizing the results of the variantcaller.\n\n")
+  quit(save = "no", status = 0)
+}
+
+if (length(args) < 2 or length(args) > 3 ) {
   cat("nanoseq_results_plotter.R  directory  output_prefix [trinucleotide_frequencies_file]\n\n")
   cat("Must specify a directory with the various CSV files and a prefix for the output files.\n")
   cat("Optionally a file containing the background genomic (pyrimidine-based) trinucleotide absolute counts (for normalization purposes). If not provided, human frequencies will be assumed.\n\n")
