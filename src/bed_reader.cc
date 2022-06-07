@@ -43,6 +43,7 @@
 
 // Load intervals from tabix BED file
 void Bed::Load(const char* bed_filename, const char* rname, int beg, int end, ogzstream & gzout, bool out2stdout ) {
+  if ( bed_filename[0] == '\0' ) { return; }
   htsFile *fp = hts_open(bed_filename, "r");
   if (fp == NULL) {
     std::stringstream er;
