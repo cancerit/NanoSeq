@@ -51,6 +51,11 @@ suppressPackageStartupMessages({
 # directory name from args
 args = commandArgs(trailingOnly = TRUE)
 
+if (length(args) == 0) {
+  cat("Directory name argument must be supplied\n")
+  quit(save = "no", status = 0)
+}
+
 if (length(args) != 1) {
   cat("Directory name argument must be supplied\n")
   quit(save = "no", status = 1)

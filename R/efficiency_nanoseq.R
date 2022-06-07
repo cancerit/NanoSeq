@@ -42,6 +42,11 @@ suppressPackageStartupMessages({
 
 args = commandArgs(trailingOnly = TRUE)
 
+if (length(args) == 0) {
+  cat("efficiency_nanoseq.R rb_file genome\n\nMust specify a read-bundle file and a genome.\n\n")
+  quit(save = "no", status = 0)
+}
+
 if (length(args) != 2) {
   cat("efficiency_nanoseq.R rb_file genome\n\nMust specify a read-bundle file and a genome.\n\n")
   quit(save = "no", status = 1)
