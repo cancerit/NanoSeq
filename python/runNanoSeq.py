@@ -166,7 +166,9 @@ parser_indelO.add_argument('--t3', type=int, action='store', default=135,
 parser_indelO.add_argument('--t5', type=int, action='store',
                            default=10, help="bases to trim from 5' reads (10)")
 parser_indelO.add_argument(
-    '--mc', type=int, action='store', default=16, help="minimum bulk coverage (16)")
+    '--mc', type=int, action='store', default=20, help="minimum bulk coverage (20)")
+parser_indelO.add_argument(
+    '--max_vaf', type=float, action='store', default=0.2, help="minimum vaf (0.2)")    
 parser_indel._action_groups.append(parser_indelO)
 
 # carry out gather operations and compute summaries
@@ -982,14 +984,14 @@ if (args.subcommand == 'indel'):
             continue
 
         # construct the indel commands ( 3 steps)
-        cmd = "indelCaller_step1.pl -o %s -rb %s -t3 %s -t5 %s -mc %s %s ;"\
-            % ("%s/indel/%s.indel.bed.gz" % (tmpDir, i+1), args.rb, args.t3, args.t5, args.mc,
+        cmd = "indelCaller_step1.pl -o %s -rb %s -t3 %s -t5 %s -mc %s -vaf %s %s ;"\
+            % ("%s/indel/%s.indel.bed.gz" % (tmpDir, i+1), args.rb, args.t3, args.t5, args.mc, args.max_vaf,
                "%s/dsa/%s.dsa.bed.gz" % (tmpDir, i+1))
         cmd += "indelCaller_step2.pl -t -o %s -r %s -b %s %s ;"\
             % ("%s/indel/%s.indel" % (tmpDir, i+1), args.ref, args.tumour,
                "%s/indel/%s.indel.bed.gz" % (tmpDir, i+1))
-        cmd += "indelCaller_step3.R %s %s %s ;"\
-            % (args.ref, "%s/indel/%s.indel.vcf.gz" % (tmpDir, i+1), args.normal)
+        cmd += "indelCaller_step3.R %s %s %s %s;"\
+            % (args.ref, "%s/indel/%s.indel.vcf.gz" % (tmpDir, i+1), args.normal, args.max_vaf)
         cmd += "touch %s/indel/%s.done" % (tmpDir, i+1)
         commands[i] = (cmd, )
 
