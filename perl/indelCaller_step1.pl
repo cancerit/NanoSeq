@@ -39,12 +39,14 @@ my %opts;
 my $min_size_subfam = 2; #Minimum number of family size 2 for 2+2, 3 for 3+3, etc
 my $filter_5_prime  = 10; #Number of bases to be trimmed from 5'. Set as 0 if no filter is wanted. Example: 10 for the first 10 bases
 my $filter_3_prime  = 135; #Number of bases to start trimming from. Set as 0 if no filter is wanted. For example: 140 for the 10 last bases of 150-bp reads
-my $bulk_min_cov    = 16;
+my $bulk_min_cov    = 20;
+my $max_vaf         = 0.2;
 
 GetOptions('rb|reads-bundle=i'  => \$min_size_subfam,
            't3|trim3=i'  => \$filter_3_prime,
            't5|trim5=i'  => \$filter_5_prime, 
            'mc|min-coverage=i' => \$bulk_min_cov,
+           'vaf|max-vaf=f' => \$max_vaf,
            'o|out=s' => \$opts{'o'},
            'h|help' => \$opts{'h'}
 ) or pod2usage(2);
@@ -148,7 +150,7 @@ while(<IN>) {
     $site_tags .= "$signature_trinuc;SW=$shearwater;cSNP=$commonSNP";
 
     # If seen in the bulk, flag it:
-    if($bulkForwardIndel+$bulkReverseIndel > 1) {
+    if($bulkForwardIndel+$bulkReverseIndel > $max_vaf * $bulktotal) {
       $site_tags .= ";BULK_SEEN($dplxForwardIndel+$dplxReverseIndel/$bulktotal)";
     } else {
       $site_tags .= ";";

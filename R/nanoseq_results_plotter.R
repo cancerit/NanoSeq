@@ -51,7 +51,7 @@ if (length(args) == 0) {
   quit(save = "no", status = 0)
 }
 
-if (length(args) < 2 or length(args) > 3 ) {
+if (length(args) < 2 or length(args) > 3) {
   cat("nanoseq_results_plotter.R  directory  output_prefix [trinucleotide_frequencies_file]\n\n")
   cat("Must specify a directory with the various CSV files and a prefix for the output files.\n")
   cat("Optionally a file containing the background genomic (pyrimidine-based) trinucleotide absolute counts (for normalization purposes). If not provided, human frequencies will be assumed.\n\n")
@@ -562,23 +562,35 @@ write.table(burdens, file = paste(out_name, ".mut_burden.tsv", sep = ""), sep = 
 burdens <- fread(paste(dirname, 'burdens.csv', sep = "/"))
 burdens <- burdens[, .(count = sum(count)), by = .(ismasked, isvariant)]
 
-n_variants_masked <- burdens[ismasked == 0][isvariant == 1]$count
-n_reference_masked <- burdens[ismasked == 0][isvariant == 0]$count
-n_variants_unmasked <- sum(burdens[isvariant == 1]$count)
-n_reference_unmasked <- sum(burdens[isvariant == 0]$count)
-if (n_variants_unmasked == 0) {
-  #ao7
+burdens = as.data.frame(burdens)
+
+##################
+# fa8 / ao7 bug fix
+if (nrow(burdens[which(burdens$ismasked == 0 & burdens$isvariant == 1), ]) > 0) {
+  n_variants_masked <- burdens[which(burdens$ismasked == 0 & burdens$isvariant == 1), "count"]
+} else {
   n_variants_masked = 0
 }
+n_reference_masked <- burdens[which(burdens$ismasked == 0 & burdens$isvariant == 0), "count"]
+if (nrow(burdens[which(burdens$isvariant == 1), ]) > 0) {
+  n_variants_unmasked <- sum(burdens[which(burdens$isvariant == 1), "count"])
+} else {
+  n_variants_unmasked = 0
+}
+n_reference_unmasked <- sum(burdens[which(burdens$isvariant == 0), "count"])
+##################
 burden_masked = n_variants_masked / (n_reference_masked + n_variants_masked)
 burden_unmasked = n_variants_unmasked / (n_reference_unmasked + n_variants_unmasked)
-pdf(width = 5, height = 5, file = paste(out_name, ".burden.masked-vs-unmasked.pdf", sep = ""))
-bar = barplot(c(burden_masked, burden_unmasked), names = c("burden (masked)", "burden (unmasked)"), ylim = c(0, max(burden_masked, burden_unmasked) + 0.1 * max(burden_masked, burden_unmasked)), main = "Qualitative contamination check")
-ci_masked = poisson.test(n_variants_masked)$conf.int / (n_reference_masked + n_variants_masked)
-ci_unmasked = poisson.test(n_variants_unmasked)$conf.int / (n_reference_unmasked + n_variants_unmasked)
-segments(bar[1], ci_masked[1], bar[1], ci_masked[2], col = "black", lwd = 2)
-segments(bar[2], ci_unmasked[1], bar[2], ci_unmasked[2], col = "black", lwd = 2)
-dev.off()
+if (n_variants_unmasked > 0) {
+  # fa8
+  pdf(width = 5, height = 5, file = paste(out_name, ".burden.masked-vs-unmasked.pdf", sep = ""))
+  bar = barplot(c(burden_masked, burden_unmasked), names = c("burden (masked)", "burden (unmasked)"), ylim = c(0, max(burden_masked, burden_unmasked) + 0.1 * max(burden_masked, burden_unmasked)), main = "Qualitative contamination check")
+  ci_masked = poisson.test(n_variants_masked)$conf.int / (n_reference_masked + n_variants_masked)
+  ci_unmasked = poisson.test(n_variants_unmasked)$conf.int / (n_reference_unmasked + n_variants_unmasked)
+  segments(bar[1], ci_masked[1], bar[1], ci_masked[2], col = "black", lwd = 2)
+  segments(bar[2], ci_unmasked[1], bar[2], ci_unmasked[2], col = "black", lwd = 2)
+  dev.off()
+}
 
 ##########################################################################################
 # Mismatches

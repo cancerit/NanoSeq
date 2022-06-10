@@ -63,6 +63,7 @@ if (length(args) != 3) {
 genomeFile = args[1]
 vcf_file = args[2]
 bam_file = args[3]
+max_vaf  = args[4]
 
 if (!file.exists(genomeFile)) {
   stop("Reference file not found : ", genomeFile, call. = FALSE)
@@ -107,7 +108,7 @@ if (nrow(vcf@fix) != 0) {
       vcf@fix[i, "FILTER"] = "MISSINGBULK"
       vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, "/", n_bases, "]", sep = "")
 
-    } else if (n_indels / n_bases > 0.01) {
+    } else if (n_indels/(n_bases + n_indels) > max_vaf) {
       vcf@fix[i, "FILTER"] = "NEI_IND"
       vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, "/", n_bases, "]", sep = "")
     }
