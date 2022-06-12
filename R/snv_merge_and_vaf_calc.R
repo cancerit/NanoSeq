@@ -43,7 +43,7 @@
 suppressPackageStartupMessages({
   library(deepSNV)
 })
-options(warn=2) #turn warnings into errors
+options(warn = 2) #turn warnings into errors
 
 args = commandArgs(trailingOnly = TRUE)
 muts_vcf = args[1]
@@ -51,6 +51,12 @@ indel_vcf = args[2]
 dedup_bam = args[3] #neat NanoSeq BAM
 cov_bed = args[4]
 output_file = args[5]
+
+if (length(args) == 0) {
+  cat("Wrong number of arguments\n")
+  cat("snv_merge_and_vaf_calc.R muts_vcf indel_vcf dedup_bam cov_bed output_file\n")
+  quit(save = "no", status = 0)
+}
 
 if (length(args) != 5) {
   cat("Wrong number of arguments\n")
@@ -61,7 +67,7 @@ if (length(args) != 5) {
 if (!file.exists(muts_vcf)) {
   stop("SNV vcf file not found : ", muts_vcf, call. = FALSE)
 }
-if ( !file.exists(indel_vcf)) {
+if (!file.exists(indel_vcf)) {
   if (indel_vcf != '-') {
     stop("Indel vcf file not found : ", indel_vcf, call. = FALSE)
   }
@@ -75,7 +81,7 @@ if (!file.exists(cov_bed)) {
 }
 
 if (length(grep("\\.gz", muts_vcf)) > 0) {
-  system(paste("gzip -t ", muts_vcf), intern= TRUE)
+  system(paste("gzip -t ", muts_vcf), intern = TRUE)
   num_snvs = system(paste("zgrep -cv \"^#\" ", muts_vcf, "|| true"), intern = TRUE)
 } else {
   num_snvs = system(paste("grep -cv \"^#\" ", muts_vcf, "|| true"), intern = TRUE)
@@ -84,7 +90,7 @@ if (length(grep("\\.gz", muts_vcf)) > 0) {
 num_indels = 0
 if (indel_vcf != '-') {
   if (length(grep("\\.gz", indel_vcf)) > 0) {
-    system(paste("gzip -t ", indel_vcf), intern= TRUE)
+    system(paste("gzip -t ", indel_vcf), intern = TRUE)
     num_indels = system(paste("zgrep -cv \"^#\" ", indel_vcf, "|| true"), intern = TRUE)
   } else {
     num_indels = system(paste("grep -cv \"^#\" ", indel_vcf, "|| true"), intern = TRUE)
@@ -97,7 +103,7 @@ if (num_snvs == 0) {
   if (length(grep("\\.gz", muts_vcf)) > 0) {
     zz = gzfile(muts_vcf, 'rt')
     snvs = read.table(zz, header = F, sep = "\t", stringsAsFactors = F)
-    close( zz )
+    close(zz)
   } else {
     snvs = read.table(muts_vcf, header = F, sep = "\t", stringsAsFactors = F)
   }
@@ -110,7 +116,7 @@ if (num_indels == 0) {
   if (length(grep("\\.gz", indel_vcf)) > 0) {
     zz = gzfile(indel_vcf, 'rt')
     indels = read.table(zz, header = F, sep = "\t", stringsAsFactors = F)
-    close( zz )
+    close(zz)
   } else {
     indels = read.table(indel_vcf, header = F, sep = "\t", stringsAsFactors = F)
   }
@@ -118,14 +124,14 @@ if (num_indels == 0) {
 }
 
 #cat("Parsing...\n")
-snvs_final = read.table(text="",colClasses = 
-  c("character","integer","character","character","character","character","character","character"),
-  col.names = c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO") )
+snvs_final = read.table(text = "", colClasses =
+  c("character", "integer", "character", "character", "character", "character", "character", "character"),
+  col.names = c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO"))
 
-xx = system(paste("gzip -t ", cov_bed), intern= TRUE)
+xx = system(paste("gzip -t ", cov_bed), intern = TRUE)
 tbx = TabixFile(cov_bed)
 
-if ( num_snvs > 0 ) {
+if (num_snvs > 0) {
   snvs$info = gsub("=", ";", snvs$info)
   mat = read.table(text = snvs$info, sep = ';', strip.white = TRUE)
   for (i in seq(from = 1, to = min(ncol(mat) - 1, 17), 2)) {
@@ -140,10 +146,10 @@ if ( num_snvs > 0 ) {
   snvs$rb_id = paste(snvs$chr, snvs$BBEG, snvs$BEND, snvs$BTAG, sep = ":")
   snvs$rb_id = gsub("\\|", ":", snvs$rb_id)
 
-##########################################################################################
-# Merge DNVs and MNVs
-# sort by rb_id and find consecutive muts
-#cat("Merging...\n")
+  ##########################################################################################
+  # Merge DNVs and MNVs
+  # sort by rb_id and find consecutive muts
+  #cat("Merging...\n")
   snvs = snvs[order(snvs$rb_id, snvs$chr, snvs$pos),]
 
   snvs$consecutive = 0
@@ -195,11 +201,11 @@ if ( num_snvs > 0 ) {
       }
     }
   }
-  snvs_new = snvs_new[order(snvs_new$chr,snvs_new$pos),]
+  snvs_new = snvs_new[order(snvs_new$chr, snvs_new$pos),]
 
-##########################################################################################
-# Create mutation ids and collapse repeated mutation calls
-#cat("Collapsing...\n")
+  ##########################################################################################
+  # Create mutation ids and collapse repeated mutation calls
+  #cat("Collapsing...\n")
   snvs_new$mut_id = paste(snvs_new$chr, snvs_new$pos, snvs_new$ref, snvs_new$mut, sep = ":")
   counts_per_mut = table(snvs_new$mut_id)
   repeat_muts = counts_per_mut[which(counts_per_mut > 1)]
@@ -239,12 +245,12 @@ if ( num_snvs > 0 ) {
                          "DEPTH_REV", "DEPTH_NORM_FWD", "DEPTH_NORM_REV", "TYPE", "TIMES_CALLED")]
 
 
-##########################################################################################
-# Calculate VAFs for subs (SNVs, DNVs, MNVs)
-# Duplex VAFs, use tabix to get the duplex coverage for each mutation:
+  ##########################################################################################
+  # Calculate VAFs for subs (SNVs, DNVs, MNVs)
+  # Duplex VAFs, use tabix to get the duplex coverage for each mutation:
 
-#cat("VAFs(1)...\n")
-# SUBS:
+  #cat("VAFs(1)...\n")
+  # SUBS:
   snvs_new2_filt = snvs_new2[grep("PASS", snvs_new2$filter, invert = T),]
   snvs_new2_ok = snvs_new2[grep("PASS", snvs_new2$filter),]
   if (nrow(snvs_new2_filt) > 0) {
@@ -261,8 +267,8 @@ if ( num_snvs > 0 ) {
   snvs_final = rbind(snvs_new2_ok, snvs_new2_filt)
   snvs_final = snvs_final[order(snvs_final$chr, snvs_final$pos),]
 
-#cat("VAFs(2)...\n")
-# BAM VAFs / bam2R
+  #cat("VAFs(2)...\n")
+  # BAM VAFs / bam2R
   for (i in c(1:nrow(snvs_final))) {
     kk = bam2R(dedup_bam, snvs_final[i, "chr"], snvs_final[i, "pos"], snvs_final[i, "pos"] + nchar(snvs_final[i, "ref"]) - 1, q = 30, mask = 3844, mq = 30)
     muts = unlist(strsplit(snvs_final[i, "mut"], ""))
@@ -277,8 +283,8 @@ if ( num_snvs > 0 ) {
     snvs_final[i, "BAM_VAF"] = total_mut / total_cov
   }
 
-#cat("VAFs(3)...\n")
-# BAM VAFs / bam2R with relaxed BQ filters
+  #cat("VAFs(3)...\n")
+  # BAM VAFs / bam2R with relaxed BQ filters
   for (i in c(1:nrow(snvs_final))) {
     kk = bam2R(dedup_bam, snvs_final[i, "chr"], snvs_final[i, "pos"], snvs_final[i, "pos"] + nchar(snvs_final[i, "ref"]) - 1, q = 10, mask = 3844, mq = 30)
     muts = unlist(strsplit(snvs_final[i, "mut"], ""))
@@ -374,7 +380,7 @@ if (num_indels > 0) {
   # BAM VAFs / bam2R
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 20, mask = 3844, mq = 30)
-    total_cov =  sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
     if (indels_final[i, "TYPE"] == "del") {
       total_mut = sum(kk[, c("DEL", "del", "-", "_")])
     } else {
@@ -390,7 +396,7 @@ if (num_indels > 0) {
   #cat("VAFs(3)...\n")
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 10, mask = 3844, mq = 30)
-    total_cov =  sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
     if (indels_final[i, "TYPE"] == "del") {
       total_mut = sum(kk[, c("DEL", "del", "-", "_")])
     } else {
@@ -403,7 +409,7 @@ if (num_indels > 0) {
   }
 }
 #cat("Preparing final matrix SNVs...\n")
-if (num_snvs > 0 ) {
+if (num_snvs > 0) {
   snvs_final$INFO = paste(rep("TRI=", nrow(snvs_final)), snvs_final$TRI, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("TIMES_CALLED=", nrow(snvs_final)), snvs_final$TIMES_CALLED, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("TYPE=", nrow(snvs_final)), snvs_final$TYPE, ";", sep = "")
