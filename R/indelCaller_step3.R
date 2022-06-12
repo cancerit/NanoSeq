@@ -51,12 +51,12 @@ options(warn=2) #turn warnings into errors
 args = commandArgs(trailingOnly = TRUE)
 
 if (length(args) == 0 ) {
-  cat("indelCaller_step3.R  reference  vcf  bam\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM/CRAM file for the matched normal\n\n")
+  cat("indelCaller_step3.R  reference  vcf  bam  max_vaf\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM/CRAM file for the matched normal\n\n")
   quit(save = "no", status = 0)
 }
 
-if (length(args) != 3) {
-  cat("indelCaller_step3.R  reference  vcf  bam\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM/CRAM file for the matched normal\n\n")
+if (length(args) != 4) {
+  cat("indelCaller_step3.R  reference  vcf  bam  max_vaf\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM/CRAM file for the matched normal\n\n")
   quit(save = "no", status = 1)
 }
 
