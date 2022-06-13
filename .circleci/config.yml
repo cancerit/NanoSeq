@@ -46,7 +46,6 @@ jobs:
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH gridsearch -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH randomreadinbundle -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH statistics -h
-            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH variantcaller_merge.py -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH bamcov -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH efficiency_nanoseq.pl -h
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH efficiency_nanoseq.R
@@ -56,6 +55,7 @@ jobs:
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH indelCaller_step3.R
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH nanoseq_results_plotter.R
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH variantcaller.R
+            docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH snv_merge_and_vaf_calc.
             docker run -t --rm $IMAGE_NAME:$CLEAN_BRANCH runNanoSeq.py -h
             set +x
             if [ "$CIRCLE_TAG" = "$BRANCH_OR_TAG" ]; then
