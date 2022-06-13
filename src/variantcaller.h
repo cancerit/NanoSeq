@@ -108,6 +108,7 @@ typedef struct {
   int isvariant;
   int ismasked;
   std::string pyrcontext;
+  std::string dplx_barcode;
 } row_t;
 
 
