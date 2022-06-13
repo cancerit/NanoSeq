@@ -477,10 +477,10 @@ def vcfHeader(args):
         ichr = ii.chr
         ilength = ii.end
         header += "##contig=<ID=%s,length=%s>\n" % (ichr, ilength)
-    header += '##ALT=<ID=*,Description="Represents allele(s) other than observed.">\n'
-    header += '##INFO=<ID=TRI,Number=1,Type=String,Description="Pyrimidine context, trinucleotide substitution">\n'
+    header += '##INFO=<ID=BTAG,Number=1,Type=String,Description="Read bundle tag (duplex barcode)">\n'
     header += '##INFO=<ID=BBEG,Number=1,Type=String,Description="Read bundle left breakpoint">\n'
     header += '##INFO=<ID=BEND,Number=1,Type=String,Description="Read bundle right breakpoint">\n'
+    header += '##INFO=<ID=TRI,Number=1,Type=String,Description="Pyrimidine context, trinucleotide substitution">\n'
     header += '##INFO=<ID=QPOS,Number=1,Type=Integer,Description="Read position closest to 5-prime end">\n'
     header += '##INFO=<ID=DEPTH_FWD,Number=1,Type=Integer,Description="Read bundle forward reads depth">\n'
     header += '##INFO=<ID=DEPTH_REV,Number=1,Type=Integer,Description="Read bundle reverse reads depth">\n'
@@ -1082,7 +1082,7 @@ if (args.subcommand == 'post'):
                                 'dplxCQfwdA,dplxCQfwdC,dplxCQfwdG,dplxCQfwdT,dplxCQrevA,'
                                 'dplxCQrevC,dplxCQrevG,dplxCQrevT,bulkForwardTotal,bulkReverseTotal,'
                                 'dplxfwdTotal,dplxrevTotal,left,right,qpos,call,isvariant,pyrcontext,'
-                                'stdcontext,pyrsub,stdsub,ismasked\n')
+                                'stdcontext,pyrsub,stdsub,ismasked,dplxBarcode\n')
         csvIO['Mismatches'].write('chrom,chromStart,context,commonSNP,'
                                   'shearwater,bulkASXS,bulkNM,bulkForwardA,bulkForwardC,bulkForwardG,'
                                   'bulkForwardT,bulkForwardIndel,bulkReverseA,bulkReverseC,bulkReverseG,'
@@ -1091,7 +1091,7 @@ if (args.subcommand == 'post'):
                                   'dplxfwdIndel,dplxrevA,dplxrevC,dplxrevG,dplxrevT,dplxrevIndel,'
                                   'dplxCQfwdA,dplxCQfwdC,dplxCQfwdG,dplxCQfwdT,dplxCQrevA,'
                                   'dplxCQrevC,dplxCQrevG,dplxCQrevT,bulkForwardTotal,bulkReverseTotal,'
-                                  'dplxfwdTotal,dplxrevTotal,left,right,qpos,mismatch,ismasked\n')
+                                  'dplxfwdTotal,dplxrevTotal,left,right,qpos,mismatch,ismasked,dplxBarcode\n')
 
         # wirte body
         for i in range(nfiles):
@@ -1156,8 +1156,8 @@ if (args.subcommand == 'post'):
                 if (var['commonSNP'][i] == '1'):
                     ifilter = "dbsnp"
                 iline += "%s\t" % ifilter
-                iline += "TRI=%s;BBEG=%s;BEND=%s;QPOS=%s;DEPTH_FWD=%s;DEPTH_REV=%s;DEPTH_NORM_FWD=%s;DEPTH_NORM_REV=%s\n" % \
-                    (var['pyrsub'][i], var['dplxBreakpointBeg'][i], var['dplxBreakpointEnd'][i],
+                iline += "BTAG=%s;BBEG=%s;BEND=%s;TRI=%s;QPOS=%s;DEPTH_FWD=%s;DEPTH_REV=%s;DEPTH_NORM_FWD=%s;DEPTH_NORM_REV=%s\n" % \
+                    (var['dplxBarcode'][i], var['dplxBreakpointBeg'][i], var['dplxBreakpointEnd'][i], var['pyrsub'][i],
                      var['qpos'][i], var['dplxfwdTotal'][i], var['dplxrevTotal'][i], var['bulkForwardTotal'][i],
                      var['bulkReverseTotal'][i])
                 iofile.write(iline)
