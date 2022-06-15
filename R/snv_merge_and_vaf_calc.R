@@ -414,7 +414,6 @@ if (num_snvs > 0) {
   snvs_final$INFO = paste(snvs_final$INFO, rep("TIMES_CALLED=", nrow(snvs_final)), snvs_final$TIMES_CALLED, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("TYPE=", nrow(snvs_final)), snvs_final$TYPE, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("DUPLEX_VAF=", nrow(snvs_final)), snvs_final$DUPLEX_VAF, ";", sep = "")
-  snvs_final$INFO = paste(snvs_final$INFO, rep("TRI=", nrow(snvs_final)), snvs_final$TRI, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("BAM_VAF=", nrow(snvs_final)), snvs_final$BAM_VAF, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("BAM_VAF_BQ10=", nrow(snvs_final)), snvs_final$BAM_VAF_BQ10, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("DEPTH_NORM_FWD=", nrow(snvs_final)), snvs_final$DEPTH_NORM_FWD, ";", sep = "")
