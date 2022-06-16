@@ -54,6 +54,6 @@ header:
     - 'src/sam_utils.*'
     - 'test/*'
     - 'LSF/*'
-    - 'Nextflow/*'
+    - 'Nextflow/**'
 
   comment: on-failure
