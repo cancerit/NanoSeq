@@ -29,7 +29,7 @@ Execution of the scripts from this repository requires that these dependencies a
 ## Installation
 
 ```
-./setup.sh path_to_install                          #install code from this repo
+./setup.sh path_to_install                          #install code from this repository
 export PATH=$PATH:path_to_install/bin
 Rscript ./build/manualInstall.R <R libraries path>  #install all the required R libraries
 ```
