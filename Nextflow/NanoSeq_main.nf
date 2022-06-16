@@ -1,13 +1,31 @@
 nextflow.enable.dsl=2
 
+//'docker://quay.io/wtsicgp/pcap-core:5.5.1'
 params.bwa_container = "/software/CASM/singularity/pcap-core/pcap-core_5.7.0.sif"
+//'docker://quay.io/wtsicgp/nanoseq:2.3.3'
 params.nanoseq_container= "/lustre/scratch117/casm/team78/ra11/NanoSeq/run_Next/nanoseq_dev.sif"
 
-params.outDir = baseDir
-params.ref = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/genome.fa"
+//*use predefined parameter sets for GRCh37 & GRCh38
+params.grch37 = false
+assert ( params.grch37 == true || params.grch37 == false ) : "\ngrch37 parameter must be true or false\n"
+params.grch38 = false
+assert ( params.grch38 == true || params.grch38 == false ) : "\ngrch38 parameter must be true or false\n"
+
+if ( params.grch37 ) {
+    params.ref = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/genome.fa"
+} else if ( params.grch38 ) {
+    params.ref = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/genome.fa"
+} else {
+    params.ref = ""
+}
+assert ( params.ref != "" ) : "\nmust define a reference file genome.fa\n"
+assert ( params.ref.split("/")[-1] == "genome.fa" ) : "\nreference file must be named genome.fa\n"
 file_exists(params.ref,"ref")
 reference_path = params.ref.split("/")[0..-2].join('/')
+file_exists(reference_path + "/genome.fa.bwt.2bit.64", "bwa-mem2 index ")
+file_exists(reference_path + "/genome.fa.dict", "samtools dict ")
 
+params.outDir = baseDir
 // *** Preprocessing and mapping params
 params.fastq_tags_m = 3
 params.fastq_tags_s = 4
@@ -17,10 +35,20 @@ params.nanoseq_dedup_m = 2
 params.jobs = 100
 //  cov
 params.cov_q = 0
-params.cov_exclude = "MT,GL%,NC_%,hs37d5" //for GRCh37 reference
-params.snp_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
+if ( params.grch37 ) {//for GRCh37 reference
+    params.cov_exclude = "MT,GL%,NC_%,hs37d5"
+    params.snp_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
+    params.noise_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/botseq/NOISE.sorted.bed.gz"
+} else if ( params.grch38 ) {//for GRCh38 reference
+    params.cov_exclude = "chrM,chr*_random,chrUn_*,chr*_alt,HLA-*" 
+    params.snp_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/SNP.sorted.GRCh38.bed.gz"
+    params.noise_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/NOISE.sorted.GRCh38.bed.gz"
+} else {
+    params.cov_exclude = ""
+    params.snp_bed = ""
+    params.noise_bed = ""
+}
 file_exists( params.snp_bed, "snp_bed" )
-params.noise_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/botseq/NOISE.sorted.bed.gz"
 file_exists( params.noise_bed, "noise_bed" )
 params.dsa_d = 2
 params.dsa_q = 30
@@ -50,16 +78,26 @@ file_exists(params.post_triNuc,"post_triNuc")
 
 // ** VerifyBAMid params
 params.vb_epsilon ="1e-12"
-params.vb_ud ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.UD"
+if (params.grch37 ) { //GRCh37
+    params.vb_ud ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.UD"
+    params.vb_bed ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.bed"
+    params.vb_mu ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.mu"
+} else if ( params.grch38 ) { //GRCh38
+    params.vb_ud ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
+    params.vb_bed ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
+    params.vb_mu ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
+} else {
+    params.vb_ud = ""
+    params.vb_bed = ""
+    params.vb_mu = ""
+}
 file_exists(params.vb_ud,"vb_ud")
-params.vb_bed ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.bed"
 file_exists(params.vb_bed, "vb_bed")
-params.vb_mu ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.mu"
 file_exists(params.vb_mu, "vb_mu")
 
 // *** remapping BAMs
 params.remap = true
-assert ( params.remap == true || params.remap == false ) : "realign parameter must be true or false"
+assert ( params.remap == true || params.remap == false ) : "\nrealign parameter must be true or false\n"
 
 // *** process sample sheet
 params.sample_sheet = "sample_sheet.tsv"
@@ -68,7 +106,7 @@ file_exists(params.sample_sheet,"sample_sheet")
 ss = file( params.sample_sheet )
 fields = ss.readLines()[0].split(',')
 
-assert ( fields.contains("id")) : "\n Must specify a unique id column in the sample sheet\n\n"
+assert ( fields.contains("id")) : "\n Must specify a unique id column in the sample sheet\n"
 list_ids = []
 
 // three cases with diffeerent starting files
@@ -169,8 +207,10 @@ process FINALIZE {
         """
 }
 
+
+pout = params.toSorted{a,b -> a.key <=> b.key} // for ordered print
 println("\n\n")
-println("run arguments: $params")
+println("run arguments: $pout")
 println("\n\n")
 println("sample sheet contents:\n")
 println(ss.text)
