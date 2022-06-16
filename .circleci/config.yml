@@ -79,5 +79,7 @@ workflows:
           requires :
             - license_chk
           filters:
+            branches:
+              ignore: /.+/
             tags:
               only: /.+/
