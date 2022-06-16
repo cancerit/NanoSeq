@@ -521,40 +521,6 @@ write.table(burdens, file = paste(out_name, ".mut_burden.tsv", sep = ""), sep = 
 # Fifth: save mutations in VCF format 
 # now done directly in the python wrapper
 
-#variants$ref = sapply(variants$context,function(x) unlist(strsplit(x,""))[2])
-#muts_vcf = data.frame(chr=variants$chrom,
-#                      pos=variants$chromStart+1,
-#                      id=rep(".",nrow(variants)), 
-#                      ref=variants$ref,
-#                      alt=variants$call)
-#muts_vcf$qual = "."
-#muts_vcf$filter = "PASS"
-#muts_vcf[which(variants$shearwater==1),"filter"] = "shearwater"
-#muts_vcf[which(variants$commonSNP==1 ),"filter"] = "dbsnp"
-#muts_vcf$info = paste("TRI=",variants$pyrsub,";BBEG=",variants$dplxBreakpointBeg,
-#                      ";BEND=",variants$dplxBreakpointEnd,";QPOS=",variants$qpos,
-#                      ";DEPTH_FWD=",variants$dplxfwdTotal,";DEPTH_REV=",variants$dplxrevTotal,
-#                      ";DEPTH_NORM_FWD=",variants$bulkForwardTotal,";DEPTH_NORM_REV=",variants$bulkReverseTotal,
-#                      sep="")
-#date = Sys.Date()
-#fileConn<-file(paste(out_name,".muts.vcf",sep=""))
-#filename = paste(out_name,".muts.vcf",sep="")
-#write("##fileformat=VCFv4.2",file=filename,append=F)
-#write(paste("##fileDate=",date,sep=""),file=filename,append=T)
-#write("##source=NanoSeq pipeline",file=filename,append=T)
-#write("##INFO=<ID=TRI,Number=1,Type=String,Description=\"Pyrimidine context, trinucleotide substitution\">",file=filename,append=T)
-#write("##INFO=<ID=BBEG,Number=1,Type=String,Description=\"Read bundle left breakpoint\">",file=filename,append=T)
-#write("##INFO=<ID=BEND,Number=1,Type=String,Description=\"Read bundle right breakpoint\">",file=filename,append=T)
-#write("##INFO=<ID=QPOS,Number=1,Type=Integer,Description=\"Read position closest to 5-prime end\">",file=filename,append=T)
-#write("##INFO=<ID=DEPTH_FWD,Number=1,Type=Integer,Description=\"Read bundle forward reads depth\">",file=filename,append=T)
-#write("##INFO=<ID=DEPTH_REV,Number=1,Type=Integer,Description=\"Read bundle reverse reads depth\">",file=filename,append=T)
-#write("##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Integer,Description=\"Matched normal forward reads depth\">",file=filename,append=T)
-#write("##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Integer,Description=\"Matched normal reverse reads depth\">",file=filename,append=T)
-#write("##FILTER=<ID=dbsnp,Description=\"Common SNP site\">",file=filename,append=T)
-#write("##FILTER=<ID=shearwater,Description=\"Noisy site\">",file=filename,append=T)
-#write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",file=filename,append=T)
-#write.table(muts_vcf,file=paste(out_name,".muts.vcf",sep=""),sep="\t",append=T,quote=F,col.names=F,row.names=F)
-
 
 ##########################################################################################
 # Plot burden w/o masking common SNPs
