@@ -73,6 +73,7 @@ process BWAMEM2_MAP {
 
     maxForks MAX_IN_PARALLEL
     queue QUEUE
+    clusterOptions "-R avx512 " //ask for latest vector instructions
 
     cpus 6
     maxRetries 4
@@ -123,6 +124,7 @@ process BWAMEM2_REMAP {
 
     maxForks MAX_IN_PARALLEL
     queue QUEUE
+    clusterOptions "-R avx512 " //ask for latest vector instructions
     
     maxRetries 4
     cpus 6
