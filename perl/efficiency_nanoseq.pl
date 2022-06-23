@@ -51,11 +51,12 @@ GetOptions('d|dedup=s'   => \my $deduplicated_bam,
            'x|duplex=s'  => \my $merged_bam,
            'o|out=s'     => \my $output_prefix,
            'r|ref=s'     => \my $ref_genome,
+           'p|panel=s'   => \my $panel,
            't|threads=i' => \$opts{'t'},
            'h|help'      => \$opts{'h'}
 ) or pod2usage(2);
 pod2usage(-verbose => 1, -exitval => 0) if(defined $opts{'h'});
-pod2usage(2) if ( not defined $output_prefix and not defined $deduplicated_bam and not defined $merged_bam and not defined $ref_genome );
+pod2usage(2) if ( not defined $output_prefix and not defined $deduplicated_bam and not defined $merged_bam and not defined $ref_genome and not defined $panel);
 
 die ("\nOutput prefix not defined\n") unless( $output_prefix );
 die ("\nMust define the reference\n") unless ( $ref_genome);
@@ -71,8 +72,17 @@ die ("\nFile $merged_bam not found\n") unless ( -e $merged_bam );
 ($ext) = $merged_bam  =~ /(\.[^.]+)$/;
 $ext =~ s/.$/i/;
 die ("\nIndex for $merged_bam $ext not found!\n") unless ( -e "$merged_bam".$ext );
+die ("\nsamtools not found in path\n") unless ( which 'samtools' );
 die ("\nRscript not found in path\n") unless ( which 'Rscript' );
 die ("\nefficiency_nanoseq.R must be in path\n") unless ( which 'efficiency_nanoseq.R' );
+my $do_panel;
+if ($panel ) {
+  die ("\nTargeted panel $panel not found\n") unless( -e $panel );
+  $do_panel = 1;
+} else {
+  $do_panel = 0;
+  $panel = "";
+}
 
 my $threads = $opts{'t'};
 my $rb_output     = "$output_prefix.RBs";
@@ -84,13 +94,15 @@ close(REFI);
 
 ##########################################################################################
 # Calculating number of reads and duplicate rates
-my($num_unique_reads,$num_sequenced_reads,$dup_rate);
+my($num_unique_reads,$num_sequenced_reads,$dup_rate,$on_near_frac);
+my($num_sequenced_reads_on_near, $num_unique_reads_on_near );
 
 sub read_count {
-    my ($threads, $bam, $extra_opts) = @_;
+    my ($threads, $bam, $panel, $extra_opts) = @_;
     $extra_opts = q{} unless(defined $extra_opts);
+    my $tgt_opt = $panel eq "" ? "" : "-L $panel";
     print STDOUT "Calculating number of reads in $bam...\n";
-    my $cmd = sprintf "samtools view $extra_opts -@ %d -c %s", $threads, $bam;
+    my $cmd = sprintf "samtools view $tgt_opt $extra_opts -@ %d -c %s", $threads, $bam;
     my ($stdout, $stderr, $exit) = capture {
         system($cmd);
     };
@@ -99,21 +111,34 @@ sub read_count {
     return $stdout; # reads counted
 }
 
-$num_unique_reads = &read_count($threads, $deduplicated_bam);
-$num_sequenced_reads = &read_count($threads, $merged_bam);
-$dup_rate = ($num_sequenced_reads-$num_unique_reads)/$num_sequenced_reads;
-
-print STDOUT "  Num unique reads=$num_unique_reads\n";
+$num_sequenced_reads = &read_count($threads, $merged_bam, "");
 print STDOUT "  Num sequenced reads=$num_sequenced_reads\n";
-print STDOUT "  Duplicate rate=$dup_rate\n";
+if ( $do_panel ) {
+  $num_sequenced_reads_on_near = &read_count($threads, $merged_bam, $panel);
+  $num_unique_reads_on_near = &read_count($threads, $deduplicated_bam, $panel);
+  $dup_rate = ($num_sequenced_reads_on_near-$num_unique_reads_on_near)/$num_sequenced_reads_on_near;
+  $on_near_frac = $num_sequenced_reads_on_near/$num_sequenced_reads;
+  print STDOUT "  Num sequenced reads (on+near)=$num_sequenced_reads_on_near\n";
+  print STDOUT "  Num unique reads(on+near)=$num_unique_reads_on_near\n";
+  print STDOUT "  Duplicate rate=$dup_rate\n";
+  print STDOUT "  On+near fraction=$on_near_frac\n";
+} else {
+  $num_unique_reads = &read_count($threads, $deduplicated_bam, "");
+  $dup_rate = ($num_sequenced_reads-$num_unique_reads)/$num_sequenced_reads;
+
+  print STDOUT "  Num unique reads=$num_unique_reads\n";
+  print STDOUT "  Duplicate rate=$dup_rate\n";
+}
+
 
 ##########################################################################################
 # Get read bundle comformations
 my $bam = $merged_bam;
 sub count_RB {
   my %rbs;
-  my ($threads, $flag, $bam, $region) = @_;
-  my $cmd = "samtools view -@ $threads -f $flag $bam \"$region\"";
+  my ($threads, $flag, $bam, $region, $panel) = @_;
+  my $tgt_opt = $panel eq "" ? "" : "-L $panel";
+  my $cmd = "samtools view $tgt_opt -@ $threads -f $flag $bam $region";
   open(IN, "$cmd |") || die "Error launching $cmd\n"; 
   while(<IN>) {
     chomp;
@@ -132,10 +157,10 @@ sub count_RB {
 }
 # Get first reads in reverse:
 print STDOUT "RB comformation: 1st reads in reverse...\n";
-my %rbf2r1 = &count_RB($threads, 82, $bam, $region);
+my %rbf2r1 = &count_RB($threads, 82, $bam, $region, $panel);
 
 print STDOUT "RB comformation: 2nd reads in reverse...\n";
-my %rbf1r2 = &count_RB($threads, 146, $bam, $region);
+my %rbf1r2 = &count_RB($threads, 146, $bam, $region, $panel);
 
 foreach my $ikey (keys %rbf2r1) {
   $rbf1r2{$ikey} = 0 if ( ! exists( $rbf1r2{$ikey}));
@@ -167,6 +192,8 @@ foreach (split('\n',$stdout)) {
     $reads_per_rb = (split)[1];
   } elsif(/F-EFF/) {
     $f_eff = (split)[1];
+  } elsif(/ZIB-EFF/) {
+    $zib_eff = (split)[1];
   } elsif(/OK_RBS/) {
     $ok_rbs = (split)[1];
   } elsif(/TOTAL_RBS/) {
@@ -182,8 +209,14 @@ foreach (split('\n',$stdout)) {
 # Check it run properly:
 open(OUT, ">$main_output") || die "Error writing to $main_output\n";
 print OUT "# Whole-genome metrics:\n";
-print OUT "NUM_UNIQUE_READS\t$num_unique_reads\n";
-print OUT "NUM_SEQUENCED_READS\t$num_sequenced_reads\n";
+print OUT "NUM_READS_SEQUENCED\t$num_sequenced_reads\n";
+if ($do_panel) {
+  print OUT "ON+NEAR_FRACTION\t$on_near_frac\n";
+  print OUT "ON+NEAR_UNIQUE_READS\t$num_unique_reads_on_near\n";
+  print OUT "ON+NEAR_SEQUENCED_READS\t$num_sequenced_reads_on_near\n";
+} else {
+  print OUT "NUM_UNIQUE_READS\t$num_unique_reads\n";
+}
 print OUT "DUPLICATE_RATE\t$dup_rate\n";
 
 print OUT "# RB metrics are reported for chr/contig $region only:\n";
@@ -207,12 +240,13 @@ efficiency_nanoseq.pl
 
 =head1 SYNOPSIS
 
-efficiency_nanoseq.pl [-h] [-t n] -dedup BAM -duplex BAM -o prefix -r reference
+efficiency_nanoseq.pl [-h] [-t n] [-p panel ] -dedup BAM -duplex BAM -o prefix -r reference
 
     -dedup             -d   Deduplicated BAM
     -duplex            -x   Duplex BAM
     -ref               -r   reference file
     -out               -o   Ouptup prefix
+    -panel             -p   Target panel (bed)
 
   Optional parameters:
     -threads           -t   Threads (1)
@@ -237,6 +271,10 @@ Output prefix
 =item B<-ref>
 
 Reference file and index
+
+=item B<-panel>
+
+Target panel (bed format)
 
 =item B<-threads>
 
