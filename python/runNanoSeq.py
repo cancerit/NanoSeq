@@ -229,10 +229,12 @@ if (hasattr(args, 'ref')):
     file_chk(args.ref, ".fai", "Reference")
 
 if (hasattr(args, 'snp')):
-    file_chk(args.snp, ".tbi", "SNP")
+    if ( args.snp is not None ) :
+      file_chk(args.snp, ".tbi", "SNP")
 
 if (hasattr(args, 'mask')):
-    file_chk(args.mask, ".tbi", "Mask")
+    if ( args.mask is not None ) :
+      file_chk(args.mask, ".tbi", "Mask")
 
 if (hasattr(args, 'triNuc') and args.triNuc is not None):
     if not os.path.isfile(args.triNuc):
@@ -840,9 +842,9 @@ if (args.subcommand == 'dsa'):
         maskOpt = ""
         if (args.no_test):
             testOpt = "-t"
-        if ( args.snp) :
+        if ( args.snp is not None ) :
             snpOpt = "-C %s"%args.snp
-        if ( args.mask) :
+        if ( args.mask is not None ) :
             maskOpt = "-D %s"%args.mask
 
         for (ii, iinterval) in enumerate(intervalsPerCPU[i]):
