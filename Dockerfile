@@ -1,4 +1,4 @@
-FROM  ubuntu:22.04 as builder
+FROM  ubuntu:20.04 as builder
 
 USER  root
 
@@ -55,7 +55,7 @@ RUN bash build/opt-build.sh $OPT
 COPY . .
 RUN bash build/opt-build-local.sh $OPT
 
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 
 LABEL maintainer="cgphelp@sanger.ac.uk" \
       uk.ac.sanger.cgp="Cancer, Ageing and Somatic Mutation, Wellcome Trust Sanger Institute" \
