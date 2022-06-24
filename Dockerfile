@@ -1,13 +1,13 @@
-FROM  ubuntu:20.04 as builder
+FROM  ubuntu:22.04 as builder
 
 USER  root
 
 # ALL tool versions used by opt-build.sh
-ENV VER_SAMTOOLS="1.13"
-ENV VER_HTSLIB="1.13"
-ENV VER_BCFTOOLS="1.13"
+ENV VER_SAMTOOLS="1.14"
+ENV VER_HTSLIB="1.14"
+ENV VER_BCFTOOLS="1.14"
 ENV VER_VERIFYBAMID="2.0.1"
-ENV VER_LIBDEFLATE="v1.8"
+ENV VER_LIBDEFLATE="v1.12"
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get -yq update
@@ -55,7 +55,7 @@ RUN bash build/opt-build.sh $OPT
 COPY . .
 RUN bash build/opt-build-local.sh $OPT
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 LABEL maintainer="cgphelp@sanger.ac.uk" \
       uk.ac.sanger.cgp="Cancer, Ageing and Somatic Mutation, Wellcome Trust Sanger Institute" \

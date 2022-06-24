@@ -32,8 +32,8 @@
 ###########################
 
 
-SOURCE_LIBDEFLATE="https://github.com/ebiggers/libdeflate/archive/v1.6.tar.gz"
-SOURCE_HTSLIB="https://github.com/samtools/htslib/releases/download/1.13/htslib-1.13.tar.bz2"
+SOURCE_LIBDEFLATE="https://github.com/ebiggers/libdeflate/archive/v1.12.tar.gz"
+SOURCE_HTSLIB="https://github.com/samtools/htslib/releases/download/1.14/htslib-1.14.tar.bz2"
 SOURCE_GZSTREAM="https://www.cs.unc.edu/Research/compgeom/gzstream/gzstream.tgz"
 
 get_distro () {
