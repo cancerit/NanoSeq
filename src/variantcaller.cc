@@ -823,7 +823,7 @@ void Usage() {
   fprintf(stderr, "\t-a\tminimum AS-XS\n");
   fprintf(stderr, "\t-b\tminimum number of bulk reads per strand\n");
   fprintf(stderr, "\t-z\tminimum number of bulk reads in total\n");
-  fprintf(stderr, "\t-c\tmaximum number of clips\n");
+  fprintf(stderr, "\t-c\tmaximum fraction of clips\n");
   fprintf(stderr, "\t-d\tminimum number of dplx reads per strand\n");
   fprintf(stderr, "\t-f\tminimum fraction of reads for consensus\n");
   fprintf(stderr, "\t-i\tmaximum fraction of reads with an indel\n");
@@ -877,7 +877,7 @@ void Options(int argc, char **argv, VariantCaller *vc) {
         break;
       //
       case 'c':
-        vc->clip = std::stoi(optarg);
+        vc->clip = std::stof(optarg);
         break;
       case 'd':
         vc->dplx = std::stoi(optarg);
