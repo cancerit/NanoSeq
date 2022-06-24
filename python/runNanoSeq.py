@@ -66,8 +66,8 @@ parserR.add_argument('-R', '--ref', action='store',
                      required=True, help="referene sequence")
 parserR.add_argument('-A', '--normal', action='store',
                      required=True, help="normal BAM / CRAM")
-parserR.add_argument('-B', '--tumour', action='store',
-                     required=True, help="tumour (duplex) BAM / CRAM")
+parserR.add_argument('-B', '--duplex', action='store',
+                     required=True, help="duplex (tumour) BAM / CRAM")
 parserO.add_argument('-v', '--version', action='version', version=version)
 # need this to get opt/req args correctly
 parser._action_groups.append(parserO)
@@ -88,7 +88,7 @@ parser_covO.add_argument('--larger', type=int, action='store',
 parser_covO.add_argument('-w', '--win', type=int, action='store',
                          default=100, help='bin size for coverage distribution (100)')
 parser_covO.add_argument('-Q', type=int, action='store',
-                         default=0, help="minimum mapQ to include a tumour read (0)")
+                         default=0, help="minimum mapQ to include a duplex read (0)")
 parser_cov._action_groups.append(parser_covO)
 
 parser_part = subparsers.add_parser(
@@ -125,10 +125,10 @@ parser_varO = parser_var._action_groups.pop()
 parser_varR = parser_var.add_argument_group('required arguments')
 parser_varO.add_argument('-a', type=int, action='store',
                          default=50, help="minimum AS-XS (50)")
-parser_varO.add_argument('-b', type=int, action='store', default=5,
-                         help="minimum matched normal reads per strand (5)")
-parser_varO.add_argument('-c', type=int, action='store',
-                         default=0, help="maximum number of clips (0)")
+parser_varO.add_argument('-b', type=int, action='store', default=0,
+                         help="minimum matched normal reads per strand (0)")
+parser_varO.add_argument('-c', type=float, action='store',
+                         default=0.02, help="fraction of clips (0.02)")
 parser_varO.add_argument('-d', type=int, action='store',
                          default=2, help="minimum duplex depth (2)")
 parser_varO.add_argument('-f', type=float, action='store', default=0.9,
@@ -146,11 +146,11 @@ parser_varO.add_argument('-q', type=int, action='store',
 parser_varO.add_argument('-r', type=int, action='store',
                          default=144, help="read length (after 5' trimming) (144)")
 parser_varO.add_argument('-v', type=float, action='store',
-                         default=0.01, help="maximum bulk VAF (0.01)")
+                         default=0.01, help="maximum normal VAF (0.01)")
 parser_varO.add_argument('-x', type=int, action='store',
                          default=8, help="maximum cycle number (8)")
 parser_varO.add_argument('-z', type=int, action='store',
-                         default=12, help="minimum total number of normal reads (12)")
+                         default=15, help="minimum normal coverage (15)")
 parser_var._action_groups.append(parser_varO)
 
 # compute indels
@@ -161,14 +161,14 @@ parser_indelO.add_argument('-s', '--sample', action='store',
                            default='sample_1', help="sample name in output vcf (sample_1)")
 parser_indelO.add_argument('--rb', type=int, action='store',
                            default=2, help="minimum reads in a bundle. (2)")
-parser_indelO.add_argument('--t3', type=int, action='store', default=135,
-                           help="excess bases above this value are trimmed from 3' (135)")
+parser_indelO.add_argument('--t3', type=int, action='store', default=136,
+                           help="excess bases above this value are trimmed from 3' (136)")
 parser_indelO.add_argument('--t5', type=int, action='store',
-                           default=10, help="bases to trim from 5' reads (10)")
+                           default=8, help="bases to trim from 5' reads (8)")
 parser_indelO.add_argument(
-    '--mc', type=int, action='store', default=20, help="minimum bulk coverage (20)")
+    '-z', type=int, action='store', default=15, help="minimum normal coverage (mc) (15)")
 parser_indelO.add_argument(
-    '--max_vaf', type=float, action='store', default=0.2, help="minimum vaf (0.2)")    
+    '-v', type=float, action='store', default=0.01, help="maximum normal VAF (0.01)")    
 parser_indel._action_groups.append(parser_indelO)
 
 # carry out gather operations and compute summaries
@@ -217,9 +217,9 @@ def file_chk(fn, idx_ext, msg_prefix):
         parser.error(f"{msg_prefix} index file {fn}{idx_ext} was not found!")
 
 
-if (hasattr(args, 'tumour')):
-    ext = os.path.splitext(args.tumour)[1][0:-1] + "i"
-    file_chk(args.tumour, ext, "BAM/CRAM")
+if (hasattr(args, 'duplex')):
+    ext = os.path.splitext(args.duplex)[1][0:-1] + "i"
+    file_chk(args.duplex, ext, "BAM/CRAM")
 
 if (hasattr(args, 'normal')):
     ext = os.path.splitext(args.normal)[1][0:-1] + "i"
@@ -550,7 +550,7 @@ if (args.subcommand == 'cov'):
 
     bamTContigs = {}
     bamTOrder = []
-    for iline in getBAMcontigs(args.tumour):
+    for iline in getBAMcontigs(args.duplex):
         ichr = iline.split('\t')[1].replace('SN:', '')
         ilength = int(iline.split('\t')[2].replace('LN:', ''))
         bamTContigs[ichr] = ilength
@@ -565,9 +565,9 @@ if (args.subcommand == 'cov'):
 
     for icontig in rnames:
         if (not (icontig in bamTContigs)):
-            sys.exit("Reference contig %s was not found in tumour BAM" % icontig)
+            sys.exit("Reference contig %s was not found in duplex BAM" % icontig)
         if (bamTContigs[icontig] != rnames[icontig]):
-            sys.exit("Length of contig %s in tumour BAM doesn't match reference (%s vs %s)" % (
+            sys.exit("Length of contig %s in duplex BAM doesn't match reference (%s vs %s)" % (
                 icontig, bamTContigs[icontig], rnames[icontig]))
 
     # if order of BAMs is not the same mpilupe bogus results
@@ -596,7 +596,7 @@ if (args.subcommand == 'cov'):
             # restart, don't do anything
             inputs.append((None, None, None, None, None))
         else:
-            inputs.append((args.tumour, str(args.Q), str(
+            inputs.append((args.duplex, str(args.Q), str(
                 args.win), ichr, "%s/cov/%s" % (tmpDir, ii + 1)))
     if (args.index is None):
         # multiple threads are available
@@ -849,7 +849,7 @@ if (args.subcommand == 'dsa'):
             dsaInt = iinterval.convert2DSAInput()
             pipe = ">" if ii == 0 else ">>"  # ensure first command overwrittes
             cmd += "dsa -A %s -B %s  %s %s -R %s -d %s -Q %s -M %s %s -r \"%s\" -b %s -e %s %s %s ;" \
-                % (args.normal, args.tumour, snpOpt, maskOpt, args.ref, args.d, args.q, mapQ, testOpt,
+                % (args.normal, args.duplex, snpOpt, maskOpt, args.ref, args.d, args.q, mapQ, testOpt,
                    dsaInt.chr, dsaInt.beg, dsaInt.end, pipe, "%s/dsa/%s.dsa.bed" % (tmpDir, i + 1))
         # check number of fields in the last line it has to have 45 fields
         cmd += "awk  \'END{  if (NF != 45)  print \"Truncated dsa output file for job %s !\" > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' %s/dsa/%s.dsa.bed;" % (i+1, tmpDir, i+1)
@@ -992,13 +992,13 @@ if (args.subcommand == 'indel'):
 
         # construct the indel commands ( 3 steps)
         cmd = "indelCaller_step1.pl -o %s -rb %s -t3 %s -t5 %s -mc %s -vaf %s %s ;"\
-            % ("%s/indel/%s.indel.bed.gz" % (tmpDir, i+1), args.rb, args.t3, args.t5, args.mc, args.max_vaf,
+            % ("%s/indel/%s.indel.bed.gz" % (tmpDir, i+1), args.rb, args.t3, args.t5, args.z, args.v,
                "%s/dsa/%s.dsa.bed.gz" % (tmpDir, i+1))
         cmd += "indelCaller_step2.pl -t -o %s -r %s -b %s %s ;"\
-            % ("%s/indel/%s.indel" % (tmpDir, i+1), args.ref, args.tumour,
+            % ("%s/indel/%s.indel" % (tmpDir, i+1), args.ref, args.duplex,
                "%s/indel/%s.indel.bed.gz" % (tmpDir, i+1))
         cmd += "indelCaller_step3.R %s %s %s %s;"\
-            % (args.ref, "%s/indel/%s.indel.vcf.gz" % (tmpDir, i+1), args.normal, args.max_vaf)
+            % (args.ref, "%s/indel/%s.indel.vcf.gz" % (tmpDir, i+1), args.normal, args.v)
         cmd += "touch %s/indel/%s.done" % (tmpDir, i+1)
         commands[i] = (cmd, )
 
