@@ -108,9 +108,9 @@ parser_dsa = subparsers.add_parser('dsa', help='compute tables')
 parser_dsaO = parser_dsa._action_groups.pop()
 parser_dsaR = parser_dsa.add_argument_group('required arguments')
 parser_dsaR.add_argument('-C', '--snp', action='store',
-                         required=True, help="SNP BED (gz) file")
+                         help="SNP BED (gz) file")
 parser_dsaR.add_argument('-D', '--mask', action='store',
-                         required=True, help="mask BED (gz) file")
+                         help="mask BED (gz) file")
 parser_dsaO.add_argument('-d', type=int, action='store',
                          default=2, help="minimum duplex depth (2)")
 parser_dsaO.add_argument('-q', type=int, action='store',
@@ -836,13 +836,20 @@ if (args.subcommand == 'dsa'):
         # construct dsa commands
         cmd = ""
         testOpt = ""
+        snpOpt = ""
+        maskOpt = ""
         if (args.no_test):
             testOpt = "-t"
+        if ( args.snp) :
+            snpOpt = "-C %s"%args.snp
+        if ( args.mask) :
+            maskOpt = "-D %s"%args.mask
+
         for (ii, iinterval) in enumerate(intervalsPerCPU[i]):
             dsaInt = iinterval.convert2DSAInput()
             pipe = ">" if ii == 0 else ">>"  # ensure first command overwrittes
-            cmd += "dsa -A %s -B %s -C %s -D %s -R %s -d %s -Q %s -M %s %s -r \"%s\" -b %s -e %s %s %s ;" \
-                % (args.normal, args.tumour, args.snp, args.mask, args.ref, args.d, args.q, mapQ, testOpt,
+            cmd += "dsa -A %s -B %s  %s %s -R %s -d %s -Q %s -M %s %s -r \"%s\" -b %s -e %s %s %s ;" \
+                % (args.normal, args.tumour, snpOpt, maskOpt, args.ref, args.d, args.q, mapQ, testOpt,
                    dsaInt.chr, dsaInt.beg, dsaInt.end, pipe, "%s/dsa/%s.dsa.bed" % (tmpDir, i + 1))
         # check number of fields in the last line it has to have 45 fields
         cmd += "awk  \'END{  if (NF != 45)  print \"Truncated dsa output file for job %s !\" > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' %s/dsa/%s.dsa.bed;" % (i+1, tmpDir, i+1)
