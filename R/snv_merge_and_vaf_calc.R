@@ -133,7 +133,7 @@ tbx = TabixFile(cov_bed)
 
 if (num_snvs > 0) {
   snvs$info = gsub("=", ";", snvs$info)
-  mat = read.table(text = snvs$info, sep = ';', strip.white = TRUE)
+  mat = read.table(text = snvs$info, sep = ';', strip.white = TRUE, stringsAsFactors = F)
   for (i in seq(from = 1, to = min(ncol(mat) - 1, 17), 2)) {
     col_name = mat[1, i]
     values = mat[, i + 1]
