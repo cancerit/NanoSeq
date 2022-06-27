@@ -25,7 +25,7 @@ process ADD_NANOSEQ_FASTQ_TAGS {
         def read2 = reads[1]
         """
         touch ${task.process}_${meta.id}_${meta.type}
-        mkdir out
+        mkdir -p out
         L=`zcat $read1 | head -2 | tail -1 | awk '{ print length }'`
         extract_tags.py -a $read1 -b $read2 -c ./out/${meta.name}_R1.fastq.gz -d ./out/${meta.name}_R2.fastq.gz -m $m -s $s -l \$L
         cat <<-END_VERSIONS > versions.yml
@@ -38,8 +38,7 @@ process ADD_NANOSEQ_FASTQ_TAGS {
         def read1 = reads[0]
         def read2 = reads[1]
         """
-        echo "hello"
-        mkdir out
+        mkdir -p out
         touch ./out/${meta.name}_R1.fastq.gz
         touch ./out/${meta.name}_R2.fastq.gz
         cat <<-END_VERSIONS > versions.yml
@@ -64,13 +63,13 @@ process MARKDUP {
 
     maxRetries 4
     cpus 5
-    memory { task.exitStatus == 130  ? 20.GB * task.attempt : 20.GB }
+    memory { task.exitStatus == 130  ? 25.GB * task.attempt : 25.GB }
 
     script:
         """
         touch ${task.process}_${meta.id}_${meta.type}
-        mkdir nsorted
-        mkdir optdup
+        mkdir -p nsorted
+        mkdir -p optdup
         ln -s ../$bam ./nsorted/${meta.name}.bam
         samtools view -H $bam | grep SO:queryname > /dev/null || \\
             ( rm ./nsorted/${meta.name}.bam; samtools sort -@ $task.cpus -m 2G -n -o ./nsorted/${meta.name}.bam $bam )
@@ -87,9 +86,8 @@ process MARKDUP {
 
     stub:
         """
-        mkdir nsorted
-        mkdir optdup
-        mkdir tmpdir
+        mkdir -p nsorted
+        mkdir -p optdup
         ln -s ../$bam ./nsorted/${meta.name}.bam
         touch ./optdup/${meta.name}.bam
         touch ./optdup/${meta.name}.bam.bai
@@ -122,7 +120,7 @@ process NANOSEQ_ADD_RB {
     script:
         """
         touch ${task.process}_${meta.id}_${meta.type}
-        mkdir out
+        mkdir -p out
         NLINES=`samtools view $bam | head -1 | grep rb: | grep rc: | grep mb: | grep mc: | wc -l` || true
         if [ \$NLINES == 1 ]; then
             bamaddreadbundles -I $bam -O ./out/${meta.name}.bam
@@ -133,18 +131,18 @@ process NANOSEQ_ADD_RB {
         fi
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            randomreadinbundle: \$(runNanoSeq.py -v)
+            bamaddreadbundles: \$(runNanoSeq.py -v)
             samtools: \$(echo \$(samtools --version 2>&1) | head -1 | sed 's/^.*samtools //; s/Using.*\$//')
         END_VERSIONS
         """
     stub:
         """
-        mkdir out
+        mkdir -p out
         touch ./out/${meta.name}.bam
         touch ./out/${meta.name}.bam.bai
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
-            randomreadinbundle: \$(runNanoSeq.py -v)
+            bamaddreadbundles: \$(runNanoSeq.py -v)
             samtools: \$(echo \$(samtools --version 2>&1) | head -1 | sed 's/^.*samtools //; s/Using.*\$//')
         END_VERSIONS
         """
@@ -171,11 +169,11 @@ process NANOSEQ_DEDUP {
     script:
         """
         touch ${task.process}_${meta.id}_${meta.type}
-        mkdir out
-        NLINES1=`samtools view $bam | head -1 | grep -P "\tRB:" | wc -l` || true
+        mkdir -p out
+        NLINES1=`samtools view $bam | head -1 | grep -P "\\tRB:" | wc -l` || true
         NLINES2=`samtools view -H $bam | grep ^@PG | grep ID:randomreadinbundle | wc -l` || true
         if [ \$NLINES1 == 1 ] && [ \$NLINES2 == 0 ]; then
-            bamaddreadbundles -I $bam -O ./out/${meta.name}.neat.bam
+            randomreadinbundle -I $bam -O ./out/${meta.name}.neat.bam
             samtools index ./out/${meta.name}.neat.bam
         else
           ln -s ../$bam ./out/${meta.name}.neat.bam
@@ -189,7 +187,7 @@ process NANOSEQ_DEDUP {
         """
     stub:
         """
-        mkdir out
+        mkdir -p out
         touch ./out/${meta.name}.neat.bam
         touch ./out/${meta.name}.neat.bam.bai
         cat <<-END_VERSIONS > versions.yml
@@ -227,7 +225,7 @@ process VERIFY_BAMID {
     script:
         """
         touch ${task.process}_${meta.id}_${meta.type}
-        mkdir verifyBAMid
+        mkdir -p verifyBAMid
         ( VerifyBamID --Epsilon $epsilon --UDPath $vb_ud \\
             --BedPath $vb_bed --MeanPath $vb_mu \\
             --Reference ${ref_path}/genome.fa --BamFile $bam > verifyBAMid/${meta.name}.verifyBAMid.txt 2> verifyBAMid/error ) || ( cp verifyBAMid/error verifyBAMid/${meta.name}.verifyBAMid.txt )
@@ -238,7 +236,7 @@ process VERIFY_BAMID {
         """
     stub:
         """
-        mkdir verifyBAMid
+        mkdir -p verifyBAMid
         touch verifyBAMid/${meta.name}.verifyBAMid.txt
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -265,15 +263,16 @@ process NANOSEQ_EFFI {
         path "versions.yml", emit: versions
 
     maxRetries MAXN
-    cpus 3
+    cpus 4
     memory { task.exitStatus == 130  ? 25.GB * task.attempt : 25.GB }
     errorStrategy { task.attempt == MAXN ? 'ignore' : 'retry' }
 
     script:
+        def cpus = task.cpus - 1
         """
         touch ${task.process}_${meta.id}_${meta.type}
-        mkdir effi
-        efficiency_nanoseq.pl -t $task.cpus -d $bam_neat -x $bam -o effi/${meta.name}.effi -r ${ref_path}/genome.fa
+        mkdir -p effi
+        efficiency_nanoseq.pl -t $cpus -d $bam_neat -x $bam -o effi/${meta.name}.effi -r ${ref_path}/genome.fa
  
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -282,7 +281,7 @@ process NANOSEQ_EFFI {
         """
     stub:
         """
-        mkdir effi
+        mkdir -p effi
         touch effi/${meta.name}.effi.tsv
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -308,13 +307,13 @@ process NANOSEQ_VAF {
         path  "versions.yml", emit: versions
 
     maxRetries 4
-    cpus 1
+    cpus 2
     memory { task.exitStatus == 130 ? 2.GB * task.attempt : 2.GB }
 
     script:
         """
         touch ${task.process}_${meta.id}_${meta.type}
-        mkdir out
+        mkdir -p out
         snv_merge_and_vaf_calc.R $vcf_muts $vcf_indel $bam_neat $bed_cov out/${meta.id}.vcf
         bcftools sort -Oz out/${meta.id}.vcf -o ${meta.id}.vcf.gz
         bcftools index -t ${meta.id}.vcf.gz

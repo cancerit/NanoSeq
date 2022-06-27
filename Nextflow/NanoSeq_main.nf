@@ -34,7 +34,7 @@ params.nanoseq_dedup_m = 2
 // *** NanoSeq parameters
 params.jobs = 100
 //  cov
-params.cov_q = 0
+params.cov_Q = 0
 if ( params.grch37 ) {//for GRCh37 reference
     params.cov_exclude = "MT,GL%,NC_%,hs37d5"
     params.snp_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
@@ -50,12 +50,21 @@ if ( params.grch37 ) {//for GRCh37 reference
 }
 file_exists( params.snp_bed, "snp_bed" )
 file_exists( params.noise_bed, "noise_bed" )
+params.cov_include = ""
+params.cov_larger = 0 
+// part parameters
+params.part_excludeBED = ""
+file_exists( params.part_excludeBED, "part_excludeBED" )
+params.part_excludeCov = 0
+
+// dsa parameters
 params.dsa_d = 2
 params.dsa_q = 30
+params.dsa_M = 0
 // variantcaller parameters
 params.var_a = 50
-params.var_b = 5
-params.var_c = 0
+params.var_b = 0
+params.var_c = 0.02
 params.var_d = 2
 params.var_f = 0.9
 params.var_i = 1.0
@@ -66,12 +75,13 @@ params.var_q = 60
 params.var_r = 144
 params.var_v = 0.01
 params.var_x = 8
-params.var_z = 12
+params.var_z = 15
 // indel parameters
 params.indel_rb = 2
-params.indel_t3 = 135
-params.indel_t5 = 10
-params.indel_mc = 16
+params.indel_t3 = 136
+params.indel_t5 = 8
+params.indel_z = 15
+params.indel_v = 0.01
 // post paramaters
 params.post_triNuc = ""
 file_exists(params.post_triNuc,"post_triNuc")
@@ -175,7 +185,7 @@ if ( fields.contains("d_fastq1") && fields.contains("d_fastq2") && fields.contai
     throw new Exception("\nCan't recognize the Sample sheet format\n")
 }
 
-def file_exists(x, name = "") {
+def file_exists(x, name ) {
     if ( x == "" ) { return }
     assert file(x).exists() : "\n$name file $x was not found!\n\n"
 }
@@ -323,11 +333,11 @@ workflow {
         meta.type = "pair"
         [ meta ] + it[1][1..-1] + it[2][1..-1] }
     
-    NANOSEQ( ch_input_nanoseq, reference_path, params.jobs, params.cov_q, params.cov_exclude, 
-        params.snp_bed, params.noise_bed, params.dsa_d, params.dsa_q, params.var_a, params.var_b, params.var_c, 
-        params.var_d, params.var_f, params.var_i, params.var_m, params.var_n, params.var_p, params.var_q, 
-        params.var_r, params.var_v, params.var_x, params.var_z, params.indel_rb, params.indel_t3, params.indel_t5, 
-        params.indel_mc, params.post_triNuc)
+    NANOSEQ( ch_input_nanoseq, reference_path, params.jobs, params.cov_Q, params.cov_exclude, params.cov_include,
+        params.cov_larger, params.part_excludeBED, params.part_excludeCov, params.snp_bed, params.noise_bed, params.dsa_d, 
+        params.dsa_q, params.var_a, params.var_b, params.var_c, params.var_d, params.var_f, params.var_i, params.var_m, 
+        params.var_n, params.var_p, params.var_q, params.var_r, params.var_v, params.var_x, params.var_z, params.indel_rb,
+        params.indel_t3, params.indel_t5, params.indel_z, params.indel_v, params.post_triNuc)
 
     versions = versions.concat(NANOSEQ.out.versions.first())
 
