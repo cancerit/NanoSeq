@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 ########## LICENCE ##########
-# Copyright (c) 2020-2021 Genome Research Ltd
+# Copyright (c) 2022 Genome Research Ltd
 # 
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 # 
@@ -521,40 +521,6 @@ write.table(burdens, file = paste(out_name, ".mut_burden.tsv", sep = ""), sep = 
 # Fifth: save mutations in VCF format 
 # now done directly in the python wrapper
 
-#variants$ref = sapply(variants$context,function(x) unlist(strsplit(x,""))[2])
-#muts_vcf = data.frame(chr=variants$chrom,
-#                      pos=variants$chromStart+1,
-#                      id=rep(".",nrow(variants)), 
-#                      ref=variants$ref,
-#                      alt=variants$call)
-#muts_vcf$qual = "."
-#muts_vcf$filter = "PASS"
-#muts_vcf[which(variants$shearwater==1),"filter"] = "shearwater"
-#muts_vcf[which(variants$commonSNP==1 ),"filter"] = "dbsnp"
-#muts_vcf$info = paste("TRI=",variants$pyrsub,";BBEG=",variants$dplxBreakpointBeg,
-#                      ";BEND=",variants$dplxBreakpointEnd,";QPOS=",variants$qpos,
-#                      ";DEPTH_FWD=",variants$dplxfwdTotal,";DEPTH_REV=",variants$dplxrevTotal,
-#                      ";DEPTH_NORM_FWD=",variants$bulkForwardTotal,";DEPTH_NORM_REV=",variants$bulkReverseTotal,
-#                      sep="")
-#date = Sys.Date()
-#fileConn<-file(paste(out_name,".muts.vcf",sep=""))
-#filename = paste(out_name,".muts.vcf",sep="")
-#write("##fileformat=VCFv4.2",file=filename,append=F)
-#write(paste("##fileDate=",date,sep=""),file=filename,append=T)
-#write("##source=NanoSeq pipeline",file=filename,append=T)
-#write("##INFO=<ID=TRI,Number=1,Type=String,Description=\"Pyrimidine context, trinucleotide substitution\">",file=filename,append=T)
-#write("##INFO=<ID=BBEG,Number=1,Type=String,Description=\"Read bundle left breakpoint\">",file=filename,append=T)
-#write("##INFO=<ID=BEND,Number=1,Type=String,Description=\"Read bundle right breakpoint\">",file=filename,append=T)
-#write("##INFO=<ID=QPOS,Number=1,Type=Integer,Description=\"Read position closest to 5-prime end\">",file=filename,append=T)
-#write("##INFO=<ID=DEPTH_FWD,Number=1,Type=Integer,Description=\"Read bundle forward reads depth\">",file=filename,append=T)
-#write("##INFO=<ID=DEPTH_REV,Number=1,Type=Integer,Description=\"Read bundle reverse reads depth\">",file=filename,append=T)
-#write("##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Integer,Description=\"Matched normal forward reads depth\">",file=filename,append=T)
-#write("##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Integer,Description=\"Matched normal reverse reads depth\">",file=filename,append=T)
-#write("##FILTER=<ID=dbsnp,Description=\"Common SNP site\">",file=filename,append=T)
-#write("##FILTER=<ID=shearwater,Description=\"Noisy site\">",file=filename,append=T)
-#write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",file=filename,append=T)
-#write.table(muts_vcf,file=paste(out_name,".muts.vcf",sep=""),sep="\t",append=T,quote=F,col.names=F,row.names=F)
-
 
 ##########################################################################################
 # Plot burden w/o masking common SNPs
@@ -562,23 +528,35 @@ write.table(burdens, file = paste(out_name, ".mut_burden.tsv", sep = ""), sep = 
 burdens <- fread(paste(dirname, 'burdens.csv', sep = "/"))
 burdens <- burdens[, .(count = sum(count)), by = .(ismasked, isvariant)]
 
-n_variants_masked <- burdens[ismasked == 0][isvariant == 1]$count
-n_reference_masked <- burdens[ismasked == 0][isvariant == 0]$count
-n_variants_unmasked <- sum(burdens[isvariant == 1]$count)
-n_reference_unmasked <- sum(burdens[isvariant == 0]$count)
-if (n_variants_unmasked == 0) {
-  #ao7
+burdens = as.data.frame(burdens)
+
+##################
+# fa8 / ao7 bug fix
+if (nrow(burdens[which(burdens$ismasked == 0 & burdens$isvariant == 1), ]) > 0) {
+  n_variants_masked <- burdens[which(burdens$ismasked == 0 & burdens$isvariant == 1), "count"]
+} else {
   n_variants_masked = 0
 }
+n_reference_masked <- burdens[which(burdens$ismasked == 0 & burdens$isvariant == 0), "count"]
+if (nrow(burdens[which(burdens$isvariant == 1), ]) > 0) {
+  n_variants_unmasked <- sum(burdens[which(burdens$isvariant == 1), "count"])
+} else {
+  n_variants_unmasked = 0
+}
+n_reference_unmasked <- sum(burdens[which(burdens$isvariant == 0), "count"])
+##################
 burden_masked = n_variants_masked / (n_reference_masked + n_variants_masked)
 burden_unmasked = n_variants_unmasked / (n_reference_unmasked + n_variants_unmasked)
-pdf(width = 5, height = 5, file = paste(out_name, ".burden.masked-vs-unmasked.pdf", sep = ""))
-bar = barplot(c(burden_masked, burden_unmasked), names = c("burden (masked)", "burden (unmasked)"), ylim = c(0, max(burden_masked, burden_unmasked) + 0.1 * max(burden_masked, burden_unmasked)), main = "Qualitative contamination check")
-ci_masked = poisson.test(n_variants_masked)$conf.int / (n_reference_masked + n_variants_masked)
-ci_unmasked = poisson.test(n_variants_unmasked)$conf.int / (n_reference_unmasked + n_variants_unmasked)
-segments(bar[1], ci_masked[1], bar[1], ci_masked[2], col = "black", lwd = 2)
-segments(bar[2], ci_unmasked[1], bar[2], ci_unmasked[2], col = "black", lwd = 2)
-dev.off()
+if (n_variants_unmasked > 0) {
+  # fa8
+  pdf(width = 5, height = 5, file = paste(out_name, ".burden.masked-vs-unmasked.pdf", sep = ""))
+  bar = barplot(c(burden_masked, burden_unmasked), names = c("burden (masked)", "burden (unmasked)"), ylim = c(0, max(burden_masked, burden_unmasked) + 0.1 * max(burden_masked, burden_unmasked)), main = "Qualitative contamination check")
+  ci_masked = poisson.test(n_variants_masked)$conf.int / (n_reference_masked + n_variants_masked)
+  ci_unmasked = poisson.test(n_variants_unmasked)$conf.int / (n_reference_unmasked + n_variants_unmasked)
+  segments(bar[1], ci_masked[1], bar[1], ci_masked[2], col = "black", lwd = 2)
+  segments(bar[2], ci_unmasked[1], bar[2], ci_unmasked[2], col = "black", lwd = 2)
+  dev.off()
+}
 
 ##########################################################################################
 # Mismatches

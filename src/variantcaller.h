@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2020-2021 Genome Research Ltd
+# Copyright (c) 2022 Genome Research Ltd
 # 
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 # 
@@ -108,6 +108,7 @@ typedef struct {
   int isvariant;
   int ismasked;
   std::string pyrcontext;
+  std::string dplx_barcode;
 } row_t;
 
 

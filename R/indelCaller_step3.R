@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 ########## LICENCE ##########
-# Copyright (c) 2020-2021 Genome Research Ltd
+# Copyright (c) 2022 Genome Research Ltd
 # 
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 # 
@@ -51,18 +51,19 @@ options(warn=2) #turn warnings into errors
 args = commandArgs(trailingOnly = TRUE)
 
 if (length(args) == 0 ) {
-  cat("indelCaller_step3.R  reference  vcf  bam\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM/CRAM file for the matched normal\n\n")
+  cat("indelCaller_step3.R  reference  vcf  bam  max_vaf\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM/CRAM file for the matched normal\n\n")
   quit(save = "no", status = 0)
 }
 
-if (length(args) != 3) {
-  cat("indelCaller_step3.R  reference  vcf  bam\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM/CRAM file for the matched normal\n\n")
+if (length(args) != 4) {
+  cat("indelCaller_step3.R  reference  vcf  bam  max_vaf\n\n Check identified indels against matched normal.\n\n Must specify: reference, VCF from indelCaller_step2, BAM/CRAM file for the matched normal\n\n")
   quit(save = "no", status = 1)
 }
 
 genomeFile = args[1]
 vcf_file = args[2]
 bam_file = args[3]
+max_vaf  = args[4]
 
 if (!file.exists(genomeFile)) {
   stop("Reference file not found : ", genomeFile, call. = FALSE)
@@ -107,7 +108,7 @@ if (nrow(vcf@fix) != 0) {
       vcf@fix[i, "FILTER"] = "MISSINGBULK"
       vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, "/", n_bases, "]", sep = "")
 
-    } else if (n_indels / n_bases > 0.01) {
+    } else if (n_indels/(n_bases + n_indels) > max_vaf) {
       vcf@fix[i, "FILTER"] = "NEI_IND"
       vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, "/", n_bases, "]", sep = "")
     }

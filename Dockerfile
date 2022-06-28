@@ -1,13 +1,13 @@
-FROM  ubuntu:20.04 as builder
+FROM  ubuntu:22.04 as builder
 
 USER  root
 
 # ALL tool versions used by opt-build.sh
-ENV VER_SAMTOOLS="1.13"
-ENV VER_HTSLIB="1.13"
-ENV VER_BCFTOOLS="1.13"
+ENV VER_SAMTOOLS="1.14"
+ENV VER_HTSLIB="1.14"
+ENV VER_BCFTOOLS="1.14"
 ENV VER_VERIFYBAMID="2.0.1"
-ENV VER_LIBDEFLATE="v1.8"
+ENV VER_LIBDEFLATE="v1.12"
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get -yq update
@@ -34,6 +34,8 @@ RUN apt-get install -yq --no-install-recommends gfortran
 RUN apt-get install -yq --no-install-recommends libxml2-dev
 RUN apt-get install -yq --no-install-recommends libgsl-dev
 RUN apt-get install -yq --no-install-recommends libperl-dev
+RUN apt-get install -yq --no-install-recommends libpng-dev
+
 
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
@@ -55,12 +57,12 @@ RUN bash build/opt-build.sh $OPT
 COPY . .
 RUN bash build/opt-build-local.sh $OPT
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 LABEL maintainer="cgphelp@sanger.ac.uk" \
       uk.ac.sanger.cgp="Cancer, Ageing and Somatic Mutation, Wellcome Trust Sanger Institute" \
       version="1.0.0" \
-      description="botseq docker"
+      description="nanoseq docker"
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get -yq update
@@ -71,7 +73,6 @@ curl \
 ca-certificates \
 time \
 zlib1g \
-python \
 python3 \
 r-base \
 r-cran-ggplot2 \
@@ -80,10 +81,12 @@ r-cran-epitools \
 r-cran-gridextra \
 r-cran-seqinr \
 libxml2 \
-libgsl23 \
-libperl5.30 \
+libgsl27 \
+libperl5.34 \
 libcapture-tiny-perl \
 libfile-which-perl \
+libpng16-16 \
+python3-numpy \
 unattended-upgrades && \
 unattended-upgrade -d -v && \
 apt-get remove -yq unattended-upgrades && \
