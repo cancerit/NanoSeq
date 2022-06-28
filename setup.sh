@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ########## LICENCE ##########
-# Copyright (c) 2020-2021 Genome Research Ltd
+# Copyright (c) 2022 Genome Research Ltd
 # 
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 # 
@@ -32,8 +32,8 @@
 ###########################
 
 
-SOURCE_LIBDEFLATE="https://github.com/ebiggers/libdeflate/archive/v1.6.tar.gz"
-SOURCE_HTSLIB="https://github.com/samtools/htslib/releases/download/1.13/htslib-1.13.tar.bz2"
+SOURCE_LIBDEFLATE="https://github.com/ebiggers/libdeflate/archive/v1.12.tar.gz"
+SOURCE_HTSLIB="https://github.com/samtools/htslib/releases/download/1.14/htslib-1.14.tar.bz2"
 SOURCE_GZSTREAM="https://www.cs.unc.edu/Research/compgeom/gzstream/gzstream.tgz"
 
 get_distro () {

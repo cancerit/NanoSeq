@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2020-2021 Genome Research Ltd
+# Copyright (c) 2022 Genome Research Ltd
 # 
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 # 
@@ -28,15 +28,6 @@
 # identical to a statement that reads ‘Copyright (c) 2005, 2006, 2007, 2008,
 # 2009, 2010, 2011, 2012’.
 ##########################*/
-
-
-/*
-   Post-processing filter for BED files output by caller
-   
-   To run:
-   ./variantcaller -B /lustre/scratch119/casm/team78/ro4/drseq/54-HpyCH4V-AluI/tables/variants.bed
-*/
-
 
 #include "variantcaller.h"
 
@@ -77,6 +68,7 @@ row_t VariantCaller::ParseRow(std::string line) {
   row.brev_I         = std::stoi(tokens[17]);
   row.bp_beg         = std::stoi(tokens[18]);
   row.bp_end         = std::stoi(tokens[19]);
+  row.dplx_barcode   = tokens[20];
   row.bndl_type      = std::stoi(tokens[21]);
   row.dplx_asxs      = stof(tokens[22]);
   row.dplx_clip      = stof(tokens[23]);
@@ -639,6 +631,8 @@ void VariantCaller::WriteVariants(row_t *row) {
   this->fout << VariantCaller::StrandSubstitution(row);
   this->fout << "\t";
   this->fout << row->ismasked;
+  this->fout << "\t";
+  this->fout << row->dplx_barcode;
   this->fout << std::endl;
 }
 
@@ -743,6 +737,8 @@ void VariantCaller::WriteMismatches(row_t *row) {
   this->fout << VariantCaller::StrandMismatch(row);;
   this->fout << "\t";
   this->fout << row->ismasked;
+  this->fout << "\t";
+  this->fout << row->dplx_barcode;
   this->fout << std::endl;
 }
 
@@ -827,7 +823,7 @@ void Usage() {
   fprintf(stderr, "\t-a\tminimum AS-XS\n");
   fprintf(stderr, "\t-b\tminimum number of bulk reads per strand\n");
   fprintf(stderr, "\t-z\tminimum number of bulk reads in total\n");
-  fprintf(stderr, "\t-c\tmaximum number of clips\n");
+  fprintf(stderr, "\t-c\tmaximum fraction of clips\n");
   fprintf(stderr, "\t-d\tminimum number of dplx reads per strand\n");
   fprintf(stderr, "\t-f\tminimum fraction of reads for consensus\n");
   fprintf(stderr, "\t-i\tmaximum fraction of reads with an indel\n");
@@ -881,7 +877,7 @@ void Options(int argc, char **argv, VariantCaller *vc) {
         break;
       //
       case 'c':
-        vc->clip = std::stoi(optarg);
+        vc->clip = std::stof(optarg);
         break;
       case 'd':
         vc->dplx = std::stoi(optarg);

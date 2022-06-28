@@ -3,7 +3,7 @@ header:
     spdx-id: AGPL-3.0-or-later
     copyright-owner: Genome Research Ltd
     content: |
-      Copyright (c) 2020-2021 Genome Research Ltd
+      Copyright (c) 2022 Genome Research Ltd
 
       Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 
@@ -45,6 +45,8 @@ header:
     - 'Makefile'
     - 'README.md'
     - 'EXAMPLE'
+    - 'main.nf'
+    - 'nextflow.config'
     - '**/*.yaml'
     - 'src/bamcov.c'
     - 'src/sam_opts.*'
@@ -52,5 +54,6 @@ header:
     - 'src/sam_utils.*'
     - 'test/*'
     - 'LSF/*'
+    - 'Nextflow/**'
 
   comment: on-failure

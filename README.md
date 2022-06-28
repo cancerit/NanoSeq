@@ -1,8 +1,20 @@
 # NanoSeq
+[![CircleCI][circleci-status]][circleci-pipeline]
+[![Quay Badge][quay-status]][quay-repo]
 
 Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protocol based on Duplex Sequencing ([Schmitt et al, 2012](https://doi.org/10.1073/pnas.1208715109)) and BotSeqS ([Hoang et al, 2016](https://doi.org/10.1073/pnas.1607794113)). NanoSeq allows calling mutations with single molecule resolution and extremely low error rates ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)). The pipeline and code in this repository cover the preprocessing of NanoSeq sequencing data, the assessment of data quality and efficiency, and the calling of mutations (substitutions and indels) and the estimation of mutation burdens and substitution profiles.
 
 The wet-lab protocol is described in the original publication ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)) and on ProtocolExchange ([Lensing et al, 2021](https://protocolexchange.researchsquare.com/article/pex-1298/v1)).
+
+## Container
+
+The simplest way of executing the code is to use the singularity container from Quay.io, this has all the required programs to do the analyses without having to do any installation.
+
+```
+singularity run docker://quay.io/wtsicgp/nanoseq:2.3.3 runNanoSeq.py
+```
+This runs the runNanoSeq.py script without any arguments.
+
 
 ## Dependencies
 
@@ -17,7 +29,7 @@ Execution of the scripts from this repository requires that these dependencies a
 ## Installation
 
 ```
-./setup.sh path_to_install                          #install code from this repo
+./setup.sh path_to_install                          #install code from this repository
 export PATH=$PATH:path_to_install/bin
 Rscript ./build/manualInstall.R <R libraries path>  #install all the required R libraries
 ```
@@ -101,6 +113,20 @@ For a matched normal and a duplex pair of samples (hereafter referred to as "nor
 2) Generation of variant files (`variants`)
 3) Indel identification (`indelCaller_step1.pl`, `indelCaller_step2.pl` & `indelCaller_step3.R`)
 4) Summarizing of results (`variantcaller.R` & `nanoseq_results_plotter.R`)
+
+### Nextflow
+
+A whole NanoSeq analysis can be easily carried out with the provided Nextflow (main.nf). A typical execution would look like:
+
+```
+nextflow run main.nf --normal normal.neat.bam --duplex tumour.bam  --jobs 100 --ref genome.fa \ 
+                     --snp_bed SNP.sorted.bed.gz --noise_bed NOISE.sorted.bed.gz \
+                      -profile lsf_singularity -resume
+```
+The included execution profiles have been tested for execution locally and on LSF.
+
+
+### Wrapper script (advanced usage)
 
 The wrapper script `runNanoSeq.py` provides a convinient way of running all the steps of a NanoSeq analyisis. It is meant to be run as a job array or in a multithreaded environment.
 
@@ -207,7 +233,7 @@ A bash script is provided in the LSF directory as a template for execution of al
 
 ### Genomic masks
 
-Genomic masks for common SNP masking and detection of noisy/variable genomic sites. Masks for GRCh37 are available [here](https://drive.google.com/drive/folders/1wqkgpRTuf4EUhqCGSLA4fIg9qEEw3ZcL?usp=sharing). 
+Genomic masks for common SNP masking and detection of noisy/variable genomic sites. Masks for GRCh37 are available [here](https://drive.google.com/drive/folders/1wqkgpRTuf4EUhqCGSLA4fIg9qEEw3ZcL?usp=sharing).
 
 When running NanoSeq on a species for which no common SNP data is available, an empty bed file should be used.
 
@@ -227,3 +253,9 @@ The most relevant summary files include the following.
 * `DSC_errors_per_channel.pdf / DSC_estimated_error_rates.pdf / estimated_error_rates.tsv / SSC-mismatches-Both.triprofiles.tsv / SSC-mismatches-Purine.triprofiles.tsv / SSC-mismatches-Pyrimidine.triprofiles.tsv`: Based on the independent error rates in the purine and pyrimidine channels (e.g. G>T and C>A), we calculate the probability of having independent errors affecting both strands and resulting in double-strand consensus.
 
 
+<!-- Quay.io -->
+[quay-status]: https://quay.io/repository/wtsicgp/nanoseq/status
+[quay-repo]: https://quay.io/repository/wtsicgp/nanoseq
+[quay-builds]: https://quay.io/repository/wtsicgp/nanoseq?tab=builds
+[circleci-status]: https://circleci.com/gh/cancerit/NanoSeq.svg?style=shield
+[circleci-pipeline]: https://circleci.com/gh/cancerit/NanoSeq

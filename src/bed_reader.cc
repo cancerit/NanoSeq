@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2020-2021 Genome Research Ltd
+# Copyright (c) 2022 Genome Research Ltd
 # 
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 # 
@@ -43,6 +43,7 @@
 
 // Load intervals from tabix BED file
 void Bed::Load(const char* bed_filename, const char* rname, int beg, int end, ogzstream & gzout, bool out2stdout ) {
+  if ( bed_filename[0] == '\0' ) { return; }
   htsFile *fp = hts_open(bed_filename, "r");
   if (fp == NULL) {
     std::stringstream er;

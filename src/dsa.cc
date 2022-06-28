@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2020-2021 Genome Research Ltd
+# Copyright (c) 2022 Genome Research Ltd
 # 
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 # 
@@ -60,6 +60,8 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
   opts->min_mapQ         = 0;
   opts->out2stdout       = true;
   opts->doTests          = true;
+  opts->beds[0]          = "\0";
+  opts->beds[1]          = "\0";
   char suffix[] = ".gz";
   int opt = 0;
   while ((opt = getopt(argc, argv, "A:B:C:D:R:Q:M:r:b:e:d:O:th")) >= 0) {
