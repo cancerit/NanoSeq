@@ -86,7 +86,7 @@ libperl5.34 \
 libcapture-tiny-perl \
 libfile-which-perl \
 libpng16-16 \
-python3-numpy \
+#python3-numpy \
 unattended-upgrades && \
 unattended-upgrade -d -v && \
 apt-get remove -yq unattended-upgrades && \
