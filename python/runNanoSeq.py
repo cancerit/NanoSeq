@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ########## LICENCE ##########
-# Copyright (c) 2020-2021 Genome Research Ltd
+# Copyright (c) 2022 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
