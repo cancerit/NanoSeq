@@ -1,9 +1,9 @@
 nextflow.enable.dsl=2
 
-//'docker://quay.io/wtsicgp/pcap-core:5.5.1'
-params.bwa_container = "/software/CASM/singularity/pcap-core/pcap-core_5.7.0.sif"
-//'docker://quay.io/wtsicgp/nanoseq:2.3.3'
-params.nanoseq_container= "/lustre/scratch117/casm/team78/ra11/NanoSeq/run_Next/nanoseq_dev.sif"
+//"docker://quay.io/wtsicgp/pcap-core:5.7.0"
+params.bwa_container = "docker://quay.io/wtsicgp/pcap-core:5.7.0"
+//"docker://quay.io/wtsicgp/nanoseq:3.0.0"
+params.nanoseq_container= "docker://quay.io/wtsicgp/nanoseq:3.0.0"
 
 //*use predefined parameter sets for GRCh37 & GRCh38
 params.grch37 = false
