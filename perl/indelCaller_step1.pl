@@ -40,6 +40,8 @@ my $min_size_subfam = 2; #Minimum number of family size 2 for 2+2, 3 for 3+3, et
 my $filter_5_prime  = 10; #Number of bases to be trimmed from 5'. Set as 0 if no filter is wanted. Example: 10 for the first 10 bases
 my $filter_3_prime  = 135; #Number of bases to start trimming from. Set as 0 if no filter is wanted. For example: 140 for the 10 last bases of 150-bp reads
 my $bulk_min_cov    = 20;
+my $min_asxs        = 50;
+my $max_clip        = 0.02;
 my $max_vaf         = 0.2;
 
 GetOptions('rb|reads-bundle=i'  => \$min_size_subfam,
@@ -47,6 +49,8 @@ GetOptions('rb|reads-bundle=i'  => \$min_size_subfam,
            't5|trim5=i'  => \$filter_5_prime, 
            'mc|min-coverage=i' => \$bulk_min_cov,
            'vaf|max-vaf=f' => \$max_vaf,
+           'a|min-as-xs=i' => \$min_asxs,
+           'c|max-clip=f' => \$max_clip,
            'o|out=s' => \$opts{'o'},
            'h|help' => \$opts{'h'}
 ) or pod2usage(2);
@@ -104,9 +108,9 @@ while(<IN>) {
   my $bulk_fwd = $bulkForwardTotal;
   my $bulk_rev = $bulkReverseTotal;
   next if($bulk_fwd + $bulk_rev < $bulk_min_cov); # Bulk minimum coverage
-  next if($dplxCLIP>0);
+  next if($dplxCLIP > $max_clip);
   next if($dplxNM > 20); # made very liberal to allow long indels. Check the impact!
-  next if($dplxASXS < 50);
+  next if($dplxASXS < $min_asxs);
 
   if($r1 >= $min_size_subfam && $r2 >= $min_size_subfam) {
     my $bulktotal = $bulkForwardTotal+$bulkReverseTotal;
@@ -186,6 +190,9 @@ indelCaller_step1.pl  [options] -o out.bed.gz  input.bed.gz
     -trim3             -t3  Excess bases above this value are trimmed from 3' (135)
     -trim5             -t5  bases to trim from 5' reads (10)
     -min-coverage      -mc  minimum bulk coverage (16)
+    -max-vaf           -vaf maximum VAF (0.2)
+    -min-as-xs         -a   minimum AS-XS (50)
+    -max-clip          -c   maximum clip fraction (0.02)
     -help              -h
     -version           -v
 
@@ -213,6 +220,19 @@ Total lenght of the read to consider, bases beyond this value are trimmed from t
 =item B<-min-coverage>
 
 Minimum bulk coverage
+
+=item B<-max-vaf>
+
+Tag sites with this VAF (or greater) in the bulk sample
+
+=item B<-min-asxs>
+
+Miniumum alignment score for the bulk reads
+
+
+=item B<-max-clip>
+
+Maximum clipping fraction for the bulk reads
 
 =back
 
