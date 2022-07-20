@@ -81,7 +81,9 @@ params.indel_rb = 2
 params.indel_t3 = 136
 params.indel_t5 = 8
 params.indel_z = 15
-params.indel_v = 0.01
+params.indel_v = params.var_v
+params.indel_a = params.var_a
+params.indel_c = params.var_c
 // post paramaters
 params.post_triNuc = ""
 file_exists(params.post_triNuc,"post_triNuc")
@@ -337,7 +339,7 @@ workflow {
         params.cov_larger, params.part_excludeBED, params.part_excludeCov, params.snp_bed, params.noise_bed, params.dsa_d, 
         params.dsa_q, params.var_a, params.var_b, params.var_c, params.var_d, params.var_f, params.var_i, params.var_m, 
         params.var_n, params.var_p, params.var_q, params.var_r, params.var_v, params.var_x, params.var_z, params.indel_rb,
-        params.indel_t3, params.indel_t5, params.indel_z, params.indel_v, params.post_triNuc)
+        params.indel_t3, params.indel_t5, params.indel_z, params.indel_v, params.indel_a, params.indel_c, params.post_triNuc)
 
     versions = versions.concat(NANOSEQ.out.versions.first())
 
