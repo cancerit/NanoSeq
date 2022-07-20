@@ -165,6 +165,10 @@ parser_indelO.add_argument('--t3', type=int, action='store', default=136,
                            help="excess bases above this value are trimmed from 3' (136)")
 parser_indelO.add_argument('--t5', type=int, action='store',
                            default=8, help="bases to trim from 5' reads (8)")
+parser_indelO.add_argument('-a', type=int, action='store',
+                           default=50, help="minimum AS-XS (50)")
+parser_indelO.add_argument('-c', type=float, action='store',
+                           default=0.02, help="fraction of clips (0.02)")
 parser_indelO.add_argument(
     '-z', type=int, action='store', default=15, help="minimum normal coverage (mc) (15)")
 parser_indelO.add_argument(
@@ -993,8 +997,8 @@ if (args.subcommand == 'indel'):
             continue
 
         # construct the indel commands ( 3 steps)
-        cmd = "indelCaller_step1.pl -o %s -rb %s -t3 %s -t5 %s -mc %s -vaf %s %s ;"\
-            % ("%s/indel/%s.indel.bed.gz" % (tmpDir, i+1), args.rb, args.t3, args.t5, args.z, args.v,
+        cmd = "indelCaller_step1.pl -o %s -rb %s -t3 %s -t5 %s -mc %s -vaf %s -a %s -c %s %s ;"\
+            % ("%s/indel/%s.indel.bed.gz" % (tmpDir, i+1), args.rb, args.t3, args.t5, args.z, args.v, args.a, args.c,
                "%s/dsa/%s.dsa.bed.gz" % (tmpDir, i+1))
         cmd += "indelCaller_step2.pl -t -o %s -r %s -b %s %s ;"\
             % ("%s/indel/%s.indel" % (tmpDir, i+1), args.ref, args.duplex,
