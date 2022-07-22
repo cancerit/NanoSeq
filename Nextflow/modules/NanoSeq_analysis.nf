@@ -308,6 +308,8 @@ process INDEL {
         val t5
         val z
         val vaf
+        val asxs
+        val clip
 
     publishDir "$baseDir/work/temps/$meta.id/tmpNanoSeq/", mode: 'link', pattern: "indel/*", overwrite: true
 
@@ -325,7 +327,7 @@ process INDEL {
     script :
         //apend the index to the output metadata (to sort processes)
         metaOut = meta.clone()
-        metaOut["ii"] = ii + np
+        metaOut["ii"] = ii + np //add np so VAR and INDEL processes sort correctly
         """
         touch ${task.process}_${meta.id}_${ii}
         mkdir -p indel
@@ -334,7 +336,7 @@ process INDEL {
         rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.filtered.vcf.gz.tbi;
         if [ $ii -eq 1 ]; then rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/nfiles; rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/args.json; fi;
 
-        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id -j $ii -k $np indel --rb $rb --t3 $t3 --t5 $t5 -z $z -v $vaf;
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id -j $ii -k $np indel --rb $rb --t3 $t3 --t5 $t5 -z $z -v $vaf -a $asxs -c $clip;
         
         rm $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.bed.gz; #not required for final calculations
         rm $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.vcf.gz; #not required for final calculations
@@ -476,6 +478,8 @@ workflow NANOSEQ {
         indel_t5
         indel_z
         indel_v
+        indel_a
+        indel_c
         // post paramaters
         post_triNuc
 
@@ -526,7 +530,7 @@ workflow NANOSEQ {
             jobs, var_a, var_b, var_c, var_d, var_f, var_i, var_m, var_n, 
             var_p, var_q, var_r, var_v, var_x, var_z)
         INDEL(reference, outDSA, jobIndexes,
-                jobs, indel_rb, indel_t3, indel_t5, indel_z, indel_v)
+                jobs, indel_rb, indel_t3, indel_t5, indel_z, indel_v, indel_a, indel_c)
         //this allows proper grouping when processing batches of samples so they can proceed with
         // analysis witout holdups and also correctly sorts things so that resume works as expected
         outVAR_INDEL = VAR.out.done.mix(INDEL.out.done).map{[it[0].id,it]}.groupTuple(size: 2*jobs, sort : { a, b -> a[0]["ii"] <=> b[0]["ii"]}).map{it[1][0].flatten()}
