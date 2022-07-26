@@ -8,7 +8,7 @@ The wet-lab protocol is described in the original publication ([Abascal et al, 2
 
 ## Nextflow
 
-The simplest way of executing NanoSeq analyses is using the provided Nextflow ( NanoSeq_main.nf ) and its modules. It carries out all the required pre-processing of input files and carries out the NanoSeq analysis itself. The provided configuration file  nextflow.config been setup for usage in an LSF cluster with singularity. Other environments can be accomodated by creating a similar section (see [ Nextflow docs ](https://www.nextflow.io/docs/latest/config.html) ) in the config file. Most process contain error recovery clauses that might also require modifications for other executor environments.
+The simplest way of executing NanoSeq analyses is using the provided Nextflow ( NanoSeq_main.nf ) and its modules. It carries out all the required pre-processing of input files and carries out the NanoSeq analysis itself. The provided configuration file  nextflow.config been setup for usage in an LSF cluster with singularity. Other environments can be accomodated by creating a similar section (see [ Nextflow docs ](https://www.nextflow.io/docs/latest/config.html) ) in the config file. Most processes contain error recovery clauses that might also require modifications for other executor environments.
 
 There are two possible file inputs for the workflow: FASTQs and BAM files. These are passed as arguments to the workflow in a samplesheet in csv format so that it is possible to do multi sample processing with one Nextflow.
 
