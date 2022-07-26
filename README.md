@@ -19,8 +19,8 @@ There are two possible file inputs for the workflow: FASTQs and BAM files. These
    Sample sheet format
 ```
 id,d_fastq1,d_fastq2,n_fastq1,n_fastq2
-exp1,1_duplex_R1.fastq.gz,1_duplex_R2.fastq.gz,1_normal_R1.fastq.gz,1_normal_R2.fastq.gz
-exp2,2_duplex_R1.fastq.gz,2_duplex_R2.fastq.gz,2_normal_R1.fastq.gz,2_normal_R2.fastq.gz
+experiment1,1_duplex_R1.fastq.gz,1_duplex_R2.fastq.gz,1_normal_R1.fastq.gz,1_normal_R2.fastq.gz
+experiment2,2_duplex_R1.fastq.gz,2_duplex_R2.fastq.gz,2_normal_R1.fastq.gz,2_normal_R2.fastq.gz
 ...
 ```
 
@@ -31,8 +31,8 @@ exp2,2_duplex_R1.fastq.gz,2_duplex_R2.fastq.gz,2_normal_R1.fastq.gz,2_normal_R2.
    Sample sheet format
 ```
 id,d_bam,n_bam
-exp1,1_duplex.bam,1_normal.bam
-exp2,2_duplex.bam,2_normal.bam
+experiment1,1_duplex.bam,1_normal.bam
+experiment2,2_duplex.bam,2_normal.bam
 ...
 ```
 
