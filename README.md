@@ -26,7 +26,7 @@ experiment2,2_duplex_R1.fastq.gz,2_duplex_R2.fastq.gz,2_normal_R1.fastq.gz,2_nor
 
 - BAM input
 
-   BAM files can be of two types: ones that require re-mapping but already have the correct tags, or BAMs that are already correctly pre-processed. The type of BAM is specified with the --remap parameter (default true).
+   BAM files can be of two types: ones that require re-mapping but already have the correct tags, or BAMs that are already correctly pre-processed and mapped. The type of BAM is specified with the --remap parameter (default true).
 
    Sample sheet format
 ```
