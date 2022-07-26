@@ -254,15 +254,15 @@ runNanoSeq.py -t 2 \
   -R genome.fa \
   post
 ```
-#### Note
+### Note
 
 A bash script is provided in the LSF directory as a template for execution of all the steps in an computing environment using the LSF job scheduler. Script should be edited to fit individual needs.
 
-#### Genomic masks
+### Genomic masks
 
 Genomic masks for common SNP masking and detection of noisy/variable genomic sites. Masks for GRCh37 are available [here](https://drive.google.com/drive/folders/1wqkgpRTuf4EUhqCGSLA4fIg9qEEw3ZcL?usp=sharing).
 
-When running NanoSeq on a species for which no common SNP data is available, an empty bed file should be used.
+DSA arguments for masks can be omitted when running NanoSeq on a species for which no common SNP data is available.
 
 
 ## Output
