@@ -6,17 +6,43 @@ Nanorate sequencing (NanoSeq) is a DNA library preparation and sequencing protoc
 
 The wet-lab protocol is described in the original publication ([Abascal et al, 2021](https://doi.org/10.1038/s41586-021-03477-4)) and on ProtocolExchange ([Lensing et al, 2021](https://protocolexchange.researchsquare.com/article/pex-1298/v1)).
 
-## Container
+## Nextflow
 
-The simplest way of executing the code is to use the singularity container from Quay.io, this has all the required programs to do the analyses without having to do any installation.
+The simplest way of executing NanoSeq analyses is using the provided Nextflow ( NanoSeq_main.nf ) and its modules. It carries out all the required pre-processing of input files and carries out the NanoSeq analysis. The provided configuration file  nextflow.config been setup for usage in an LSF cluster with singularity. Other environments can be accomodated by creating a similar section (see [ Nextflow docs ](https://www.nextflow.io/docs/latest/config.html) ) in the config file. Most process contain error recovery clauses that might also require modifications for other executor environments.
 
+There are two possible file inputs for the workflow: FASTQs and BAM files. These are passed as arguments to the workflow in a samplesheet in csv format.
+
+- FASTQ input
+
+   This option will carry all the pre-processing of sequencing data and the NanoSeq analysis. Both duplex and normal FASTQs are treated as NanoSeq libraries.
+   Sample sheet format
 ```
-singularity run docker://quay.io/wtsicgp/nanoseq:2.3.3 runNanoSeq.py
+id,d_fastq1,d_fastq2,n_fastq1,n_fastq2
+exp1,1_duplex_R1.fastq.gz,1_duplex_R2.fastq,1_normal_R1.fastq.gz,1_normal_R2.fastq
+exp2,2_duplex_R1.fastq.gz,2_duplex_R2.fastq,2_normal_R1.fastq.gz,2_normal_R2.fastq
+...
 ```
-This runs the runNanoSeq.py script without any arguments.
 
 
-## Dependencies
+- BAM input
+
+   BAM files can be of two types: ones that require re-mapping but already have the correct tags, or BAMs that are already correctly pre-processed. The type of BAM is specified with the --remap parameter (default true).
+
+   Sample sheet format
+```
+id,d_bam,n_bam
+exp1,1_duplex.bam,1_normal.bam
+exp2,2_duplex.bam,2_normal.bam
+...
+```
+   
+
+A typical execution of the 
+
+
+## Further details
+
+### Dependencies
 
 Execution of the scripts from this repository requires that these dependencies are on PATH :
 
@@ -26,7 +52,7 @@ Execution of the scripts from this repository requires that these dependencies a
 * biobambam
 * bwa
 
-## Installation
+### Installation
 
 ```
 ./setup.sh path_to_install                          #install code from this repository
@@ -34,15 +60,15 @@ export PATH=$PATH:path_to_install/bin
 Rscript ./build/manualInstall.R <R libraries path>  #install all the required R libraries
 ```
 
-## Preprocessing of the sequencing data
+### Preprocessing of the sequencing data
 
-### Steps overview
+#### Steps overview
 
 1) Extract the duplex barcodes from the fastq files and add them to the fastq header of each read (`extract_tags.py`)
 2) Map reads to the reference genome using `bwa` with option `-C to add the barcodes as tags in the bam
 3) Add rc and mc tags, mark optical duplicates, and filter the bam for unpaired reads, creating a molecule-unique read bundle (RB) tag identifier for each read pair.
 
-### 1/2. Extract barcodes and map reads
+#### 1/2. Extract barcodes and map reads
 
 Prior to mapping, fastq files must be pre-processed with `extract_tags.py` in order to trim adapter sequences and to add the appropiate tags (rb,mb) to the read headers.
 ```
@@ -53,7 +79,7 @@ python extract-tags.py -a R1.fastq -b R2.fastq -c extrR1.fastq -d extrR2.fastq -
 bwa mem -C reference_genome.fa extrR1.fastq extrR2.fastq > mapped.sam
 ```
 
-### 3. Add rc and mc tags, mark optical duplicates, create read bundle tags
+#### 3. Add rc and mc tags, mark optical duplicates, create read bundle tags
 
 A read bundle tag must be appended to each read-pair of a BAM to determine which reads are PCR duplicates. The tag consists of: chromosome, read coordinate, mate corrdinate, read rb tag, and mate mb tag (RB:rc,mc,rb,mb).
 
@@ -70,7 +96,7 @@ With `bamaddreadbundles`, optical duplicates and unpaired mates are filtered and
 bamaddreadbundles -I mapped_od.bam -O filtered.bam
 ```
 
-## Preparation of a matched normal
+### Preparation of a matched normal
 
 The NanoSeq analysis requires a matched normal to distinguish somatic mutations from germline SNPs. Sequencing undiluted NanoSeq libraries is the most cost-efficient solution to create a matched normal because all the coverage will concentrate in the fraction of the genome "seen" with the selected restriction enzyme. If the matched normal happens to be an undiluted NanoSeq library it must be processed further as to just keep one read-pair from each read bundle to produce a 'neat' normal (i.e. to remove PCR duplicates).
 
@@ -86,12 +112,12 @@ Correct pre-processing means that duplex BAMs must have @PG tags for `bamsormadu
 
 The pipeline checks that all these programs have been run on the bam, exiting with an error otherwise. At users' own risk, the bam header checking can be disabled using option `--no_test` in `dsa`.
 
-## Contamination check
+### Contamination check
 
 It is highly recommended to carry out a contamination check of the sample pair with [`verifyBAMId`](https://github.com/Griffan/VerifyBamID). This contamination check must be done on a bam generated with `randomreadinbundle`, where only one read per read bundle is kept in the bam (see above).
 An alpha < 0.005 would be acceptable for most situations.
 
-## Efficiency
+### Efficiency
 
 The script efficiency_nanoseq.pl analyses the information in the NanoSeq original bam and its deduplicated version.
 The output provides information on duplicate rates, read counts... Theoretically, the optimal duplicate rate in terms of efficiency (duplex bases / sequenced bases) is 81% for read bundles of size >= 2+2, with 65% and 90% yielding ≥80% of the maximum of efficiency. Empirically the optimal duplicate rate is 75-76%.
@@ -105,7 +131,7 @@ EFFICIENCY: This is the number of duplex bases divided by the number of sequence
 GC_BOTH and GC_SINGLE: the GC content of RBs with both strands and with just one strand. The two values should be similar between them and similar to the genome average. If there are large deviations that is possibly due to biases during PCR amplification. If GC_BOTH is substantially larger than GC_SINGLE, DNA denaturation before dilution may have taken place.
 
 
-## NanoSeq analysis
+### NanoSeq analysis
 
 For a matched normal and a duplex pair of samples (hereafter referred to as "normal" and "tumour") an analysis requires the following steps:
 
@@ -114,25 +140,14 @@ For a matched normal and a duplex pair of samples (hereafter referred to as "nor
 3) Indel identification (`indelCaller_step1.pl`, `indelCaller_step2.pl` & `indelCaller_step3.R`)
 4) Summarizing of results (`variantcaller.R` & `nanoseq_results_plotter.R`)
 
-### Nextflow
 
-A whole NanoSeq analysis can be easily carried out with the provided Nextflow (main.nf). A typical execution would look like:
-
-```
-nextflow run main.nf --normal normal.neat.bam --duplex tumour.bam  --jobs 100 --ref genome.fa \ 
-                     --snp_bed SNP.sorted.bed.gz --noise_bed NOISE.sorted.bed.gz \
-                      -profile lsf_singularity -resume
-```
-The included execution profiles have been tested for execution locally and on LSF.
-
-
-### Wrapper script (advanced usage)
+#### Wrapper script
 
 The wrapper script `runNanoSeq.py` provides a convinient way of running all the steps of a NanoSeq analyisis. It is meant to be run as a job array or in a multithreaded environment.
 
 The wrapper scrpt has subcommands that that are meant to roughly follow the same steps that were outlined before. The steps are: cov, part, dsa, var, indel & post. Output for each step is located in the tmpNanoSeq directory.
 
-### Coverage (cov)
+#### Coverage (cov)
 
 A coverage histogram is computed for the bulk BAM.
 
@@ -146,7 +161,7 @@ runNanoSeq.py -t 10 \
   --exclude "MT,GL%,NC_%,hs37d5"
 ```
 
-### Partition (part)
+#### Partition (part)
 
 Divide the coverage so that each job in the NanoSeq analysis gets roughly the same work. The -n argument idicates the number of tasks that will be used in the dsa, var and indel steps.
 
@@ -159,7 +174,7 @@ runNanoSeq.py -t 1 \
   -n 60 \
 ```
 
-### dsa beds (dsa)
+#### dsa beds (dsa)
 
 Compute the dsa bed files. SNP and NOISE BED files contain sites to be marked on the output VCF file.
 
@@ -175,7 +190,7 @@ runNanoSeq.py -t 60 \
   -q 30 \
 ```
 
-### Variant tables (var)
+#### Variant tables (var)
 
 Compute variants tables.
 
@@ -200,7 +215,7 @@ runNanoSeq.py -t 60 \
   -z 12
 ```
 
-### Indel vcfs (indel)
+#### Indel vcfs (indel)
 
 Compute vcf files for indels.
 
@@ -216,7 +231,7 @@ runNanoSeq.py -t 60 \
   --t5 10 \
   --mc 16
 ```
-### Post processing (post)
+#### Post processing (post)
 
 Merge final files, produce summaries. Results can be found in tmpNanoSeq/post.
 
@@ -227,18 +242,18 @@ runNanoSeq.py -t 2 \
   -R genome.fa \
   post
 ```
-### Note
+#### Note
 
 A bash script is provided in the LSF directory as a template for execution of all the steps in an computing environment using the LSF job scheduler. Script should be edited to fit individual needs.
 
-### Genomic masks
+#### Genomic masks
 
 Genomic masks for common SNP masking and detection of noisy/variable genomic sites. Masks for GRCh37 are available [here](https://drive.google.com/drive/folders/1wqkgpRTuf4EUhqCGSLA4fIg9qEEw3ZcL?usp=sharing).
 
 When running NanoSeq on a species for which no common SNP data is available, an empty bed file should be used.
 
 
-## Output
+### Output
 
 The most relevant summary files include the following.
 
