@@ -15,6 +15,7 @@ There are two possible file inputs for the workflow: FASTQs and BAM files. These
 - FASTQ input
 
    This option will carry all the pre-processing of sequencing data and the NanoSeq analysis. Both duplex and normal FASTQs are treated as NanoSeq libraries.
+   
    Sample sheet format
 ```
 id,d_fastq1,d_fastq2,n_fastq1,n_fastq2
