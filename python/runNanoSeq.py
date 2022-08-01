@@ -1155,6 +1155,9 @@ if (args.subcommand == 'post'):
                 for (i, ival) in enumerate(iline.rstrip('\n').split(',')):
                     var[fields[i]].append(ival)
 
+        #added so code will not break with older files
+        if ( len(var['dplxBarcode']) == 0 ) : var['dplxBarcode'] = nVariants * [ '' ]
+
         header = vcfHeader(args)
 
         with open("%s/post/%s.muts.vcf" % (tmpDir, args.name), "w") as iofile:
