@@ -547,7 +547,7 @@ n_reference_unmasked <- sum(burdens[which(burdens$isvariant == 0), "count"])
 ##################
 burden_masked = n_variants_masked / (n_reference_masked + n_variants_masked)
 burden_unmasked = n_variants_unmasked / (n_reference_unmasked + n_variants_unmasked)
-if (n_variants_unmasked > 0) {
+if (n_variants_unmasked > 0 & n_variants_masked > 0 ) {
   # fa8
   pdf(width = 5, height = 5, file = paste(out_name, ".burden.masked-vs-unmasked.pdf", sep = ""))
   bar = barplot(c(burden_masked, burden_unmasked), names = c("burden (masked)", "burden (unmasked)"), ylim = c(0, max(burden_masked, burden_unmasked) + 0.1 * max(burden_masked, burden_unmasked)), main = "Qualitative contamination check")
