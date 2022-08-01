@@ -8,7 +8,7 @@ The wet-lab protocol is described in the original publication ([Abascal et al, 2
 
 ## Nextflow
 
-The simplest way of executing NanoSeq analyses is using the provided Nextflow ( NanoSeq_main.nf ) and its modules. It carries out all the required pre-processing of input files and carries out the NanoSeq analysis itself. The provided configuration file  nextflow.config been setup for usage in an LSF cluster with singularity. Other environments can be accomodated by creating a similar section (see [ Nextflow docs ](https://www.nextflow.io/docs/latest/config.html) ) in the config file. Most process contain error recovery clauses that might also require modifications for other executor environments.
+The simplest way of executing NanoSeq analyses is using the provided Nextflow ( NanoSeq_main.nf ) and its modules. It carries out all the required pre-processing of input files and carries out the NanoSeq analysis itself. The provided configuration file  nextflow.config been setup for usage in an LSF cluster with singularity. Other environments can be accomodated by creating a similar section (see [ Nextflow docs ](https://www.nextflow.io/docs/latest/config.html) ) in the config file. Most processes contain error recovery clauses that might also require modifications for other executor environments.
 
 There are two possible file inputs for the workflow: FASTQs and BAM files. These are passed as arguments to the workflow in a samplesheet in csv format so that it is possible to do multi sample processing with one Nextflow.
 
@@ -26,7 +26,7 @@ experiment2,2_duplex_R1.fastq.gz,2_duplex_R2.fastq.gz,2_normal_R1.fastq.gz,2_nor
 
 - BAM input
 
-   BAM files can be of two types: ones that require re-mapping but already have the correct tags, or BAMs that are already correctly pre-processed. The type of BAM is specified with the --remap parameter (default true).
+   BAM files can be of two types: ones that require re-mapping but already have the correct tags, or BAMs that are already correctly pre-processed and mapped. The type of BAM is specified with the --remap parameter (default true).
 
    Sample sheet format
 ```
@@ -254,15 +254,15 @@ runNanoSeq.py -t 2 \
   -R genome.fa \
   post
 ```
-#### Note
+### Note
 
 A bash script is provided in the LSF directory as a template for execution of all the steps in an computing environment using the LSF job scheduler. Script should be edited to fit individual needs.
 
-#### Genomic masks
+### Genomic masks
 
 Genomic masks for common SNP masking and detection of noisy/variable genomic sites. Masks for GRCh37 are available [here](https://drive.google.com/drive/folders/1wqkgpRTuf4EUhqCGSLA4fIg9qEEw3ZcL?usp=sharing).
 
-When running NanoSeq on a species for which no common SNP data is available, an empty bed file should be used.
+DSA arguments for masks can be omitted when running NanoSeq on a species for which no common SNP data is available.
 
 
 ## Output
