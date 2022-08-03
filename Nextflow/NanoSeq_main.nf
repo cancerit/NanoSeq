@@ -1,9 +1,9 @@
 nextflow.enable.dsl=2
 
 //"docker://quay.io/wtsicgp/pcap-core:5.7.0"
-params.bwa_container = "docker://quay.io/wtsicgp/pcap-core:5.7.0"
+params.bwa_image = "docker://quay.io/wtsicgp/pcap-core:5.7.0"
 //"docker://quay.io/wtsicgp/nanoseq:3.0.0"
-params.nanoseq_container= "docker://quay.io/wtsicgp/nanoseq:3.0.0"
+params.nanoseq_image= "docker://quay.io/wtsicgp/nanoseq:3.0.0"
 
 //*use predefined parameter sets for GRCh37 & GRCh38
 params.grch37 = false

@@ -7,7 +7,7 @@ process COV {
 
     tag "$meta.id"
 
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input :
         path ref
@@ -82,7 +82,7 @@ process PART {
 
     tag "$meta.id"
 
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input :
         path ref
@@ -142,7 +142,7 @@ process DSA {
 
     tag "${meta.id}_${ii}"
 
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input :
         path ref
@@ -215,7 +215,7 @@ process VAR {
 
     tag "${meta.id}_${ii}"
     
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input :
         path ref
@@ -296,7 +296,7 @@ process INDEL {
 
     tag "${meta.id}_${ii}"
 
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input :
         path ref
@@ -371,7 +371,7 @@ process POST {
 
     tag "${meta.id}"
 
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input :
         path ref

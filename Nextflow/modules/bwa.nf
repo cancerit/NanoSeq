@@ -5,7 +5,7 @@ QUEUE = "long"
 
 process BWAMEM2_INDEX {
 
-    container params.bwa_container
+    container params.bwa_image
 
     input:
         path fasta
@@ -60,7 +60,7 @@ process BWAMEM2_MAP {
 
     tag "$meta.name"
 
-    container params.bwa_container
+    container params.bwa_image
 
     input:
         tuple val(meta), path(reads)
@@ -112,7 +112,7 @@ process REMAP_SPLIT {
 
     tag "$meta.name"
 
-    container params.bwa_container
+    container params.bwa_image
 
     input:
         tuple val(meta), path(bam)
@@ -147,7 +147,7 @@ process REAMAP_BWAMEM2 {
 
     tag "$meta.name"
 
-    container params.bwa_container
+    container params.bwa_image
 
     input:
         tuple val(meta), path(bwamem), path(bam)
