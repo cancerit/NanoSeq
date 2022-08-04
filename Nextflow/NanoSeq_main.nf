@@ -40,7 +40,7 @@ if ( params.grch37 ) {//for GRCh37 reference
     params.snp_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
     params.noise_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/botseq/NOISE.sorted.bed.gz"
 } else if ( params.grch38 ) {//for GRCh38 reference
-    params.cov_exclude = "chrM,chr*_random,chrUn_*,chr*_alt,HLA-*" 
+    params.cov_exclude = "chrM,chr%_random,chrUn_%,chr%_alt,HLA-%" 
     params.snp_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/SNP.sorted.GRCh38.bed.gz"
     params.noise_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/NOISE.sorted.GRCh38.bed.gz"
 } else {
