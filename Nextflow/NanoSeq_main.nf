@@ -2,7 +2,7 @@ nextflow.enable.dsl=2
 
 
 env {
-    REF_PATH="/lustre/scratch117/core/sciops_repository/cram_cache/%2s/%2s/%s:/lustre/scratch118/core/sciops_repository/cram_cache/%2s/%2s/%s:URL=http:://refcache.dnapipelines.sanger.ac.uk::8000/%s"
+    REF_PATH="/path/to/cram_cache/%2s/%2s/%s"
 }
 //"docker://quay.io/wtsicgp/pcap-core:5.7.0"
 params.bwa_image = "docker://quay.io/wtsicgp/pcap-core:5.7.0"
