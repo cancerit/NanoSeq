@@ -1,5 +1,9 @@
 nextflow.enable.dsl=2
 
+
+env {
+    REF_PATH="/lustre/scratch117/core/sciops_repository/cram_cache/%2s/%2s/%s:/lustre/scratch118/core/sciops_repository/cram_cache/%2s/%2s/%s:URL=http:://refcache.dnapipelines.sanger.ac.uk::8000/%s"
+}
 //"docker://quay.io/wtsicgp/pcap-core:5.7.0"
 params.bwa_image = "docker://quay.io/wtsicgp/pcap-core:5.7.0"
 //"docker://quay.io/wtsicgp/nanoseq:3.0.0"
@@ -12,9 +16,9 @@ params.grch38 = false
 assert ( params.grch38 == true || params.grch38 == false ) : "\ngrch38 parameter must be true or false\n"
 
 if ( params.grch37 ) {
-    params.ref = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/genome.fa"
+    params.ref = "/path/to/GRCH37d5/genome.fa"
 } else if ( params.grch38 ) {
-    params.ref = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/genome.fa"
+    params.ref = "/path/to/GRCh38_full_analysis_set_plus_decoy_hla/genome.fa"
 } else {
     params.ref = ""
 }
@@ -37,12 +41,12 @@ params.jobs = 100
 params.cov_Q = 0
 if ( params.grch37 ) {//for GRCh37 reference
     params.cov_exclude = "MT,GL%,NC_%,hs37d5"
-    params.snp_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
-    params.noise_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/botseq/NOISE.sorted.bed.gz"
+    params.snp_bed = "/path/to/GRCH37d5/nanoseq/SNP.sorted.bed.gz"
+    params.noise_bed = "/path/to/GRCH37d5/nanoseq/NOISE.sorted.bed.gz"
 } else if ( params.grch38 ) {//for GRCh38 reference
     params.cov_exclude = "chrM,chr%_random,chrUn_%,chr%_alt,HLA-%" 
-    params.snp_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/SNP.sorted.GRCh38.bed.gz"
-    params.noise_bed = "/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/NOISE.sorted.GRCh38.bed.gz"
+    params.snp_bed = "/path/to/GRCh38_full_analysis_set_plus_decoy_hla/nanoseq/SNP.sorted.GRCh38.bed.gz"
+    params.noise_bed = "/path/to/GRCh38_full_analysis_set_plus_decoy_hla/nanoseq/NOISE.sorted.GRCh38.bed.gz"
 } else {
     params.cov_exclude = ""
     params.snp_bed = ""
@@ -91,13 +95,13 @@ file_exists(params.post_triNuc,"post_triNuc")
 // ** VerifyBAMid params
 params.vb_epsilon ="1e-12"
 if (params.grch37 ) { //GRCh37
-    params.vb_ud ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.UD"
-    params.vb_bed ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.bed"
-    params.vb_mu ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.mu"
+    params.vb_ud ="/path/to/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.UD"
+    params.vb_bed ="/path/to/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.bed"
+    params.vb_mu ="/path/to/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.mu"
 } else if ( params.grch38 ) { //GRCh38
-    params.vb_ud ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
-    params.vb_bed ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
-    params.vb_mu ="/lustre/scratch124/casm/team78pipelines/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
+    params.vb_ud ="/path/to/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
+    params.vb_bed ="/path/to/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
+    params.vb_mu ="/path/to/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
 } else {
     params.vb_ud = ""
     params.vb_bed = ""
