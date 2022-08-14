@@ -5,7 +5,7 @@ process ADD_NANOSEQ_FASTQ_TAGS {
     
     tag "${meta.id}_${meta.type}"
 
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input:
         tuple val(meta), path(reads)
@@ -52,7 +52,7 @@ process MARKDUP {
 
     tag "${meta.id}_${meta.type}"
 
-    container params.bwa_container
+    container params.bwa_image
 
     input:
         tuple val(meta), path(bam), path(index)
@@ -104,7 +104,7 @@ process NANOSEQ_ADD_RB {
 
     tag "${meta.id}_${meta.type}"
     
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input:
         tuple val(meta), path(bam), path(index)
@@ -152,7 +152,7 @@ process NANOSEQ_DEDUP {
 
     tag "${meta.id}_${meta.type}"
     
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input:
         tuple val(meta), path(bam), path(index)
@@ -202,7 +202,7 @@ process VERIFY_BAMID {
 
     tag "${meta.id}_${meta.type}"
     
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input:
         tuple val(meta), path(bam), path(index)
@@ -250,7 +250,7 @@ process NANOSEQ_EFFI {
     
     tag "${meta.id}_${meta.type}"
 
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input:
         tuple val(meta), path(bam), path(index), path(bam_neat), path(index_neat)
@@ -294,7 +294,7 @@ process NANOSEQ_VAF {
 
     tag "${meta.id}_${meta.type}"
     
-    container params.nanoseq_container
+    container params.nanoseq_image
 
     input:
         tuple val(meta), path(vcf_muts), path(index_muts), path(vcf_indel), path(index_indel),
