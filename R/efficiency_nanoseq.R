@@ -147,9 +147,16 @@ tri_single = trinucleotideFrequency(DNAString(seqs_single_collapsed))
 
 tri_both_freqs = tri_both / sum(tri_both)
 tri_single_freqs = tri_single / sum(tri_single)
-
-gc_both = GC(s2c(seqs_both_collapsed))
-gc_single = GC(s2c(seqs_single_collapsed))
+if ( seqs_both_collapsed == "" ) {
+  gc_both = 0
+} else {
+  gc_both = GC(s2c(seqs_both_collapsed))
+}
+if ( seqs_single_collapsed == "" ) {
+  gc_single = 0
+} else {
+  gc_single = GC(s2c(seqs_single_collapsed))
+}
 
 cat("GC_BOTH\t", gc_both, "\n", sep = "")
 cat("GC_SINGLE\t", gc_single, "\n", sep = "")
