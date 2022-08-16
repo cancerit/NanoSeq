@@ -1,9 +1,5 @@
 nextflow.enable.dsl=2
 
-
-env {
-    REF_PATH="/path/to/cram_cache/%2s/%2s/%s"
-}
 //"docker://quay.io/wtsicgp/pcap-core:5.7.0"
 params.bwa_image = "docker://quay.io/wtsicgp/pcap-core:5.7.0"
 //"docker://quay.io/wtsicgp/nanoseq:3.0.0"
@@ -16,9 +12,9 @@ params.grch38 = false
 assert ( params.grch38 == true || params.grch38 == false ) : "\ngrch38 parameter must be true or false\n"
 
 if ( params.grch37 ) {
-    params.ref = "/path/to/GRCH37d5/genome.fa"
+    params.ref = "/path/to/reference/human/GRCH37d5/genome.fa"
 } else if ( params.grch38 ) {
-    params.ref = "/path/to/GRCh38_full_analysis_set_plus_decoy_hla/genome.fa"
+    params.ref = "/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/genome.fa"
 } else {
     params.ref = ""
 }
@@ -41,12 +37,12 @@ params.jobs = 100
 params.cov_Q = 0
 if ( params.grch37 ) {//for GRCh37 reference
     params.cov_exclude = "MT,GL%,NC_%,hs37d5"
-    params.snp_bed = "/path/to/GRCH37d5/nanoseq/SNP.sorted.bed.gz"
-    params.noise_bed = "/path/to/GRCH37d5/nanoseq/NOISE.sorted.bed.gz"
+    params.snp_bed = "/path/to/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
+    params.noise_bed = "/path/to/reference/human/GRCH37d5/botseq/NOISE.sorted.bed.gz"
 } else if ( params.grch38 ) {//for GRCh38 reference
     params.cov_exclude = "chrM,chr%_random,chrUn_%,chr%_alt,HLA-%" 
-    params.snp_bed = "/path/to/GRCh38_full_analysis_set_plus_decoy_hla/nanoseq/SNP.sorted.GRCh38.bed.gz"
-    params.noise_bed = "/path/to/GRCh38_full_analysis_set_plus_decoy_hla/nanoseq/NOISE.sorted.GRCh38.bed.gz"
+    params.snp_bed = "/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/SNP.sorted.GRCh38.bed.gz"
+    params.noise_bed = "/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/NOISE.sorted.GRCh38.bed.gz"
 } else {
     params.cov_exclude = ""
     params.snp_bed = ""
@@ -95,13 +91,13 @@ file_exists(params.post_triNuc,"post_triNuc")
 // ** VerifyBAMid params
 params.vb_epsilon ="1e-12"
 if (params.grch37 ) { //GRCh37
-    params.vb_ud ="/path/to/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.UD"
-    params.vb_bed ="/path/to/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.bed"
-    params.vb_mu ="/path/to/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.mu"
+    params.vb_ud ="/path/to/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.UD"
+    params.vb_bed ="/path/to/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.bed"
+    params.vb_mu ="/path/to/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.mu"
 } else if ( params.grch38 ) { //GRCh38
-    params.vb_ud ="/path/to/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
-    params.vb_bed ="/path/to/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
-    params.vb_mu ="/path/to/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
+    params.vb_ud ="/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
+    params.vb_bed ="/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
+    params.vb_mu ="/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
 } else {
     params.vb_ud = ""
     params.vb_bed = ""
@@ -111,7 +107,7 @@ file_exists(params.vb_ud,"vb_ud")
 file_exists(params.vb_bed, "vb_bed")
 file_exists(params.vb_mu, "vb_mu")
 
-// *** remapping BAMs
+// *** remapping CRAMs
 params.remap = true
 assert ( params.remap == true || params.remap == false ) : "\nrealign parameter must be true or false\n"
 
@@ -150,6 +146,43 @@ if ( fields.contains("d_fastq1") && fields.contains("d_fastq2") && fields.contai
                 duplex : [ meta_duplex, [it[1], it[2]] ]
                 normal : [ meta_normal, [it[3], it[4]] ]}
     fastqIn = true
+//crams needing realignment (no need to check cram indexes)
+} else if ( fields.contains("d_cram") && fields.contains("n_cram") && params.remap ) {
+    input_ss = Channel
+        .from( ss.text )
+        .splitCsv(header: true).map(row -> { 
+            assert (  ! list_ids.contains(row.id ) ) : "\nids in sample sheet must be unique\n\n"
+            list_ids.add(row.id)
+            file_exists(row.d_cram,"d_cram")
+            file_exists(row.n_cram,"n_cram")
+            [  [id: row.id],row.d_cram,row.n_cram ]}).multiMap{ it ->
+                meta_duplex = it[0].clone()
+                meta_duplex["type"]="duplex"
+                meta_normal = it[0].clone()
+                meta_normal["type"]="normal"
+                duplex : [ meta_duplex, it[1] ]
+                normal : [ meta_normal, it[2] ] 
+            }
+    reMapIn = true
+//crams that dont need realignment, (need to check cram indexes)
+} else if ( fields.contains("d_cram") && fields.contains("n_cram") && ! params.remap ) {
+    input_ss = Channel
+        .from( ss.text ).splitCsv(header: true).map(row -> { 
+            assert (  ! list_ids.contains(row.id ) ) : "\nids in sample sheet must be unique\n\n"
+            list_ids.add(row.id)
+            file_exists(row.d_cram,"d_cram")
+            file_exists(row.d_cram+".crai", "CRAM index")
+            file_exists(row.n_cram,"n_cram")
+            file_exists(row.n_cram+".crai", "CRAM index")
+            [  [id: row.id],row.d_cram, row.d_cram + ".crai", row.n_cram, row.n_cram + ".crai"]}).multiMap{ it ->
+                meta_duplex = it[0].clone()
+                meta_duplex["type"]="duplex"
+                meta_normal = it[0].clone()
+                meta_normal["type"]="normal"
+                duplex : [ meta_duplex, it[1],it[2] ]
+                normal : [ meta_normal, it[3],it[4] ]
+            }
+    noMapIn = true
 //bams needing realignment (no need to check bam indexes)
 } else if ( fields.contains("d_bam") && fields.contains("n_bam") && params.remap ) {
     input_ss = Channel
@@ -235,10 +268,10 @@ if ( fastqIn ) {
     println("running with fastqs as input that will be trimmed,tagged and mapped\n")
 }
 if (reMapIn ) {
-    println("running with BAMs as input that will be remapped\n")
+    println("running with CRAMs as input that will be remapped\n")
 }
 if (noMapIn) {
-    println("running with BAMs as input that will not be remapped\n")
+    println("running with CRAMs as input that will not be remapped\n")
 }
 
 include { NANOSEQ } from './modules/NanoSeq_analysis.nf'
@@ -257,7 +290,7 @@ workflow MAP_FASTQ {
         BWAMEM2_MAP( ADD_NANOSEQ_FASTQ_TAGS.out.fastqs, reference_path )
     
     emit :
-        bam =  BWAMEM2_MAP.out.bam
+        cram =  BWAMEM2_MAP.out.cram
         versions = BWAMEM2_MAP.out.versions
 }
 
@@ -273,53 +306,53 @@ workflow {
 
         MAP = MAP_FASTQ( ch_fastq_ss , reference_path )
 
-    } else { //bam input
+    } else { //cram input
 
         //Merge normal's and duplex's into one channel
-        ch_bam_ss = input_ss.duplex.mix( input_ss.normal ).map{ 
+        ch_cram_ss = input_ss.duplex.mix( input_ss.normal ).map{ 
             it[0]["name"] = it[0].id + "_" + it[0].type
             it  }
 
-        ch_bam = ch_bam_ss
+        ch_cram = ch_cram_ss
     }
     
     if ( reMapIn ) { //remapping
 
-        MAP = BWAMEM2_REMAP( ch_bam_ss, reference_path)
+        MAP = BWAMEM2_REMAP( ch_cram_ss, reference_path)
    
     }
 
     if ( fastqIn || reMapIn ) {
         
-        MARKDUP( MAP.bam )
+        MARKDUP( MAP.cram, reference_path )
 
         versions = versions.concat(MAP.versions.first())
         versions = versions.concat(MARKDUP.out.versions.first())
 
-        ch_bam = MARKDUP.out.bam
+        ch_cram = MARKDUP.out.cram
     }
 
-    NANOSEQ_ADD_RB( ch_bam )
+    NANOSEQ_ADD_RB( ch_cram , reference_path )
 
     versions = versions.concat(NANOSEQ_ADD_RB.out.versions.first())
 
-    NANOSEQ_DEDUP( NANOSEQ_ADD_RB.out.bam, params.nanoseq_dedup_m )
+    NANOSEQ_DEDUP( NANOSEQ_ADD_RB.out.cram, reference_path, params.nanoseq_dedup_m )
 
     versions = versions.concat(NANOSEQ_DEDUP.out.versions.first())
 
     if ( params.vb_ud != "" &&  params.vb_bed != "" && params.vb_mu != "" ) {
-        VERIFY_BAMID( NANOSEQ_DEDUP.out.bam, params.vb_epsilon, reference_path, params.vb_ud, params.vb_bed, params.vb_mu )
+        VERIFY_BAMID( NANOSEQ_DEDUP.out.cram, params.vb_epsilon, reference_path, params.vb_ud, params.vb_bed, params.vb_mu )
     
         versions = versions.concat(VERIFY_BAMID.out.versions.first())
     }
 
     //collate channels to prepare input for efficiency calculation
-    //must provide the BAM from NANOSEQ_ADD_RB and NANOSEQ_DEDUP as arguments
-    ch_add_rb_normal =NANOSEQ_ADD_RB.out.bam.filter{ it[0].type == "normal"}.map{[it[0].id, it ]}
-    ch_add_rb_duplex =NANOSEQ_ADD_RB.out.bam.filter{ it[0].type == "duplex"}.map{[it[0].id, it ]}
+    //must provide the CRAM from NANOSEQ_ADD_RB and NANOSEQ_DEDUP as arguments
+    ch_add_rb_normal =NANOSEQ_ADD_RB.out.cram.filter{ it[0].type == "normal"}.map{[it[0].id, it ]}
+    ch_add_rb_duplex =NANOSEQ_ADD_RB.out.cram.filter{ it[0].type == "duplex"}.map{[it[0].id, it ]}
 
-    ch_dedup_normal = NANOSEQ_DEDUP.out.bam.filter{ it[0].type == "normal"}.map{[it[0].id, it ]}
-    ch_dedup_duplex = NANOSEQ_DEDUP.out.bam.filter{ it[0].type == "duplex"}.map{[it[0].id, it ]}
+    ch_dedup_normal = NANOSEQ_DEDUP.out.cram.filter{ it[0].type == "normal"}.map{[it[0].id, it ]}
+    ch_dedup_duplex = NANOSEQ_DEDUP.out.cram.filter{ it[0].type == "duplex"}.map{[it[0].id, it ]}
 
     ch_normal_effi = ch_add_rb_normal.join( ch_dedup_normal ).map{it[1] + it[2][1..-1] }
     ch_duplex_effi = ch_add_rb_duplex.join( ch_dedup_duplex ).map{it[1] + it[2][1..-1] }
@@ -330,8 +363,8 @@ workflow {
     
     versions = versions.concat(NANOSEQ_EFFI.out.versions.first())
     
-    //Collate BAMs for NanoSeq call
-    //Must provide :  NANOSEQ_ADD_RB.out.bam (duplex) & NANOSEQ_DEDUP.out.bam (normal) ; as input arguments
+    //Collate CRAMs for NanoSeq call
+    //Must provide :  NANOSEQ_ADD_RB.out.cram (duplex) & NANOSEQ_DEDUP.out.cram (normal) ; as input arguments
 
     ch_input_nanoseq = ch_add_rb_duplex.join(ch_dedup_normal).map{
         meta = it[1][0].clone()
@@ -348,7 +381,7 @@ workflow {
     versions = versions.concat(NANOSEQ.out.versions.first())
 
     //NANOSEQ.out.results contains: muts.vcf, muts.vcf.tbi, indel.vcf, indel.vcf.tbi, cov.bed & cov.bed.tbi
-    //VAF calculation also requires NANOSEQ_DEDUP.out.bam (duplex) in addition to the previous
+    //VAF calculation also requires NANOSEQ_DEDUP.out.cram (duplex) in addition to the previous
     ch_input_vaf = NANOSEQ.out.results.map{[it[0].id, it ]}.join( ch_dedup_duplex ).map{it[1] + it[2][1..-1] }
 
     NANOSEQ_VAF(ch_input_vaf)
