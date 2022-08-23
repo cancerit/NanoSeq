@@ -153,20 +153,28 @@ void BamAddReadBundles::AddAuxTags(bam1_t* b) {
 
 
 void BamAddReadBundles::DelAuxTags(bam1_t* b) {
-  int rco = bam_aux_del(b, bam_aux_get(b, "mc"));
-  if ( rco < 0 ) exit(1);
-  rco = bam_aux_del(b, bam_aux_get(b, "rc"));
-  if ( rco < 0 ) exit(1);
-  rco = bam_aux_del(b, bam_aux_get(b, "mb"));
-  if ( rco < 0 ) exit(1);
-  rco = bam_aux_del(b, bam_aux_get(b, "rb"));
-  if ( rco < 0 ) exit(1);
-  rco = bam_aux_del(b, bam_aux_get(b, "MQ"));
-  if ( rco < 0 ) exit(1);
-  rco = bam_aux_del(b, bam_aux_get(b, "ms"));
-  if ( rco < 0 ) exit(1);
-  rco = bam_aux_del(b, bam_aux_get(b, "MC"));
-  if ( rco < 0 ) exit(1);
+  uint8_t* t_tag;
+  if (( t_tag = bam_aux_get(b, "mc")) != NULL  ) {
+    bam_aux_del(b, t_tag);
+  }
+  if (( t_tag = bam_aux_get(b, "rc")) != NULL  ) {
+    bam_aux_del(b, t_tag);
+  }
+  if (( t_tag = bam_aux_get(b, "mb")) != NULL  ) {
+    bam_aux_del(b, t_tag);
+  }
+  if (( t_tag = bam_aux_get(b, "rb")) != NULL  ) {
+    bam_aux_del(b, t_tag);
+  }
+  if (( t_tag = bam_aux_get(b, "MQ")) != NULL  ) {
+    bam_aux_del(b, t_tag);
+  }
+  if (( t_tag = bam_aux_get(b, "ms")) != NULL  ) {
+    bam_aux_del(b, t_tag);
+  }
+  if (( t_tag = bam_aux_get(b, "MC")) != NULL  ) {
+    bam_aux_del(b, t_tag);
+  }
 }
 
 
@@ -195,8 +203,8 @@ void BamAddReadBundles::FilterAndTagReads() {
     if (BamAddReadBundles::ReadIsUsable(b) == true) {
       BamAddReadBundles::AddAuxTags(b);
       BamAddReadBundles::DelAuxTags(b);
-      BamAddReadBundles::WriteOut(b);
     }
+    BamAddReadBundles::WriteOut(b);
   }
   bam_destroy1(b);
 }
