@@ -441,7 +441,7 @@ def file_exists(x, name) {
 
 workflow NANOSEQ {
     take :
-        bams
+        crams
         reference
         jobs
         // cov parameters
@@ -517,7 +517,7 @@ workflow NANOSEQ {
             triNuc_fh = file(post_triNuc)
         }
         
-        COV(reference, bams, cov_q, cov_exclude, cov_include, cov_larger)
+        COV(reference, crams, cov_q, cov_exclude, cov_include, cov_larger)
         PART(reference, COV.out.done, jobs, part_excludeCov, excludeBED_fh)
         jobIndexes = Channel.of(1..jobs)
         

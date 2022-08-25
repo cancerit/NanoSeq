@@ -97,35 +97,37 @@ if (indel_vcf != '-') {
   }
 }
 
+col_t = c("character","numeric","character","character","character","character","character")
 if (num_snvs == 0) {
   cat("No SNVs, skipping snv analysis...\n")
 } else {
   if (length(grep("\\.gz", muts_vcf)) > 0) {
     zz = gzfile(muts_vcf, 'rt')
-    snvs = read.table(zz, header = F, sep = "\t", stringsAsFactors = F)
+    snvs = read.table(zz, header = F, sep = "\t", colClasses = col_t, stringsAsFactors = F)
     close(zz)
   } else {
-    snvs = read.table(muts_vcf, header = F, sep = "\t", stringsAsFactors = F)
+    snvs = read.table(muts_vcf, header = F, sep = "\t", colClasses = col_t, stringsAsFactors = F)
   }
   colnames(snvs)[1:8] = c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "info")
 }
 
+col_t2 = c("character","numeric","character","character","character","character","character","character","character","character")
 if (num_indels == 0) {
   cat("No Indels, skipping indel analysis...\n")
 } else {
   if (length(grep("\\.gz", indel_vcf)) > 0) {
     zz = gzfile(indel_vcf, 'rt')
-    indels = read.table(zz, header = F, sep = "\t", stringsAsFactors = F)
+    indels = read.table(zz, header = F, sep = "\t", colClasses = col_t2, stringsAsFactors = F)
     close(zz)
   } else {
-    indels = read.table(indel_vcf, header = F, sep = "\t", stringsAsFactors = F)
+    indels = read.table(indel_vcf, header = F, sep = "\t", colClasses = col_t, stringsAsFactors = F)
   }
   colnames(indels)[1:8] = c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "info")
 }
 
 #cat("Parsing...\n")
 snvs_final = read.table(text = "", colClasses =
-  c("character", "integer", "character", "character", "character", "character", "character", "character"),
+  col_t,
   col.names = c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO"))
 
 xx = system(paste("gzip -t ", cov_bed), intern = TRUE)

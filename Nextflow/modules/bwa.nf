@@ -67,7 +67,7 @@ process BWAMEM2_MAP {
         path index_dir
 
     output:
-        tuple val(meta), path("out/${meta.name}.bam"),path("out/${meta.name}.bam.bai"), emit: bam
+        tuple val(meta), path("out/${meta.name}.cram"),path("out/${meta.name}.cram.crai"), emit: cram
         path  "versions.yml", emit: versions
 
     maxForks MAX_IN_PARALLEL
@@ -85,8 +85,9 @@ process BWAMEM2_MAP {
         touch ${task.process}_${meta.name}
         mkdir -p out
         bwa-mem2 mem $args -t $task.cpus ${index_dir}/genome.fa $reads \\
-            | samtools sort -@ $task.cpus $args2 -m 2G -o out/${meta.name}.bam -
-        touch out/${meta.name}.bam.bai
+            | samtools sort -@ $task.cpus $args2 -O bam -l 0 -m 2G - \\
+            | samtools view -@ $task.cpus -T ${index_dir}/genome.fa -o out/${meta.name}.cram
+        touch out/${meta.name}.cram.crai
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             bwamem2: \$(echo \$(bwa-mem2 version 2>&1) | sed 's/.* //')
@@ -97,8 +98,8 @@ process BWAMEM2_MAP {
     stub:
         """
         mkdir -p out
-        touch out/${meta.name}.bam
-        touch out/${meta.name}.bam.bai
+        touch out/${meta.name}.cram
+        touch out/${meta.name}.cram.crai
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             bwamem2: \$(echo \$(bwa-mem2 version 2>&1) | sed 's/.* //')
@@ -115,11 +116,11 @@ process REMAP_SPLIT {
     container params.bwa_image
 
     input:
-        tuple val(meta), path(bam)
+        tuple val(meta), path(cram)
         path index_dir
 
     output:
-        tuple val(meta), path("bwamem"), path(bam), emit: split_out
+        tuple val(meta), path("bwamem"), path(cram), emit: split_out
     
     maxRetries 4
     cpus 3
@@ -130,16 +131,16 @@ process REMAP_SPLIT {
         """
         touch ${task.process}_${meta.name}
         mkdir -p bwamem
-        bwa_mem.pl -p setup $args -bwamem2 -o ./bwamem -r ${index_dir}/genome.fa -s ${meta.name} $bam
-        bwa_mem.pl -p split -t $task.cpus $args -bwamem2 -o ./bwamem -r ${index_dir}/genome.fa -s ${meta.name} $bam
+        bwa_mem.pl -p setup $args -bwamem2 -o ./bwamem -r ${index_dir}/genome.fa -s ${meta.name} $cram
+        bwa_mem.pl -p split -t $task.cpus $args -bwamem2 -cram -o ./bwamem -r ${index_dir}/genome.fa -s ${meta.name} $cram
         """
 
     stub:
         def args = task.ext.args ?: ''
         """
         mkdir -p bwamem
-        touch ./bwamem/${meta.name}.bam
-        touch ./bwamem/${meta.name}.bam.bai
+        touch ./bwamem/${meta.name}.cram
+        touch ./bwamem/${meta.name}.cram.crai
         """
 }
 
@@ -150,11 +151,11 @@ process REAMAP_BWAMEM2 {
     container params.bwa_image
 
     input:
-        tuple val(meta), path(bwamem), path(bam)
+        tuple val(meta), path(bwamem), path(cram)
         path index_dir
 
     output:
-        tuple val(meta), path("sort/${meta.name}.bam"), path("sort/${meta.name}.bam.bai"), emit: bam
+        tuple val(meta), path("sort/${meta.name}.cram"), path("sort/${meta.name}.cram.crai"), emit: cram
         path  "versions.yml", emit: versions
 
     maxForks MAX_IN_PARALLEL
@@ -171,11 +172,11 @@ process REAMAP_BWAMEM2 {
         """
         touch ${task.process}_${meta.name}
         mkdir -p sort
-        bwa_mem.pl -p bwamem $args -bwamem2 -t $task.cpus -mt $task.cpus -o ./bwamem -r ${index_dir}/genome.fa -s ${meta.name} $bam
-        #need the mark process so the final bam file gets placed in the correct location
-        bwa_mem.pl -p mark -n $args -bwamem2 -t $task.cpus -o ./bwamem -r ${index_dir}/genome.fa -s ${meta.name} $bam
-        samtools sort -@ $task.cpus $args2 -m 2G -o ./sort/${meta.name}.bam ./bwamem/${meta.name}.bam
-        touch sort/${meta.name}.bam.bai
+        bwa_mem.pl -p bwamem $args -bwamem2 -cram -t $task.cpus -mt $task.cpus -o ./bwamem -r ${index_dir}/genome.fa -s ${meta.name} $cram
+        #need the mark process so the final cram file gets placed in the correct location
+        bwa_mem.pl -p mark -n $args -bwamem2  -cram -t $task.cpus -o ./bwamem -r ${index_dir}/genome.fa -s ${meta.name} $cram
+        samtools sort -@ $task.cpus $args2 -O cram -m 2G -o ./sort/${meta.name}.cram ./bwamem/${meta.name}.cram
+        touch sort/${meta.name}.cram.crai
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             bwamem2: \$(echo \$(bwa-mem2 version 2>&1) | sed 's/.* //')
@@ -190,8 +191,8 @@ process REAMAP_BWAMEM2 {
         """
         mkdir -p bwamem
         mkdir -p sort
-        touch ./sort/${meta.name}.bam
-        touch ./sort/${meta.name}.bam.bai
+        touch ./sort/${meta.name}.cram
+        touch ./sort/${meta.name}.cram.crai
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             bwamem2: \$(echo \$(bwa-mem2 version 2>&1) | sed 's/.* //')
@@ -203,14 +204,14 @@ process REAMAP_BWAMEM2 {
 
 workflow BWAMEM2_REMAP {
     take :
-        bam_in
+        cram_in
         index_dir
 
     main :
-        REMAP_SPLIT(bam_in, index_dir)
+        REMAP_SPLIT(cram_in, index_dir)
         REAMAP_BWAMEM2(REMAP_SPLIT.out.split_out, index_dir)
 
     emit :
         versions = REAMAP_BWAMEM2.out.versions
-        bam = REAMAP_BWAMEM2.out.bam
+        cram = REAMAP_BWAMEM2.out.cram
 }
