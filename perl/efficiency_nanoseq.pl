@@ -101,6 +101,7 @@ sub read_count {
     my ($threads, $bam, $panel, $extra_opts) = @_;
     $extra_opts = q{} unless(defined $extra_opts);
     my $tgt_opt = $panel eq "" ? "" : "-L $panel";
+    $tgt_opt   .= " -f 2 -F 2828";
     print STDOUT "Calculating number of reads in $bam...\n";
     my $cmd = sprintf "samtools view $tgt_opt $extra_opts -@ %d -c %s", $threads, $bam;
     my ($stdout, $stderr, $exit) = capture {
@@ -138,6 +139,7 @@ sub count_RB {
   my %rbs;
   my ($threads, $flag, $bam, $region, $panel) = @_;
   my $tgt_opt = $panel eq "" ? "" : "-L $panel";
+  $tgt_opt   .= " -F 2828";
   my $cmd = "samtools view $tgt_opt -@ $threads -f $flag $bam $region";
   open(IN, "$cmd |") || die "Error launching $cmd\n"; 
   while(<IN>) {
@@ -150,6 +152,7 @@ sub count_RB {
         last;
       }
     }
+    next unless(defined($rb));
     $rbs{$rb}++;
   }
   close(IN) or die ("error when calling $cmd : $?, $!\n");
