@@ -45,7 +45,8 @@ static int RetrieveAlignments(void *data, bam1_t *b) {
           er << std::endl;
           throw std::runtime_error(er.str());
           }
-        if (  !(b->core.flag & aux->flags) ) continue;
+        //if (  !(b->core.flag & aux->flags) ) continue;
+        if ( (aux->duplex == 1) && ( bam_aux_get(b, "RB") == NULL )) continue;
         if ( (int)b->core.qual < aux->min_mapQ ) continue;
         //if ( aux->min_len && bam_cigar2qlen(b->core.n_cigar, bam_get_cigar(b)) < aux->min_len ) continue;
         break;
@@ -138,11 +139,11 @@ void Pileup::Initiate(Options *opts) {
     this->data[i]->fp = hts_open(this->opts->bams[i],"r");
     if ( i == 1 ) {
       this->data[i]->min_mapQ = this->opts-> min_mapQ;
-      this->data[i]->flags = BAM_FPROPER_PAIR; //filter non proper pairs
+      this->data[i]->duplex = 1;
     }
     else {
       this->data[i]->min_mapQ = 0;
-      this->data[i]->flags = 4095; //avoid filter
+      this->data[i]->duplex = 0;
     }
     if (this->data[i]->fp == NULL) {
       std::stringstream er;

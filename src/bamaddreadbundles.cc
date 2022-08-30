@@ -120,6 +120,20 @@ bool BamAddReadBundles::ReadIsUsable(bam1_t* b) {
   return false;
 }
 
+bool BamAddReadBundles::ReadIsWritable(bam1_t* b) {
+  int qcfail    = (b->core.flag & BAM_FQCFAIL)? 1 : 0;
+  int has_RB    = (BamAddReadBundles::HasAux(b, "RB"))? 1 : 0;
+  int has_od    = (BamAddReadBundles::HasAux(b, "od"))? 1 : 0;
+  int has_rb    = (BamAddReadBundles::HasAux(b, "rb"))? 1 : 0;
+  int has_mb    = (BamAddReadBundles::HasAux(b, "mb"))? 1 : 0;
+  if ( has_RB == 1) {
+    return true;
+  }
+  if ((( has_rb + has_mb) == 2) && ((qcfail + has_od) == 0 )) {
+    return true;
+  }
+  return false;
+}
 
 void BamAddReadBundles::AddAuxTags(bam1_t* b) {
   int rc     = bam_aux2i(bam_aux_get(b, "rc"));
@@ -204,7 +218,9 @@ void BamAddReadBundles::FilterAndTagReads() {
       BamAddReadBundles::AddAuxTags(b);
       BamAddReadBundles::DelAuxTags(b);
     }
-    BamAddReadBundles::WriteOut(b);
+    if ( BamAddReadBundles::ReadIsWritable(b) == true ) {
+      BamAddReadBundles::WriteOut(b);
+    }
   }
   bam_destroy1(b);
 }
