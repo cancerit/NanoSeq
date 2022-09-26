@@ -111,7 +111,7 @@ if (num_snvs == 0) {
   colnames(snvs)[1:8] = c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "info")
 }
 
-col_t2 = c("character","numeric","character","character","character","character","character","character","character","character")
+col_t2 = c("character","numeric","character","character","character","numeric","character","character","character","character")
 if (num_indels == 0) {
   cat("No Indels, skipping indel analysis...\n")
 } else {
