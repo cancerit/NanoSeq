@@ -54,6 +54,7 @@ typedef struct {
   htsFile* fp;
   hts_itr_t* iter;
   int min_mapQ;
+  int duplex;
   sam_hdr_t* head;
 } aux_t;
 
