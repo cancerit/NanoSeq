@@ -182,7 +182,9 @@ if (num_snvs > 0) {
       snvs_new[new_row, "mut"] = paste(snvs_tmp[, "mut"], collapse = "")
       snvs_new[new_row, "qual"] = snvs_tmp[1, "qual"]
       if (length(unique(snvs_tmp$filter)) > 1) {
-        snvs_new[new_row, "filter"] = paste(snvs_tmp[, "filter"], collapse = ";")
+
+        snvs_new[new_row, "filter"] = paste(snvs_tmp[, "filter"], collapse = ";") # replaced comman with semicolon (fa8)
+
       } else {
         snvs_new[new_row, "filter"] = snvs_tmp[1, "filter"]
       }
@@ -203,6 +205,9 @@ if (num_snvs > 0) {
       }
     }
   }
+  # if any sub is PASS, set as PASS (fa8)
+  snvs_new[grep("PASS",snvs_new$filter),"filter"] = "PASS"
+  # end
   snvs_new = snvs_new[order(snvs_new$chr, snvs_new$pos),]
 
   ##########################################################################################

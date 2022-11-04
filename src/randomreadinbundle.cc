@@ -155,6 +155,7 @@ void RandomlySelectOneReadPerBundle::SelectReads() {
   int last_chr = 0;
   int i_chr = 0; 
   int ret = 0;
+  uint8_t* t_tag;
   while ( 1 ) {
     ret = sam_read1(this->in, this->head, b);
     if ( ret == -1 ) break;
@@ -169,7 +170,10 @@ void RandomlySelectOneReadPerBundle::SelectReads() {
       seen.clear();
       last_chr = i_chr;
     }
-    std::string rb = std::string(bam_aux2Z(bam_aux_get(b, "RB")));
+    if ( (t_tag = bam_aux_get(b, "RB")) == NULL ) {
+      continue;
+    }
+    std::string rb = std::string(bam_aux2Z( t_tag ));
     int strand     = RandomlySelectOneReadPerBundle::ReadStrand(b);
     if (seen.count(rb) == 0) {
       seen[rb][0] = 0;

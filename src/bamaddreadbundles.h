@@ -75,6 +75,8 @@ class BamAddReadBundles {
 
    bool ReadIsUsable(bam1_t* b);
 
+   bool ReadIsWritable(bam1_t* b);  
+
    void AddAuxTags(bam1_t* b);
 
    void DelAuxTags(bam1_t* b);
