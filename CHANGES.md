@@ -1,5 +1,18 @@
 # CHANGES
 
+## 3.2.0
+
+* Modified BAM processing as to keep unmapped reads
+* Fixed VCF filter bug in VAF script 
+
+## 3.1.0
+
+* Fixed type error of VAF script
+
+## 3.0.0
+
+* Made changes to accomodate targeted NanoSeq
+
 ## 2.3.3
 
 * Added quotes add various places to support ant chromosomes
