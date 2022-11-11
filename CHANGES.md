@@ -1,5 +1,9 @@
 # CHANGES
 
+## 3.2.1
+
+* Fixed bug in part with empty intervals at end of genome
+
 ## 3.2.0
 
 * Modified BAM processing as to keep unmapped reads
