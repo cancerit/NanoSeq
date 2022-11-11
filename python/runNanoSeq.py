@@ -47,7 +47,7 @@ import re
 import tempfile
 import copy
 
-version = '3.2.0'
+version = '3.2.1'
 
 parser = argparse.ArgumentParser()
 # arguments for all subcommands
@@ -505,7 +505,7 @@ print()
 
 # for array execution try to stagger access for files
 if (args.index is not None):
-    time.sleep(2 * args.index)
+    time.sleep( args.index)
 
 # create all directory tree for the tmp files
 tmpDir = args.out + "/tmpNanoSeq"
@@ -764,7 +764,8 @@ if (args.subcommand == 'part'):
             oIntervals.append(GInterval(ichar, ibeg + 1, iend + 1))
     if (len(oIntervals) > 0):
         intervalsPerCPU.append(oIntervals)
-
+    while ( len(intervalsPerCPU) < njobs ) :
+        intervalsPerCPU.append([])
     # check partitioning code is working as expected
     # compare merged partitioned intervals to original gIntervals (copy)
     print("\nChecking partition of intervals..", end='')
@@ -862,6 +863,7 @@ if (args.subcommand == 'dsa'):
         cmd += "bgzip -f -l 2 %s/dsa/%s.dsa.bed; sleep 2; bgzip -t %s/dsa/%s.dsa.bed.gz;" % (
             tmpDir, i+1, tmpDir, i+1)
         cmd += "touch %s/dsa/%s.done" % (tmpDir, i+1)
+        if ( len(intervalsPerCPU[i]) == 0 ) : cmd = "touch %s/dsa/%s.dsa.bed.gz;touch %s/dsa/%s.done" % (tmpDir, i+1,tmpDir, i+1)
         commands[i] = (cmd, )
 
     if (args.index is None or args.index == 1):
@@ -932,6 +934,7 @@ if (args.subcommand == 'var'):
             % ("%s/dsa/%s.dsa.bed.gz" % (tmpDir, i+1), "%s/var/%s.cov.bed" % (tmpDir, i+1), "%s/var/%s.var" % (tmpDir, i+1),
                args.a, args.b, args.c, args.d, args.f, args.i, args.m, args.n, args.p, args.q, args.r, args.v, args.x, args.z)
         cmd += "touch %s/var/%s.done" % (tmpDir, i+1)
+        if ( os.stat("%s/dsa/%s.dsa.bed.gz"%(tmpDir, i+1)).st_size == 0) : cmd = "touch %s/var/%s.var; touch %s/var/%s.cov.bed.gz; touch %s/var/%s.done" % (tmpDir, i+1,tmpDir, i+1,tmpDir, i+1)
         commands[i] = (cmd, )
 
     if (args.index is None or args.index == 1):
@@ -1006,6 +1009,10 @@ if (args.subcommand == 'indel'):
         cmd += "indelCaller_step3.R %s %s %s %s;"\
             % (args.ref, "%s/indel/%s.indel.vcf.gz" % (tmpDir, i+1), args.normal, args.v)
         cmd += "touch %s/indel/%s.done" % (tmpDir, i+1)
+        if ( os.stat("%s/dsa/%s.dsa.bed.gz"%(tmpDir, i+1)).st_size == 0) : 
+            cmd = "touch %s/indel/%s.indel.bed.gz; touch %s/indel/%s.indel.vcf.gz;" \
+                "touch %s/indel/%s.indel.filtered.vcf.gz; touch %s/indel/%s.indel.filtered.vcf.gz.tbi;" \
+                "touch %s/indel/%s.done" % (tmpDir, i+1,tmpDir, i+1,tmpDir, i+1,tmpDir, i+1,tmpDir, i+1)
         commands[i] = (cmd, )
 
     if (args.index is None or args.index == 1):
@@ -1125,6 +1132,7 @@ if (args.subcommand == 'post'):
         cmd = "rm -f %s;" % (outFile)
         for i in range(nfiles):
             ifile = "%s/var/%s.cov.bed.gz" % (tmpDir, i+1)
+            if ( os.stat(ifile).st_size == 0 ) : continue
             cmd += "bgzip -dc %s >> %s ;" % (ifile, outFile)
         cmd += "bgzip -@ %s -f %s; sleep 3; bgzip -@ %s -t %s.gz ;" % (
             args.threads, outFile, args.threads, outFile)
@@ -1188,6 +1196,7 @@ if (args.subcommand == 'post'):
         vcf2Merge = []
         for i in range(nfiles):
             ifile = tmpDir+"/indel/%s.indel.filtered.vcf.gz" % (i+1)
+            if ( os.stat(ifile).st_size == 0 ) : continue
             vcf2Merge.append(ifile)
         cmd = "bcftools concat --no-version -Oz -o %s/post/%s.indel.vcf.gz " % (
             tmpDir, args.name)
