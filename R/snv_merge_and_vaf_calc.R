@@ -199,9 +199,9 @@ if (num_snvs > 0) {
       snvs_new[new_row, "DEPTH_NORM_REV"] = sum(snvs_tmp[, "DEPTH_NORM_REV"])
       snvs_new[new_row, "DPLX_ASXS"] = snvs_tmp[1, "DPLX_ASXS"]
       snvs_new[new_row, "DPLX_CLIP"] = snvs_tmp[1, "DPLX_CLIP"]
-      snvs_new[new_row, "DPLX_MN"] = snvs_tmp[1, "DPLX_MN"]
+      snvs_new[new_row, "DPLX_NM"] = snvs_tmp[1, "DPLX_NM"]
       snvs_new[new_row, "BULK_ASXS"] = snvs_tmp[1, "BULK_ASXS"]
-      snvs_new[new_row, "BULK_MN"] = snvs_tmp[1, "BULK_MN"]         
+      snvs_new[new_row, "BULK_NM"] = snvs_tmp[1, "BULK_NM"]         
       if (nrow(snvs_tmp) == 2) {
         snvs_new[new_row, "TYPE"] = "dnv"
       }
@@ -251,9 +251,9 @@ if (num_snvs > 0) {
       snvs_new2[new_row, "TIMES_CALLED"] = freq
       snvs_new2[new_row, "DPLX_ASXS"] = paste(snvs_tmp[, "DPLX_ASXS"], collapse = ",")
       snvs_new2[new_row, "DPLX_CLIP"] = paste(snvs_tmp[, "DPLX_CLIP"], collapse = ",")
-      snvs_new2[new_row, "DPLX_MN"] = paste(snvs_tmp[, "DPLX_MN"], collapse = ",")
+      snvs_new2[new_row, "DPLX_NM"] = paste(snvs_tmp[, "DPLX_NM"], collapse = ",")
       snvs_new2[new_row, "BULK_ASXS"] = paste(snvs_tmp[, "BULK_ASXS"], collapse = ",")
-      snvs_new2[new_row, "BULK_MN"] = paste(snvs_tmp[, "BULK_MN"], collapse = ",")
+      snvs_new2[new_row, "BULK_NM"] = paste(snvs_tmp[, "BULK_NM"], collapse = ",")
 
       snvs_new2[new_row, "TYPE"] = snvs_tmp[1, "TYPE"]
     }
@@ -263,7 +263,7 @@ if (num_snvs > 0) {
   # drop some columns:
   snvs_new2 = snvs_new2[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "TRI", "rb_id", "QPOS", "DEPTH_FWD",
                          "DEPTH_REV", "DEPTH_NORM_FWD", "DEPTH_NORM_REV", "TYPE", "TIMES_CALLED", "DPLX_ASXS", 
-                         "DPLX_CLIP", "DPLX_MN", "BULK_ASXS", "BULK_MN")]
+                         "DPLX_CLIP", "DPLX_NM", "BULK_ASXS", "BULK_NM")]
 
 
   ##########################################################################################
@@ -452,9 +452,9 @@ if (num_snvs > 0) {
   snvs_final$INFO = paste(snvs_final$INFO, rep("QPOS=", nrow(snvs_final)), snvs_final$QPOS, "", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_ASXS=", nrow(snvs_final)), snvs_final$DPLX_ASXS, "", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_CLIP=", nrow(snvs_final)), snvs_final$DPLX_CLIP, "", sep = "")
-  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_MN=", nrow(snvs_final)), snvs_final$DPLX_MN, "", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_NM=", nrow(snvs_final)), snvs_final$DPLX_NM, "", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("BULK_ASXS=", nrow(snvs_final)), snvs_final$BULK_ASXS, "", sep = "")
-  snvs_final$INFO = paste(snvs_final$INFO, rep("BULK_NM=", nrow(snvs_final)), snvs_final$BULK_MN, "", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("BULK_NM=", nrow(snvs_final)), snvs_final$BULK_NM, "", sep = "")
 
   snvs_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]
 }
@@ -510,9 +510,9 @@ header[length(header) + 1] = "##INFO=<ID=RB,Number=.,Type=String,Description=\"R
 header[length(header) + 1] = "##INFO=<ID=SEQ,Number=1,Type=String,Description=\"Sequence context for indels\">"
 header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=1,Type=Integer,Description=\"AS-XS for duplex\">\n"
 header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=1,Type=Integer,Description=\"Clipping for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_MN,Number=1,Type=Integer,Description=\"Mismatches in duplex\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=1,Type=Integer,Description=\"Mismatches in duplex\">\n"
 header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=1,Type=Integer,Description=\"AS-XS for bulk\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_MN,Number=1,Type=Integer,Description=\"Mismatches in bulk\">\n"
+header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=1,Type=Integer,Description=\"Mismatches in bulk\">\n"
 header[length(header) + 1] = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
 
 muts_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]
