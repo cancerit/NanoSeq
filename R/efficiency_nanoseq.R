@@ -68,10 +68,12 @@ par(mar = c(2, 2, 2, 2))
 cat("Reading file:", rb_file, "...\n")
 rbs = read.table(rb_file, sep = "\t", header = F, row.names = 1)
 
-rbs$x = pmin(rbs[, 1], 10)
-rbs$y = pmin(rbs[, 2], 10)
+rbs$x_tmp = pmin(rbs[, 1], 10)
+rbs$y_tmp = pmin(rbs[, 2], 10)
+rbs$x = rbs[,1]
+rbs$y = rbs[,2]
 rbs_bck = rbs;
-kk = as.data.frame(table(rbs[, c("x", "y")]))
+kk = as.data.frame(table(rbs[, c("x_tmp", "y_tmp")]))
 kk$point_size = kk$Freq / max(kk$Freq)
 reads_per_RB = sum(c(rbs$x, rbs$y)) / nrow(rbs)
 plot(as.numeric(kk$x),

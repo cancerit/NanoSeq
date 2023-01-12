@@ -110,7 +110,7 @@ while(<IN>) {
   next if($bulk_fwd + $bulk_rev < $bulk_min_cov); # Bulk minimum coverage
   next if($dplxCLIP > $max_clip);
   next if($dplxNM > 20); # made very liberal to allow long indels. Check the impact!
-  next if($dplxASXS < $min_asxs);
+  next if($dplxASXS < $min_asxs | $bulkASXS < $min_asxs ); #fa8: fixed bug, we needed to check AS-XS for the bulk too
 
   if($r1 >= $min_size_subfam && $r2 >= $min_size_subfam) {
     my $bulktotal = $bulkForwardTotal+$bulkReverseTotal;
