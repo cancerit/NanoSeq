@@ -73,9 +73,9 @@ rbs$y_tmp = pmin(rbs[, 2], 10)
 rbs$x = rbs[,1]
 rbs$y = rbs[,2]
 rbs_bck = rbs;
-kk = as.data.frame(table(rbs[, c("x_tmp", "y_tmp")]))
+kk = as.data.frame(table(rbs[, c("x", "y")]))
 kk$point_size = kk$Freq / max(kk$Freq)
-reads_per_RB = sum(c(rbs$x, rbs$y)) / nrow(rbs)
+reads_per_RB = sum(c(rbs$x_tmp, rbs$y_tmp)) / nrow(rbs)
 plot(as.numeric(kk$x),
        as.numeric(kk$y),
        pch = 20,
@@ -210,4 +210,5 @@ for (size in c(1:7)) {
 
 }
 write.table(res, file = paste(rb_file, ".GC_inserts.tsv", sep = ""), row.names = F, col.names = T, sep = "\t", quote = F)
+
 
