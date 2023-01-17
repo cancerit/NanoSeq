@@ -449,11 +449,11 @@ if (num_snvs > 0) {
   snvs_final$INFO = paste(snvs_final$INFO, rep("BAM_MUT_BQ10=", nrow(snvs_final)), snvs_final$BAM_MUT_BQ10, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("BAM_COV_BQ10=", nrow(snvs_final)), snvs_final$BAM_COV_BQ10, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("RB=", nrow(snvs_final)), snvs_final$rb_id, ";", sep = "")
-  snvs_final$INFO = paste(snvs_final$INFO, rep("QPOS=", nrow(snvs_final)), snvs_final$QPOS, "", sep = "")
-  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_ASXS=", nrow(snvs_final)), snvs_final$DPLX_ASXS, "", sep = "")
-  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_CLIP=", nrow(snvs_final)), snvs_final$DPLX_CLIP, "", sep = "")
-  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_NM=", nrow(snvs_final)), snvs_final$DPLX_NM, "", sep = "")
-  snvs_final$INFO = paste(snvs_final$INFO, rep("BULK_ASXS=", nrow(snvs_final)), snvs_final$BULK_ASXS, "", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("QPOS=", nrow(snvs_final)), snvs_final$QPOS, ";", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_ASXS=", nrow(snvs_final)), snvs_final$DPLX_ASXS, ";", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_CLIP=", nrow(snvs_final)), snvs_final$DPLX_CLIP, ";", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_NM=", nrow(snvs_final)), snvs_final$DPLX_NM, ";", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("BULK_ASXS=", nrow(snvs_final)), snvs_final$BULK_ASXS, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("BULK_NM=", nrow(snvs_final)), snvs_final$BULK_NM, "", sep = "")
 
   snvs_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]
@@ -502,17 +502,17 @@ header[length(header) + 1] = "##INFO=<ID=BAM_COV_BQ10,Number=1,Type=Integer,Desc
 header[length(header) + 1] = "##INFO=<ID=BAM_MUT,Number=1,Type=Integer,Description=\"Number of mut alleles in deduplicated BAM\">"
 header[length(header) + 1] = "##INFO=<ID=BAM_MUT_BQ10,Number=1,Type=Integer,Description=\"Number of mut alleles in deduplicated BAM\">"
 header[length(header) + 1] = "##INFO=<ID=QPOS,Number=.,Type=Integer,Description=\"Read position(s) closest to 5-prime end\">"
-header[length(header) + 1] = "##INFO=<ID=DEPTH_FWD,Number=.,Type=Float,Description=\"Read bundle forward reads depth\">"
-header[length(header) + 1] = "##INFO=<ID=DEPTH_REV,Number=.,Type=Float,Description=\"Read bundle reverse reads depth\">"
-header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_FWD,Number=.,Type=Float,Description=\"Matched normal forward reads depth\">"
-header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_REV,Number=.,Type=Float,Description=\"Matched normal reverse reads depth\">"
+header[length(header) + 1] = "##INFO=<ID=DEPTH_FWD,Number=1,Type=Float,Description=\"Read bundle forward reads depth\">"
+header[length(header) + 1] = "##INFO=<ID=DEPTH_REV,Number=1,Type=Float,Description=\"Read bundle reverse reads depth\">"
+header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Float,Description=\"Matched normal forward reads depth\">"
+header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Float,Description=\"Matched normal reverse reads depth\">"
 header[length(header) + 1] = "##INFO=<ID=RB,Number=.,Type=String,Description=\"Read bundle id(s): chr:breakpoints:barcodes\">"
 header[length(header) + 1] = "##INFO=<ID=SEQ,Number=1,Type=String,Description=\"Sequence context for indels\">"
-header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=1,Type=Integer,Description=\"AS-XS for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=1,Type=Integer,Description=\"Clipping for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=1,Type=Integer,Description=\"Mismatches in duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=1,Type=Integer,Description=\"AS-XS for bulk\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=1,Type=Integer,Description=\"Mismatches in bulk\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=.,Type=Integer,Description=\"AS-XS for duplex\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=.,Type=Integer,Description=\"Clipping for duplex\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Integer,Description=\"Mismatches in duplex\">\n"
+header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=.,Type=Integer,Description=\"AS-XS for bulk\">\n"
+header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Integer,Description=\"Mismatches in bulk\">\n"
 header[length(header) + 1] = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
 
 muts_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]
