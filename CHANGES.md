@@ -1,5 +1,10 @@
 # CHANGES
 
+
+* Added new INFO fileds to the final vcf
+* Changes to indel calling to reduce false calls
+* Fixed bugs in the VAF script
+
 ## 3.2.1
 
 * Fixed bug in part with empty intervals at end of genome
