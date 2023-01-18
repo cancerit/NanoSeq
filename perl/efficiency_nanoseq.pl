@@ -225,7 +225,7 @@ print OUT "DUPLICATE_RATE\t$dup_rate\n";
 print OUT "# RB metrics are reported for chr/contig $region only:\n";
 
 my $bases_sequenced = $total_reads * 150;
-my $bases_ok_rbs    = $ok_rbs * (300); # assuming mates don't overlap. Removing 50 bps for varios trimmings (rough estimate)
+my $bases_ok_rbs    = $ok_rbs * (300-50); # assuming mates don't overlap. Removing 50 bps for varios trimmings (rough estimate)
 print OUT "TOTAL_RBS\t$total_rbs\n";
 print OUT "TOTAL_READS_IN_RBS\t$total_reads\n";
 print OUT "OK_RBS(2+2)\t$ok_rbs\n";

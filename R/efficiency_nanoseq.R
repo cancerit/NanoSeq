@@ -68,14 +68,12 @@ par(mar = c(2, 2, 2, 2))
 cat("Reading file:", rb_file, "...\n")
 rbs = read.table(rb_file, sep = "\t", header = F, row.names = 1)
 
-rbs$x_tmp = pmin(rbs[, 1], 10)
-rbs$y_tmp = pmin(rbs[, 2], 10)
-rbs$x = rbs[,1]
-rbs$y = rbs[,2]
+rbs$x = pmin(rbs[, 1], 10)
+rbs$y = pmin(rbs[, 2], 10)
 rbs_bck = rbs;
 kk = as.data.frame(table(rbs[, c("x", "y")]))
 kk$point_size = kk$Freq / max(kk$Freq)
-reads_per_RB = sum(c(rbs$x_tmp, rbs$y_tmp)) / nrow(rbs)
+reads_per_RB = sum(c(rbs$x, rbs$y)) / nrow(rbs)
 plot(as.numeric(kk$x),
        as.numeric(kk$y),
        pch = 20,
@@ -210,5 +208,4 @@ for (size in c(1:7)) {
 
 }
 write.table(res, file = paste(rb_file, ".GC_inserts.tsv", sep = ""), row.names = F, col.names = T, sep = "\t", quote = F)
-
 
