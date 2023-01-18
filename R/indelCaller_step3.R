@@ -104,13 +104,19 @@ if (nrow(vcf@fix) != 0) {
     cat(chr, pos, len, n_bases, n_indels, "\n");
     cat(n_bases, "/", n_indels, "\n")
     cat(i, "\n")
+    max_per_site = max(apply(kk[, c("-", "INS", "_", "ins")],1,sum) / (apply(kk[, c("-", "INS", "_", "ins")],1,sum) + apply(kk[, c("A", "C", "G", "T", "a", "c", "g", "t")],1,sum)))
     if (n_bases == 0) {
       vcf@fix[i, "FILTER"] = "MISSINGBULK"
-      vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, "/", n_bases, "]", sep = "")
+      vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, ":", n_bases, ":", max_per_site,"]", sep = "")
 
-    } else if (n_indels/(n_bases + n_indels) > max_vaf) {
+    #} else if (n_indels/(n_bases + n_indels) > max_vaf) {
+    #  vcf@fix[i, "FILTER"] = "NEI_IND"
+    #  vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, "/", n_bases, "]", sep = "")
+    } else if (max_per_site > max_vaf ) { 
       vcf@fix[i, "FILTER"] = "NEI_IND"
-      vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, "/", n_bases, "]", sep = "")
+      vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, ":", n_bases, ":", max_per_site,"]", sep = "")
+    } else {
+      vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, ":", n_bases, ":", max_per_site,"]", sep = "")
     }
     sequence = as.vector(scanFa(genomeFile, GRanges(chr, IRanges(start - 3, end + 3))))
     vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";SEQ=", sequence, sep = "")

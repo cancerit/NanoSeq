@@ -3,6 +3,7 @@
 
 * Added new INFO fileds to the final vcf
 * Changes to indel calling to reduce false calls
+* Added burdens output to nanoseq plotter
 * Fixed bugs in the VAF script
 
 ## 3.2.1
