@@ -547,32 +547,16 @@ n_reference_unmasked <- sum(burdens[which(burdens$isvariant == 0), "count"])
 ##################
 burden_masked = n_variants_masked / (n_reference_masked + n_variants_masked)
 burden_unmasked = n_variants_unmasked / (n_reference_unmasked + n_variants_unmasked)
-ci_masked = poisson.test(n_variants_masked)$conf.int / (n_reference_masked + n_variants_masked)
-ci_unmasked = poisson.test(n_variants_unmasked)$conf.int / (n_reference_unmasked + n_variants_unmasked)
 if (n_variants_unmasked > 0 & n_variants_masked > 0 ) {
   # fa8
   pdf(width = 5, height = 5, file = paste(out_name, ".burden.masked-vs-unmasked.pdf", sep = ""))
   bar = barplot(c(burden_masked, burden_unmasked), names = c("burden (masked)", "burden (unmasked)"), ylim = c(0, max(burden_masked, burden_unmasked) + 0.1 * max(burden_masked, burden_unmasked)), main = "Qualitative contamination check")
+  ci_masked = poisson.test(n_variants_masked)$conf.int / (n_reference_masked + n_variants_masked)
+  ci_unmasked = poisson.test(n_variants_unmasked)$conf.int / (n_reference_unmasked + n_variants_unmasked)
   segments(bar[1], ci_masked[1], bar[1], ci_masked[2], col = "black", lwd = 2)
   segments(bar[2], ci_unmasked[1], bar[2], ci_unmasked[2], col = "black", lwd = 2)
   dev.off()
 }
-# fa8: save burdens pre / post masking in numeric format
-tosave = as.data.frame(matrix(nrow=2,ncol=5))
-colnames(tosave) = c("subs","total","burden","burden_lci","burden_uci")
-rownames(tosave) = c("masked","unmasked")
-tosave["masked",] = c(n_variants_masked / (n_reference_masked, 
-                      n_variants_masked),
-                      n_variants_masked / (n_reference_masked + n_variants_masked),
-                      ci_masked[1],
-                      ci_masked[2])
-tosave["unmasked",] = c(n_variants_unmasked / (n_reference_unmasked, 
-                      n_variants_unmasked),
-                      n_variants_unmasked / (n_reference_unmasked + n_variants_unmasked),
-                      ci_unmasked[1],
-                      ci_unmasked[2])
-write.table(tosave,file="obs_burdens.pre_vs_post_masking.tsv",sep="\t",row.names=T,col.names=T,quote=F)
-# end.
 
 ##########################################################################################
 # Mismatches
