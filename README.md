@@ -63,7 +63,6 @@ Execution of the scripts from this repository requires that these dependencies a
 * R (>=3.5 )
 * biobambam
 * bwa
-* R libraries ( VGAM, deepSNV, vcfR, ggplot2, data.table, epitools, gridExtra, seqinr)
 
 ### Installation
 
