@@ -230,7 +230,9 @@ if (num_snvs > 0) {
   if (length(repeat_muts) > 0) {
     for (mut_id in names(repeat_muts)) {
       new_row = nrow(snvs_new2) + 1
-      snvs_tmp = sort(snvs_new[which(snvs_new$mut_id == mut_id),])
+      snvs_tmp = snvs_new[which(snvs_new$mut_id == mut_id),]
+      snvs_tmp = snvs_tmp[order(snvs_tmp$rb_id),]
+
       freq = nrow(snvs_tmp)
       snvs_new2[new_row, "chr"] = snvs_tmp[1, "chr"]
       snvs_new2[new_row, "pos"] = snvs_tmp[1, "pos"]
@@ -352,7 +354,9 @@ if (num_indels > 0) {
   if (length(repeat_muts) > 0) {
     for (mut_id in names(repeat_muts)) {
       new_row = nrow(indels_new) + 1
-      indels_tmp = sort(indels[which(indels$mut_id == mut_id),])
+      indels_tmp = indels[which(indels$mut_id == mut_id),]
+      indels_tmp = indels_tmp[order(indels_tmp$rb_id,)]
+
       freq = nrow(indels_tmp)
       indels_new[new_row, "chr"] = indels_tmp[1, "chr"]
       indels_new[new_row, "pos"] = indels_tmp[1, "pos"]
