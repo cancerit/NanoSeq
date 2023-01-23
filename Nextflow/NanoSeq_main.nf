@@ -5,19 +5,7 @@ params.bwa_image = "docker://quay.io/wtsicgp/pcap-core:5.7.0"
 //"docker://quay.io/wtsicgp/nanoseq:3.0.0"
 params.nanoseq_image= "docker://quay.io/wtsicgp/nanoseq:3.0.0"
 
-//*use predefined parameter sets for GRCh37 & GRCh38
-params.grch37 = false
-assert ( params.grch37 == true || params.grch37 == false ) : "\ngrch37 parameter must be true or false\n"
-params.grch38 = false
-assert ( params.grch38 == true || params.grch38 == false ) : "\ngrch38 parameter must be true or false\n"
-
-if ( params.grch37 ) {
-    params.ref = "/path/to/reference/human/GRCH37d5/genome.fa"
-} else if ( params.grch38 ) {
-    params.ref = "/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/genome.fa"
-} else {
-    params.ref = ""
-}
+// *** Reference and bwa index
 assert ( params.ref != "" ) : "\nmust define a reference file genome.fa\n"
 assert ( params.ref.split("/")[-1] == "genome.fa" ) : "\nreference file must be named genome.fa\n"
 file_exists(params.ref,"ref")
@@ -35,19 +23,10 @@ params.nanoseq_dedup_m = 2
 params.jobs = 100
 //  cov
 params.cov_Q = 0
-if ( params.grch37 ) {//for GRCh37 reference
-    params.cov_exclude = "MT,GL%,NC_%,hs37d5"
-    params.snp_bed = "/path/to/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
-    params.noise_bed = "/path/to/reference/human/GRCH37d5/botseq/NOISE.sorted.bed.gz"
-} else if ( params.grch38 ) {//for GRCh38 reference
-    params.cov_exclude = "chrM,chr%_random,chrUn_%,chr%_alt,HLA-%" 
-    params.snp_bed = "/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/SNP.sorted.GRCh38.bed.gz"
-    params.noise_bed = "/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/NOISE.sorted.GRCh38.bed.gz"
-} else {
-    params.cov_exclude = ""
-    params.snp_bed = ""
-    params.noise_bed = ""
-}
+//for GRCh37 reference
+//params.cov_exclude = "MT,GL%,NC_%,hs37d5"
+//for GRCh38 reference
+params.cov_exclude = "chrM,chr%_random,chrUn_%,chr%_alt,HLA-%" 
 file_exists( params.snp_bed, "snp_bed" )
 file_exists( params.noise_bed, "noise_bed" )
 params.cov_include = ""
@@ -90,19 +69,6 @@ file_exists(params.post_triNuc,"post_triNuc")
 
 // ** VerifyBAMid params
 params.vb_epsilon ="1e-12"
-if (params.grch37 ) { //GRCh37
-    params.vb_ud ="/path/to/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.UD"
-    params.vb_bed ="/path/to/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.bed"
-    params.vb_mu ="/path/to/reference/human/GRCH37d5/verifybamid/ALL_500K.strictmasked.ok.vcf.mu"
-} else if ( params.grch38 ) { //GRCh38
-    params.vb_ud ="/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.UD"
-    params.vb_bed ="/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.bed"
-    params.vb_mu ="/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/verifybamid/1000g.phase3.100k.b38.vcf.gz.dat.mu"
-} else {
-    params.vb_ud = ""
-    params.vb_bed = ""
-    params.vb_mu = ""
-}
 file_exists(params.vb_ud,"vb_ud")
 file_exists(params.vb_bed, "vb_bed")
 file_exists(params.vb_mu, "vb_mu")

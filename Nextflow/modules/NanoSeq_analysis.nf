@@ -1,5 +1,12 @@
 nextflow.enable.dsl=2
 
+
+if (! params.containsKey("outDir")) {
+    params.outDir = projetDir
+}
+
+outDir = params.outDir
+
 /*
  * coverage calculation (cov)
  */
@@ -17,7 +24,7 @@ process COV {
         val include
         val larger
 
-    publishDir "$baseDir/work/temps/$meta.id/tmpNanoSeq/", mode: 'link', pattern:"cov/*", overwrite: true
+    publishDir "${workDir}/nanotemps/$meta.id/tmpNanoSeq/", mode: 'link', pattern:"cov/*", overwrite: true
 
     output :
         tuple val(meta), path(duplex), path(index_duplex), path(normal), path(index_normal) , emit : done
@@ -34,17 +41,18 @@ process COV {
         """
         mkdir -p cov
         touch ${task.process}_${meta.id}
-        mkdir -p $baseDir/work/temps/$meta.id/
-        rm -rf $baseDir/work/temps/$meta.id/tmpNanoSeq/cov; #allow clean resume for hard links
+        mkdir -p ${workDir}/nanotemps/$meta.id/
+        rm -rf ${workDir}/nanotemps/$meta.id/tmpNanoSeq/cov; #allow clean resume for hard links
         
-        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex -t $task.cpus --out $baseDir/work/temps/$meta.id/ cov -Q $q --exclude \"$exclude\"  \\
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex -t $task.cpus --out ${workDir}/nanotemps/$meta.id/ cov -Q $q --exclude \"$exclude\"  \\
             --include \"$include\" --larger $larger;
         
-        mv $baseDir/work/temps/$meta.id/tmpNanoSeq/cov ./cov_tmp
+        mv ${workDir}/nanotemps/$meta.id/tmpNanoSeq/cov ./cov_tmp
         mv ./cov_tmp/args.json ./cov
         mv ./cov_tmp/gIntervals.dat ./cov
         # this step can produce many small coverage files (one for each contig)
         # consolidate all of them into one file ( better for Lustre performance )
+        set -o pipefail
         find ./cov_tmp -name "*.cov.bed.gz" | sort -V | xargs -i cat {} > cov/1.cov.bed.gz
         rm -rf ./cov_tmp
         touch cov/1.done
@@ -57,11 +65,11 @@ process COV {
 
     stub:
         """
-        mkdir -p $baseDir/work/temps/$meta.id/tmpNanoSeq/cov
-        mkdir -p $baseDir/work/temps/$meta.id/tmpNanoSeq/part
-        mkdir -p $baseDir/work/temps/$meta.id/tmpNanoSeq/var
-        mkdir -p $baseDir/work/temps/$meta.id/tmpNanoSeq/indel
-        mkdir -p $baseDir/work/temps/$meta.id/tmpNanoSeq/post
+        mkdir -p ${workDir}/nanotemps/$meta.id/tmpNanoSeq/cov
+        mkdir -p ${workDir}/nanotemps/$meta.id/tmpNanoSeq/part
+        mkdir -p ${workDir}/nanotemps/$meta.id/tmpNanoSeq/var
+        mkdir -p ${workDir}/nanotemps/$meta.id/tmpNanoSeq/indel
+        mkdir -p ${workDir}/nanotemps/$meta.id/tmpNanoSeq/post
         mkdir -p cov
         touch ./cov/1.done
         touch ./cov/1.cov.bed.gz
@@ -91,7 +99,7 @@ process PART {
         val excludeCov
         file excludeBED
 
-    publishDir "$baseDir/work/temps/$meta.id/tmpNanoSeq/", mode: 'link', pattern: "part/*", overwrite: true
+    publishDir "$workDir/nanotemps/$meta.id/tmpNanoSeq/", mode: 'link', pattern: "part/*", overwrite: true
 
     output :
         tuple  val(meta), path(duplex), path(index_duplex), path(normal), path(index_normal), emit : done
@@ -110,11 +118,11 @@ process PART {
         """
         touch ${task.process}_${meta.id}
         mkdir -p part
-        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/part/*; #allow clean resume for hard links
+        rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/part/*; #allow clean resume for hard links
 
-        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id part -n $np $excludeCov_arg $excludeBED_arg;
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $workDir/nanotemps/$meta.id part -n $np $excludeCov_arg $excludeBED_arg;
         
-        mv $baseDir/work/temps/$meta.id/tmpNanoSeq/part/* ./part/
+        mv $workDir/nanotemps/$meta.id/tmpNanoSeq/part/* ./part/
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             runNanoSeq.py: \$(runNanoSeq.py -v)
@@ -156,7 +164,7 @@ process DSA {
         val q
         each ii
 
-    publishDir "$baseDir/work/temps/$meta.id/tmpNanoSeq/", mode: 'link', pattern: "dsa/*", overwrite: true
+    publishDir "$workDir/nanotemps/$meta.id/tmpNanoSeq/", mode: 'link', pattern: "dsa/*", overwrite: true
 
     output :
         tuple val(metaOut), path(duplex), path(index_duplex), path(normal), path(index_normal), emit : done
@@ -166,7 +174,8 @@ process DSA {
         path "dsa/args.json" optional true
 
     cpus 1
-    memory '1.GB'
+    memory { ( task.exitStatus == 130 || task.exitStatus == 140) ? 2.GB * task.attempt : 2.GB }
+    queue { task.exitStatus == 140 ? "long" : "normal" }
    
     script :
         //add the job index to the output metadata (to sort processes)
@@ -178,14 +187,14 @@ process DSA {
         """
         touch ${task.process}_${meta.id}_${ii}
         mkdir -p dsa
-        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/${ii}.done; #allow clean resume for hard links
-        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/${ii}.dsa.bed.gz;
-        if [ $ii -eq 1 ]; then rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/nfiles; rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/args.json; fi;
+        rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/dsa/${ii}.done; #allow clean resume for hard links
+        rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/dsa/${ii}.dsa.bed.gz;
+        if [ $ii -eq 1 ]; then rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/dsa/nfiles; rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/dsa/args.json; fi;
 
-        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id -j $ii -k $np dsa -d $d -q $q $snp_bed_arg $noise_bed_arg;
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $workDir/nanotemps/$meta.id -j $ii -k $np dsa -d $d -q $q $snp_bed_arg $noise_bed_arg;
         
-        mv $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/${ii}.* ./dsa/ ;
-        if [ $ii -eq 1 ]; then mv $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/nfiles ./dsa/; mv $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/args.json ./dsa/; fi
+        mv $workDir/nanotemps/$meta.id/tmpNanoSeq/dsa/${ii}.* ./dsa/ ;
+        if [ $ii -eq 1 ]; then mv $workDir/nanotemps/$meta.id/tmpNanoSeq/dsa/nfiles ./dsa/; mv $workDir/nanotemps/$meta.id/tmpNanoSeq/dsa/args.json ./dsa/; fi
         cat <<-END_VERSIONS > dsa/versions.yml
         "${task.process}":
             runNanoSeq.py: \$(runNanoSeq.py -v)
@@ -196,6 +205,7 @@ process DSA {
         metaOut = meta.clone()
         metaOut["ii"] = ii
         """
+        sleep \$[ ( \$RANDOM % 20 )  + 1 ]s
         mkdir -p dsa
         touch ./dsa/${ii}.done
         touch ./dsa/${ii}.dsa.bed.gz
@@ -223,7 +233,7 @@ process VAR {
         each ii
         val np
         val a
-        val b 
+        val b
         val c
         val d
         val f
@@ -237,7 +247,7 @@ process VAR {
         val x
         val z
 
-    publishDir "$baseDir/work/temps/$meta.id/tmpNanoSeq/", mode: 'link', pattern: "var/*", overwrite: true
+    publishDir "$workDir/nanotemps/$meta.id/tmpNanoSeq/", mode: 'link', pattern: "var/*", overwrite: true
 
     output :
         tuple  val(metaOut), path(duplex), path(index_duplex), path(normal), path( index_normal), emit : done
@@ -248,7 +258,7 @@ process VAR {
         path 'var/args.json' optional true
 
     cpus 1
-    memory '800. MB'
+    memory { ( task.exitStatus == 130 ) ? 3.GB * task.attempt : 3.GB }
 
     script :
         //add the job index to the output metadata (to sort processes)
@@ -257,16 +267,27 @@ process VAR {
         """
         touch ${task.process}_${meta.id}_${ii}
         mkdir -p var
-        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.done; #allow clean resume for hard links
-        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.var;
-        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.cov.bed.gz;
-        if [ $ii -eq 1 ]; then rm -f $baseDir/work//temps/$meta.id/tmpNanoSeq/var/nfiles; rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/args.json; fi;
+        rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/var/${ii}.done; #allow clean resume for hard links
+        rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/var/${ii}.var;
+        rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/var/${ii}.cov.bed.gz;
+        if [ $ii -eq 1 ]; then rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/var/nfiles; rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/var/args.json; fi;
 
-        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id/ -j $ii -k $np var -a $a -b $b -c $c -d $d -f $f -i $i \
+        NLINES=`samtools view -H $normal | grep ID:randomreadinbundle | wc -l` || true
+        if [ \$NLINES == 0 ]; then
+            BA=5 #WGS normal
+        else
+            BA=0 #NanoSeq normal
+        fi
+        #if b parameter was specified overwrite automatic selection
+        if [ $b != "" ]; then
+            BA=$b
+        fi
+
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $workDir/nanotemps/$meta.id/ -j $ii -k $np var -a $a -b \$BA -c $c -d $d -f $f -i $i \
             -m $m -n $n -p $p -q $q -r $r -v $v -x $x -z $z;
         
-        mv $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.* ./var/ ;
-        if [ $ii -eq 1 ]; then mv $baseDir/work/temps/$meta.id/tmpNanoSeq/var/nfiles ./var/; mv $baseDir/work/temps/$meta.id/tmpNanoSeq/var/args.json ./var/; fi
+        mv $workDir/nanotemps/$meta.id/tmpNanoSeq/var/${ii}.* ./var/ ;
+        if [ $ii -eq 1 ]; then mv $workDir/nanotemps/$meta.id/tmpNanoSeq/var/nfiles ./var/; mv $workDir/nanotemps/$meta.id/tmpNanoSeq/var/args.json ./var/; fi
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             runNanoSeq.py: \$(runNanoSeq.py -v)
@@ -277,6 +298,7 @@ process VAR {
         metaOut = meta.clone()
         metaOut["ii"] = ii
         """
+        sleep \$[ ( \$RANDOM % 20 )  + 1 ]s
         mkdir -p var
         touch ./var/${ii}.done
         touch ./var/${ii}.var
@@ -311,7 +333,7 @@ process INDEL {
         val asxs
         val clip
 
-    publishDir "$baseDir/work/temps/$meta.id/tmpNanoSeq/", mode: 'link', pattern: "indel/*", overwrite: true
+    publishDir "$workDir/nanotemps/$meta.id/tmpNanoSeq/", mode: 'link', pattern: "indel/*", overwrite: true
 
     output :
         tuple val(metaOut), path(duplex), path(index_duplex), path(normal), path(index_normal), emit : done
@@ -322,7 +344,7 @@ process INDEL {
         path "indel/args.json" optional true
 
     cpus 1
-    memory '2.GB'
+    memory { ( task.exitStatus == 130 ) ? 2.GB * task.attempt : 2.GB }
 
     script :
         //apend the index to the output metadata (to sort processes)
@@ -331,17 +353,17 @@ process INDEL {
         """
         touch ${task.process}_${meta.id}_${ii}
         mkdir -p indel
-        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.done; #allow clean resume for hard links
-        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.filtered.vcf.gz;
-        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.filtered.vcf.gz.tbi;
-        if [ $ii -eq 1 ]; then rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/nfiles; rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/args.json; fi;
+        rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/${ii}.done; #allow clean resume for hard links
+        rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/${ii}.indel.filtered.vcf.gz;
+        rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/${ii}.indel.filtered.vcf.gz.tbi;
+        if [ $ii -eq 1 ]; then rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/nfiles; rm -f $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/args.json; fi;
 
-        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id -j $ii -k $np indel --rb $rb --t3 $t3 --t5 $t5 -z $z -v $vaf -a $asxs -c $clip;
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $workDir/nanotemps/$meta.id -j $ii -k $np indel --rb $rb --t3 $t3 --t5 $t5 -z $z -v $vaf -a $asxs -c $clip;
         
-        rm $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.bed.gz; #not required for final calculations
-        rm $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.vcf.gz; #not required for final calculations
-        mv $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.* ./indel/ ;
-        if [ $ii -eq 1 ]; then mv $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/nfiles ./indel/; mv $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/args.json ./indel/; fi
+        rm $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/${ii}.indel.bed.gz; #not required for final calculations
+        rm $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/${ii}.indel.vcf.gz; #not required for final calculations
+        mv $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/${ii}.* ./indel/ ;
+        if [ $ii -eq 1 ]; then mv $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/nfiles ./indel/; mv $workDir/nanotemps/$meta.id/tmpNanoSeq/indel/args.json ./indel/; fi
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             runNanoSeq.py: \$(runNanoSeq.py -v)
@@ -352,6 +374,7 @@ process INDEL {
         metaOut = meta.clone()
         metaOut["ii"] = ii + np
         """
+        sleep \$[ ( \$RANDOM % 20 )  + 1 ]s
         mkdir -p indel
         touch indel/${ii}.done
         touch indel/${ii}.indel.filtered.vcf.gz
@@ -378,7 +401,7 @@ process POST {
         tuple  val(meta), path(duplex), path(index_duplex), path(normal), path(index_normal)
         file triNuc
 
-    publishDir "$params.outDir/outNextflow/$meta.id", mode: 'link', pattern : "post/*", overwrite: true
+    publishDir "$outDir/outNextflow/NanoSeq/$meta.id", mode: 'link', pattern : "post/*", overwrite: true
 
     output :
         path("versions.yml"), emit: versions
@@ -398,11 +421,11 @@ process POST {
         """
         touch ${task.process}_${meta.id}
         mkdir -p post
-        rm -f $baseDir/work/temps/${meta.id}/tmpNanoSeq/post/*;
+        rm -f $workDir/nanotemps/${meta.id}/tmpNanoSeq/post/*;
 
-        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/${meta.id}/ -t $task.cpus post --name $meta.id $triNuc_arg;
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $workDir/nanotemps/${meta.id}/ -t $task.cpus post --name $meta.id $triNuc_arg;
         
-        mv $baseDir/work/temps/${meta.id}/tmpNanoSeq/post/* ./post/ ;
+        mv $workDir/nanotemps/${meta.id}/tmpNanoSeq/post/* ./post/ ;
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             runNanoSeq.py: \$(runNanoSeq.py -v)
@@ -491,7 +514,6 @@ workflow NANOSEQ {
         } else {
             snp_bed_fh = file( snp_bed )
             snp_bed_index = snp_bed + ".tbi"
-            file_exists(snp_bed_index, "SNP BED index")
             snp_bed_index_fh = file(snp_bed_index)
         }
         if (noise_bed == "") {
@@ -500,7 +522,6 @@ workflow NANOSEQ {
         } else {
             noise_bed_fh = file( noise_bed )
             noise_bed_index = noise_bed + ".tbi"
-            file_exists(noise_bed_index, "Noise BED index")
             noise_bed_index_fh = file(noise_bed_index)
         }
         // optional file excludeBED
