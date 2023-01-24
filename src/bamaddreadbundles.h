@@ -53,6 +53,9 @@ class BamAddReadBundles {
 
 
  public:
+
+   bool proper_pairs;
+
    char* infile;
 
    char* outfile;
@@ -78,6 +81,8 @@ class BamAddReadBundles {
    bool ReadIsWritable(bam1_t* b);  
 
    void AddAuxTags(bam1_t* b);
+
+   void DelRBTag(bam1_t* b);
 
    void DelAuxTags(bam1_t* b);
 

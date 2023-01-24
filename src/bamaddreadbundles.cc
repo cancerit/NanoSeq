@@ -106,15 +106,17 @@ bool BamAddReadBundles::ReadIsUsable(bam1_t* b) {
   int suppl     = (b->core.flag & BAM_FSUPPLEMENTARY)? 1 : 0;
   int qcfail    = (b->core.flag & BAM_FQCFAIL)? 1 : 0;
   int unmapped  = (b->core.flag & BAM_FUNMAP)? 1 : 0;
+  int mumapped  = (b->core.flag & BAM_FMUNMAP)? 1 : 0;
   int secondary = (b->core.flag & BAM_FSECONDARY)? 1 : 0;
-  int has_od    = (BamAddReadBundles::HasAux(b, "od"))? 1 : 0;
   int paired    = (b->core.flag & BAM_FPROPER_PAIR)? 1 : 0;
+  int has_od    = (BamAddReadBundles::HasAux(b, "od"))? 1 : 0;
   int has_rc    = (BamAddReadBundles::HasAux(b, "rc"))? 1 : 0;
   int has_mc    = (BamAddReadBundles::HasAux(b, "mc"))? 1 : 0;
   int has_rb    = (BamAddReadBundles::HasAux(b, "rb"))? 1 : 0;
   int has_mb    = (BamAddReadBundles::HasAux(b, "mb"))? 1 : 0;
-  if (((suppl + qcfail + unmapped + secondary + has_od) == 0) &&
-      ((paired  + has_rc + has_mc + has_rb + has_mb) == 5)) {
+  if ( ! this->proper_pairs ) paired = 1; 
+  if ( (suppl + qcfail + unmapped + mumapped + secondary + has_od ) == 0 && 
+    (paired  + has_rc + has_mc + has_rb + has_mb) == 5) {
     return true;
   }
   return false;
@@ -122,6 +124,8 @@ bool BamAddReadBundles::ReadIsUsable(bam1_t* b) {
 
 bool BamAddReadBundles::ReadIsWritable(bam1_t* b) {
   int qcfail    = (b->core.flag & BAM_FQCFAIL)? 1 : 0;
+  int secondary = (b->core.flag & BAM_FSECONDARY)? 1 : 0;
+  int suppl     = (b->core.flag & BAM_FSUPPLEMENTARY)? 1 : 0;
   int has_RB    = (BamAddReadBundles::HasAux(b, "RB"))? 1 : 0;
   int has_od    = (BamAddReadBundles::HasAux(b, "od"))? 1 : 0;
   int has_rb    = (BamAddReadBundles::HasAux(b, "rb"))? 1 : 0;
@@ -129,7 +133,7 @@ bool BamAddReadBundles::ReadIsWritable(bam1_t* b) {
   if ( has_RB == 1) {
     return true;
   }
-  if ((( has_rb + has_mb) == 2) && ((qcfail + has_od) == 0 )) {
+  if ((( has_rb + has_mb) == 2) && ((qcfail + has_od + secondary + suppl ) == 0 )) {
     return true;
   }
   return false;
@@ -141,21 +145,25 @@ void BamAddReadBundles::AddAuxTags(bam1_t* b) {
   char* rb   = bam_aux2Z(bam_aux_get(b, "rb"));
   char* mb   = bam_aux2Z(bam_aux_get(b, "mb"));
   int strand = (b->core.flag & BAM_FREVERSE)? 1: 0;
+  int tid    = b->core.tid;
+  int mtid   = b->core.mtid;
   std::stringstream ss;
-  ss << this->head->target_name[b->core.tid];
-  ss << ",";
-  ss << std::min(mc, rc);
-  ss << ",";
-  ss << std::max(mc, rc);
-  ss << ",";
-  if (strand == 0) {
-    ss << rb;
-    ss << ",";
-    ss << mb;
+  ss << this->head->target_name[tid] << ",";
+  if ( tid == mtid ) { //read pair maps to same chromosome
+    ss << std::min(mc, rc) << "," << std::max(mc, rc) << ",";
+    if (strand == 0) {
+      ss << rb << "," << mb;
+    } else {
+      ss << mb << "," << rb;
+    }
   } else {
-    ss << mb;
-    ss << ",";
-    ss << rb;
+    if (strand == 0) {
+      ss << rc << ",-1,";
+      ss << rb << ",KKK";
+    } else {
+      ss << "-1," << rc << ",";
+      ss << "KKK," << rb;
+    }
   }
   std::string str = ss.str();
   const char* cstr = str.c_str();
@@ -164,7 +172,6 @@ void BamAddReadBundles::AddAuxTags(bam1_t* b) {
   int rco = bam_aux_append(b, "RB", 'Z', len, data);
   if ( rco < 0 ) exit(1);
 }
-
 
 void BamAddReadBundles::DelAuxTags(bam1_t* b) {
   uint8_t* t_tag;
@@ -191,6 +198,12 @@ void BamAddReadBundles::DelAuxTags(bam1_t* b) {
   }
 }
 
+void BamAddReadBundles::DelRBTag(bam1_t* b) {
+  uint8_t* t_tag;
+  if (( t_tag = bam_aux_get(b, "RB")) != NULL  ) {
+    bam_aux_del(b, t_tag);
+  }
+}
 
 void BamAddReadBundles::WriteOut(bam1_t* b) {
   if ((sam_write1(this->out, this->head, b) < 0)) {
@@ -214,6 +227,7 @@ void BamAddReadBundles::FilterAndTagReads() {
       er << std::endl;
       throw std::runtime_error(er.str());
     }
+    BamAddReadBundles::DelRBTag(b); //remove old RB tags
     if (BamAddReadBundles::ReadIsUsable(b) == true) {
       BamAddReadBundles::AddAuxTags(b);
       BamAddReadBundles::DelAuxTags(b);
@@ -242,6 +256,7 @@ void Usage() {
   fprintf(stderr, "\nUsage:\n");
   fprintf(stderr, "\t-I\tInput BAM/CRAM file name\n");
   fprintf(stderr, "\t-O\tOutput BAM/CRAM file name\n");
+  fprintf(stderr, "\t-p\tOnly consider reads flagged as proper pairs\n");
   fprintf(stderr, "\t-h\tHelp\n");
 }
 
@@ -250,14 +265,18 @@ int main(int argc, char **argv) {
   BamAddReadBundles barb;
   barb.infile = NULL;
   barb.outfile = NULL;
+  barb.proper_pairs = false;
   int opt = 0;
-  while ((opt = getopt(argc, argv, "I:O:h")) >= 0) {
+  while ((opt = getopt(argc, argv, "pI:O:h")) >= 0) {
     switch (opt) {
       case 'I':
         barb.infile = optarg;
         break;
       case 'O':
         barb.outfile = optarg;
+        break;
+      case 'p':
+        barb.proper_pairs = true;
         break;
       case 'h':
         Usage();
