@@ -133,8 +133,11 @@ int RandomlySelectOneReadPerBundle::ReadStrand(bam1_t* b) {
     return 0;
   } else if (b->core.flag & BAM_FREVERSE) {
     return 1;
+  } else if ( b->core.flag & BAM_FREVERSE & b->core.flag & BAM_FMREVERSE ) {
+    return 2;
   } else {
-    throw std::invalid_argument("Invalid strand");
+    return 3;
+    //throw std::invalid_argument("Invalid strand");
   }
 }
 
