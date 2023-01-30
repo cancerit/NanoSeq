@@ -1,5 +1,6 @@
 # CHANGES
 
+## 3.3.0
 
 * Added new INFO fileds to the final vcf
 * Changes to indel calling to reduce false calls
