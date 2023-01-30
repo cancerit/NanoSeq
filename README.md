@@ -60,7 +60,7 @@ Execution of the scripts from this repository requires that these dependencies a
 
 * samtools
 * bcftools
-* Rscript
+* R (>=3.5 )
 * biobambam
 * bwa
 

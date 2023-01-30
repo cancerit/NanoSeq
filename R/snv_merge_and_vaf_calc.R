@@ -136,7 +136,7 @@ tbx = TabixFile(cov_bed)
 if (num_snvs > 0) {
   snvs$info = gsub("=", ";", snvs$info)
   mat = read.table(text = snvs$info, sep = ';', strip.white = TRUE, stringsAsFactors = F)
-  for (i in seq(from = 1, to = min(ncol(mat) - 1, 17), 2)) {
+  for (i in seq(from = 1, to = ncol(mat) - 1, 2)) {
     col_name = mat[1, i]
     values = mat[, i + 1]
     snvs[, col_name] = values
@@ -197,6 +197,11 @@ if (num_snvs > 0) {
       snvs_new[new_row, "DEPTH_REV"] = sum(snvs_tmp[, "DEPTH_REV"])
       snvs_new[new_row, "DEPTH_NORM_FWD"] = sum(snvs_tmp[, "DEPTH_NORM_FWD"])
       snvs_new[new_row, "DEPTH_NORM_REV"] = sum(snvs_tmp[, "DEPTH_NORM_REV"])
+      snvs_new[new_row, "DPLX_ASXS"] = snvs_tmp[1, "DPLX_ASXS"]
+      snvs_new[new_row, "DPLX_CLIP"] = snvs_tmp[1, "DPLX_CLIP"]
+      snvs_new[new_row, "DPLX_NM"] = snvs_tmp[1, "DPLX_NM"]
+      snvs_new[new_row, "BULK_ASXS"] = snvs_tmp[1, "BULK_ASXS"]
+      snvs_new[new_row, "BULK_NM"] = snvs_tmp[1, "BULK_NM"]         
       if (nrow(snvs_tmp) == 2) {
         snvs_new[new_row, "TYPE"] = "dnv"
       }
@@ -208,7 +213,7 @@ if (num_snvs > 0) {
   # if any sub is PASS, set as PASS (fa8)
   snvs_new[grep("PASS",snvs_new$filter),"filter"] = "PASS"
   # end
-  snvs_new = snvs_new[order(snvs_new$chr, snvs_new$pos),]
+  snvs_new = snvs_new[order(snvs_new$chr, snvs_new$pos, snvs_new$rb_id),]
 
   ##########################################################################################
   # Create mutation ids and collapse repeated mutation calls
@@ -219,11 +224,14 @@ if (num_snvs > 0) {
   unique_muts = counts_per_mut[which(counts_per_mut == 1)]
 
   snvs_new2 = snvs_new[which(snvs_new$mut_id %in% names(unique_muts)),]
-  snvs_new2$TIMES_CALLED = 1
+  if (nrow(snvs_new2) > 0) {
+    snvs_new2$TIMES_CALLED = 1
+  }
   if (length(repeat_muts) > 0) {
     for (mut_id in names(repeat_muts)) {
       new_row = nrow(snvs_new2) + 1
       snvs_tmp = snvs_new[which(snvs_new$mut_id == mut_id),]
+
       freq = nrow(snvs_tmp)
       snvs_new2[new_row, "chr"] = snvs_tmp[1, "chr"]
       snvs_new2[new_row, "pos"] = snvs_tmp[1, "pos"]
@@ -242,6 +250,12 @@ if (num_snvs > 0) {
       snvs_new2[new_row, "DEPTH_NORM_FWD"] = snvs_tmp[1, "DEPTH_NORM_FWD"]
       snvs_new2[new_row, "DEPTH_NORM_REV"] = snvs_tmp[1, "DEPTH_NORM_REV"]
       snvs_new2[new_row, "TIMES_CALLED"] = freq
+      snvs_new2[new_row, "DPLX_ASXS"] = paste(snvs_tmp[, "DPLX_ASXS"], collapse = ",")
+      snvs_new2[new_row, "DPLX_CLIP"] = paste(snvs_tmp[, "DPLX_CLIP"], collapse = ",")
+      snvs_new2[new_row, "DPLX_NM"] = paste(snvs_tmp[, "DPLX_NM"], collapse = ",")
+      snvs_new2[new_row, "BULK_ASXS"] = paste(snvs_tmp[, "BULK_ASXS"], collapse = ",")
+      snvs_new2[new_row, "BULK_NM"] = paste(snvs_tmp[, "BULK_NM"], collapse = ",")
+
       snvs_new2[new_row, "TYPE"] = snvs_tmp[1, "TYPE"]
     }
   }
@@ -249,7 +263,8 @@ if (num_snvs > 0) {
 
   # drop some columns:
   snvs_new2 = snvs_new2[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "TRI", "rb_id", "QPOS", "DEPTH_FWD",
-                         "DEPTH_REV", "DEPTH_NORM_FWD", "DEPTH_NORM_REV", "TYPE", "TIMES_CALLED")]
+                         "DEPTH_REV", "DEPTH_NORM_FWD", "DEPTH_NORM_REV", "TYPE", "TIMES_CALLED", "DPLX_ASXS", 
+                         "DPLX_CLIP", "DPLX_NM", "BULK_ASXS", "BULK_NM")]
 
 
   ##########################################################################################
@@ -323,6 +338,7 @@ if (num_indels > 0) {
   indels$rb_id = gsub(",", ":", indels$RB)
   indels$TYPE = "del"
   indels[which(nchar(indels$ref) < nchar(indels$mut)), "TYPE"] = "ins"
+  indels = indels[order(indels$chr, indels$pos, indels$rb_id),]
 
   # Collapse repeated indels:
   indels$mut_id = paste(indels$chr, indels$pos, indels$ref, indels$mut, sep = ":")
@@ -332,7 +348,9 @@ if (num_indels > 0) {
   unique_muts = counts_per_mut[which(counts_per_mut == 1)]
 
   indels_new = indels[which(indels$mut_id %in% names(unique_muts)),]
-  indels_new$TIMES_CALLED = 1
+  if (nrow(indels_new) > 0) {
+    indels_new$TIMES_CALLED = 1
+  }
   if (length(repeat_muts) > 0) {
     for (mut_id in names(repeat_muts)) {
       new_row = nrow(indels_new) + 1
@@ -433,7 +451,13 @@ if (num_snvs > 0) {
   snvs_final$INFO = paste(snvs_final$INFO, rep("BAM_MUT_BQ10=", nrow(snvs_final)), snvs_final$BAM_MUT_BQ10, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("BAM_COV_BQ10=", nrow(snvs_final)), snvs_final$BAM_COV_BQ10, ";", sep = "")
   snvs_final$INFO = paste(snvs_final$INFO, rep("RB=", nrow(snvs_final)), snvs_final$rb_id, ";", sep = "")
-  snvs_final$INFO = paste(snvs_final$INFO, rep("QPOS=", nrow(snvs_final)), snvs_final$QPOS, "", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("QPOS=", nrow(snvs_final)), snvs_final$QPOS, ";", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_ASXS=", nrow(snvs_final)), snvs_final$DPLX_ASXS, ";", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_CLIP=", nrow(snvs_final)), snvs_final$DPLX_CLIP, ";", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("DPLX_NM=", nrow(snvs_final)), snvs_final$DPLX_NM, ";", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("BULK_ASXS=", nrow(snvs_final)), snvs_final$BULK_ASXS, ";", sep = "")
+  snvs_final$INFO = paste(snvs_final$INFO, rep("BULK_NM=", nrow(snvs_final)), snvs_final$BULK_NM, "", sep = "")
+
   snvs_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]
 }
 
@@ -480,12 +504,17 @@ header[length(header) + 1] = "##INFO=<ID=BAM_COV_BQ10,Number=1,Type=Integer,Desc
 header[length(header) + 1] = "##INFO=<ID=BAM_MUT,Number=1,Type=Integer,Description=\"Number of mut alleles in deduplicated BAM\">"
 header[length(header) + 1] = "##INFO=<ID=BAM_MUT_BQ10,Number=1,Type=Integer,Description=\"Number of mut alleles in deduplicated BAM\">"
 header[length(header) + 1] = "##INFO=<ID=QPOS,Number=.,Type=Integer,Description=\"Read position(s) closest to 5-prime end\">"
-header[length(header) + 1] = "##INFO=<ID=DEPTH_FWD,Number=.,Type=Float,Description=\"Read bundle forward reads depth\">"
-header[length(header) + 1] = "##INFO=<ID=DEPTH_REV,Number=.,Type=Float,Description=\"Read bundle reverse reads depth\">"
-header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_FWD,Number=.,Type=Float,Description=\"Matched normal forward reads depth\">"
-header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_REV,Number=.,Type=Float,Description=\"Matched normal reverse reads depth\">"
+header[length(header) + 1] = "##INFO=<ID=DEPTH_FWD,Number=1,Type=Float,Description=\"Read bundle forward reads depth\">"
+header[length(header) + 1] = "##INFO=<ID=DEPTH_REV,Number=1,Type=Float,Description=\"Read bundle reverse reads depth\">"
+header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Float,Description=\"Matched normal forward reads depth\">"
+header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Float,Description=\"Matched normal reverse reads depth\">"
 header[length(header) + 1] = "##INFO=<ID=RB,Number=.,Type=String,Description=\"Read bundle id(s): chr:breakpoints:barcodes\">"
 header[length(header) + 1] = "##INFO=<ID=SEQ,Number=1,Type=String,Description=\"Sequence context for indels\">"
+header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=.,Type=Integer,Description=\"AS-XS for duplex\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=.,Type=Integer,Description=\"Clipping for duplex\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Integer,Description=\"Mismatches in duplex\">\n"
+header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=.,Type=Integer,Description=\"AS-XS for bulk\">\n"
+header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Integer,Description=\"Mismatches in bulk\">\n"
 header[length(header) + 1] = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
 
 muts_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]

@@ -47,7 +47,7 @@ import re
 import tempfile
 import copy
 
-version = '3.2.1'
+version = '3.3.0'
 
 parser = argparse.ArgumentParser()
 # arguments for all subcommands
@@ -492,6 +492,11 @@ def vcfHeader(args):
     header += '##INFO=<ID=DEPTH_REV,Number=1,Type=Integer,Description="Read bundle reverse reads depth">\n'
     header += '##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Integer,Description="Matched normal forward reads depth">\n'
     header += '##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Integer,Description="Matched normal reverse reads depth">\n'
+    header += '##INFO=<ID=DPLX_ASXS,Number=1,Type=Integer,Description="AS-XS for duplex">\n'
+    header += '##INFO=<ID=DPLX_CLIP,Number=1,Type=Integer,Description="Clipping for duplex">\n'
+    header += '##INFO=<ID=DPLX_NM,Number=1,Type=Integer,Description="Mismatches in duplex">\n'
+    header += '##INFO=<ID=BULK_ASXS,Number=1,Type=Integer,Description="AS-XS for bulk">\n'
+    header += '##INFO=<ID=BULK_NM,Number=1,Type=Integer,Description="Mismatches in bulk">\n'
     header += '##FILTER=<ID=dbsnp,Description="Common SNP site">\n'
     header += '##FILTER=<ID=shearwater,Description="Noisy site">\n'
     header += '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
@@ -1180,10 +1185,11 @@ if (args.subcommand == 'post'):
                 if (var['commonSNP'][i] == '1'):
                     ifilter = "dbsnp"
                 iline += "%s\t" % ifilter
-                iline += "BTAG=%s;BBEG=%s;BEND=%s;TRI=%s;QPOS=%s;DEPTH_FWD=%s;DEPTH_REV=%s;DEPTH_NORM_FWD=%s;DEPTH_NORM_REV=%s\n" % \
+                iline += "BTAG=%s;BBEG=%s;BEND=%s;TRI=%s;QPOS=%s;DEPTH_FWD=%s;DEPTH_REV=%s;DEPTH_NORM_FWD=%s;DEPTH_NORM_REV=%s;DPLX_ASXS=%s;DPLX_CLIP=%s;DPLX_NM=%s;BULK_ASXS=%s;BULK_NM=%s\n" % \
                     (var['dplxBarcode'][i], var['dplxBreakpointBeg'][i], var['dplxBreakpointEnd'][i], var['pyrsub'][i],
                      var['qpos'][i], var['dplxfwdTotal'][i], var['dplxrevTotal'][i], var['bulkForwardTotal'][i],
-                     var['bulkReverseTotal'][i])
+                     var['bulkReverseTotal'][i], var['dplxASXS'][i], var['dplxCLIP'][i], var['dplxNM'][i], var['bulkASXS'][i],
+                     var['bulkNM'][i])
                 iofile.write(iline)
         cmd = "bgzip -@ %s -f %s/post/%s.muts.vcf; sleep 3; bgzip -@ %s -t %s/post/%s.muts.vcf.gz;" % (
             args.threads, tmpDir, args.name, args.threads, tmpDir, args.name)
