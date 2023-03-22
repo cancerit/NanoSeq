@@ -47,7 +47,7 @@ import re
 import tempfile
 import copy
 
-version = '3.3.0'
+version = '3.3.1'
 
 parser = argparse.ArgumentParser()
 # arguments for all subcommands
@@ -735,6 +735,7 @@ if (args.subcommand == 'part'):
             ibeg = iinterval.beg - 1
             iend = iinterval.end - 1
             for i in range(math.floor(ibeg/oargs['win']), math.floor(iend/oargs['win']) + 1):
+                if ( not ichar in chrOffset ) : break
                 j = i + chrOffset[ichar]
                 xSumCov += coverage[j][1]
         cctotal = cctotal - xSumCov
