@@ -47,7 +47,7 @@ import re
 import tempfile
 import copy
 
-version = '3.3.1'
+version = '3.4.0'
 
 parser = argparse.ArgumentParser()
 # arguments for all subcommands
@@ -172,7 +172,7 @@ parser_indelO.add_argument('-c', type=float, action='store',
 parser_indelO.add_argument(
     '-z', type=int, action='store', default=15, help="minimum normal coverage (mc) (15)")
 parser_indelO.add_argument(
-    '-v', type=float, action='store', default=0.01, help="maximum normal VAF (0.01)")    
+    '-v', type=float, action='store', default=0.01, help="maximum normal VAF (0.01)")
 parser_indel._action_groups.append(parser_indelO)
 
 # carry out gather operations and compute summaries
@@ -728,9 +728,9 @@ if (args.subcommand == 'part'):
                 iiresult.append(ifrag)
         gIntervals = iiresult
 
-        # correct total coverage (cctotal) if there are excluded regions
+        # correct total coverage (cctotal)
         xSumCov = 0
-        for iinterval in xIntervals:
+        for iinterval in gIntervals:
             ichar = iinterval.chr
             ibeg = iinterval.beg - 1
             iend = iinterval.end - 1
@@ -738,7 +738,7 @@ if (args.subcommand == 'part'):
                 if ( not ichar in chrOffset ) : break
                 j = i + chrOffset[ichar]
                 xSumCov += coverage[j][1]
-        cctotal = cctotal - xSumCov
+        cctotal = xSumCov
 
     # determine the genomic intervals to give to each job so that each one roughly
     # has the same amount of coverage
@@ -775,7 +775,7 @@ if (args.subcommand == 'part'):
     # check partitioning code is working as expected
     # compare merged partitioned intervals to original gIntervals (copy)
     print("\nChecking partition of intervals..", end='')
-    flatInt = [item for sublist in intervalsPerCPU for item in sublist]
+    flatInt = [item for sublist in intervalsPerCPU[0:njobs] for item in sublist]
     nbases1 = 0
     for i in flatInt:
         nbases1 += i.l
@@ -783,7 +783,7 @@ if (args.subcommand == 'part'):
     for i in gIntervalsCopy:
         nbases2 += i.l
     if (nbases1 != nbases2):
-        sys.exit("Internal check failed: intervals after part have overlaps\n")
+        sys.exit("Internal check failed: interval lenght after partition doesent match origianl (%s, %s)\n"%(nbases2, nbases1))
     print("..", end='')
     mIntervals = [flatInt.pop(0)]
     while (len(flatInt) > 0):
@@ -1015,7 +1015,7 @@ if (args.subcommand == 'indel'):
         cmd += "indelCaller_step3.R %s %s %s %s;"\
             % (args.ref, "%s/indel/%s.indel.vcf.gz" % (tmpDir, i+1), args.normal, args.v)
         cmd += "touch %s/indel/%s.done" % (tmpDir, i+1)
-        if ( os.stat("%s/dsa/%s.dsa.bed.gz"%(tmpDir, i+1)).st_size == 0) : 
+        if ( os.stat("%s/dsa/%s.dsa.bed.gz"%(tmpDir, i+1)).st_size == 0) :
             cmd = "touch %s/indel/%s.indel.bed.gz; touch %s/indel/%s.indel.vcf.gz;" \
                 "touch %s/indel/%s.indel.filtered.vcf.gz; touch %s/indel/%s.indel.filtered.vcf.gz.tbi;" \
                 "touch %s/indel/%s.done" % (tmpDir, i+1,tmpDir, i+1,tmpDir, i+1,tmpDir, i+1,tmpDir, i+1)
@@ -1205,11 +1205,11 @@ if (args.subcommand == 'post'):
             ifile = tmpDir+"/indel/%s.indel.filtered.vcf.gz" % (i+1)
             if ( os.stat(ifile).st_size == 0 ) : continue
             vcf2Merge.append(ifile)
-        cmd = "bcftools concat --no-version -Oz -o %s/post/%s.indel.vcf.gz " % (
-            tmpDir, args.name)
-        for ifile in vcf2Merge:
-            cmd += "%s " % ifile
-        cmd += ";bcftools index -t -f %s/post/%s.indel.vcf.gz " % (
+        cmd = "cp %s merged.vcf.gz ;"% vcf2Merge.pop(0)
+        for ifile in vcf2Merge[1:]:
+            cmd += " bcftools  concat --no-version -Oz -o tmp.xxx.vcf.gz merged.vcf.gz %s; mv tmp.xxx.vcf.gz merged.vcf.gz; "%ifile
+        cmd += "bcftools sort -Oz -o %s/post/%s.indel.vcf.gz merged.vcf.gz;" % (tmpDir, args.name)
+        cmd += "bcftools index -t -f %s/post/%s.indel.vcf.gz " % (
             tmpDir, args.name)
         runCommand(cmd)
 
