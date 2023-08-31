@@ -1,5 +1,11 @@
 # CHANGES
 
+## 3.4.0
+
+* Fixed faulty PART step that was dropping last genomic intervals for targeted experiments
+* Refactored how indels get merged to avoid errors when scaling up calculations
+* Updated htslibs, samtools, bcftools and libdeflate
+
 ## 3.3.0
 
 * Added new INFO fileds to the final vcf
