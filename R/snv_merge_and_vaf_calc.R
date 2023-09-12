@@ -86,6 +86,7 @@ if (length(grep("\\.gz", muts_vcf)) > 0) {
 } else {
   num_snvs = system(paste("grep -cv \"^#\" ", muts_vcf, "|| true"), intern = TRUE)
 }
+num_snvs = as.integer(num_snvs)
 
 num_indels = 0
 if (indel_vcf != '-') {
@@ -96,6 +97,7 @@ if (indel_vcf != '-') {
     num_indels = system(paste("grep -cv \"^#\" ", indel_vcf, "|| true"), intern = TRUE)
   }
 }
+num_indels = as.integer(num_indels)
 
 col_t = c("character","numeric","character","character","character","character","character")
 if (num_snvs == 0) {
@@ -370,6 +372,19 @@ if (num_indels > 0) {
       indels_new[new_row, "MQ"] = indels_tmp[1, "MQ"]
       indels_new[new_row, "DP4"] = indels_tmp[1, "DP4"]
       indels_new[new_row, "mut_id"] = indels_tmp[1, "mut_id"]
+
+      indels_new[new_row, "BBEG"] = paste(indels_new[, "BBEG"], collapse = ",")
+      indels_new[new_row, "BEND"] = paste(indels_new[, "BEND"], collapse = ",")
+      indels_new[new_row, "QPOS"] = paste(indels_new[, "QPOS"], collapse = ",")
+      indels_new[new_row, "DEPTH_FWD"] = median(indels_new[, "DEPTH_FWD"])
+      indels_new[new_row, "DEPTH_REV"] = median(indels_new[, "DEPTH_REV"])
+      indels_new[new_row, "DEPTH_NORM_FWD"] = indels_new[1, "DEPTH_NORM_FWD"]
+      indels_new[new_row, "DEPTH_NORM_REV"] = indels_new[1, "DEPTH_NORM_REV"]
+      indels_new[new_row, "DPLX_ASXS"] = paste(indels_new[, "DPLX_ASXS"], collapse = ",")
+      indels_new[new_row, "DPLX_CLIP"] = paste(indels_new[, "DPLX_CLIP"], collapse = ",")
+      indels_new[new_row, "DPLX_NM"] = paste(indels_new[, "DPLX_NM"], collapse = ",")
+      indels_new[new_row, "BULK_ASXS"] = paste(indels_new[, "BULK_ASXS"], collapse = ",")
+      indels_new[new_row, "BULK_NM"] = paste(indels_new[, "BULK_NM"], collapse = ",")
     }
   }
 
@@ -468,6 +483,10 @@ if (num_indels > 0) {
   indels_final$INFO = paste(indels_final$INFO, rep("DUPLEX_VAF=", nrow(indels_final)), indels_final$DUPLEX_VAF, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("BAM_VAF=", nrow(indels_final)), indels_final$BAM_VAF, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("BAM_VAF_BQ10=", nrow(indels_final)), indels_final$BAM_VAF_BQ10, ";", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("DEPTH_NORM_FWD=", nrow(indels_final)), indels_final$DEPTH_NORM_FWD, ";", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("DEPTH_NORM_REV=", nrow(indels_final)), indels_final$DEPTH_NORM_REV, ";", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("DEPTH_FWD=", nrow(indels_final)), indels_final$DEPTH_FWD, ";", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("DEPTH_REV=", nrow(indels_final)), indels_final$DEPTH_REV, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("SEQ=", nrow(indels_final)), indels_final$SEQ, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("DUPLEX_COV=", nrow(indels_final)), indels_final$DUPLEX_COV, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("BAM_MUT=", nrow(indels_final)), indels_final$BAM_MUT, ";", sep = "")
@@ -475,6 +494,12 @@ if (num_indels > 0) {
   indels_final$INFO = paste(indels_final$INFO, rep("BAM_MUT_BQ10=", nrow(indels_final)), indels_final$BAM_MUT_BQ10, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("BAM_COV_BQ10=", nrow(indels_final)), indels_final$BAM_COV_BQ10, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("RB=", nrow(indels_final)), indels_final$rb_id, "", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("QPOS=", nrow(indels_final)), indels_final$QPOS, ";", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("DPLX_ASXS=", nrow(indels_final)), indels_final$DPLX_ASXS, ";", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("DPLX_CLIP=", nrow(indels_final)), indels_final$DPLX_CLIP, ";", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("DPLX_NM=", nrow(indels_final)), indels_final$DPLX_NM, ";", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("BULK_ASXS=", nrow(indels_final)), indels_final$BULK_ASXS, ";", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("BULK_NM=", nrow(indels_final)), indels_final$BULK_NM, "", sep = "")
 }
 
 # Describe in header:
