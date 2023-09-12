@@ -111,6 +111,7 @@ while(<IN>) {
   next if($dplxCLIP > $max_clip);
   next if($dplxNM > 20); # made very liberal to allow long indels. Check the impact!
   next if($dplxASXS < $min_asxs || $bulkASXS < $min_asxs ); #fa8: fixed bug, we needed to check AS-XS for the bulk too
+  															#     Fixed but: from bitwise OR to logical OR (ainsss)
 
   if($r1 >= $min_size_subfam && $r2 >= $min_size_subfam) {
     my $bulktotal = $bulkForwardTotal+$bulkReverseTotal;
@@ -152,7 +153,17 @@ while(<IN>) {
       $signature_trinuc = &reverse_signature($signature_trinuc);
     }
     $site_tags .= "$signature_trinuc;SW=$shearwater;cSNP=$commonSNP";
-
+    $site_tags .= ";BBEG=$dplxBreakpointBeg";
+    $site_tags .= ";BEND=$dplxBreakpointEnd";
+    $site_tags .= ";DEPTH_FWD=$r1";
+    $site_tags .= ";DEPTH_REV=$r2";
+    $site_tags .= ";DEPTH_NORM_FWD=$bulkForwardTotal";
+    $site_tags .= ";DEPTH_NORM_REV=$bulkReverseTotal";
+    $site_tags .= ";DPLX_ASXS=$dplxASXS";
+    $site_tags .= ";DPLX_CLIP=$dplxCLIP";
+    $site_tags .= ";DPLX_NM=$dplxNM";
+    $site_tags .= ";BULK_ASXS=$bulkASXS";
+    $site_tags .= ";BULK_NM=$bulkNM";
     # If seen in the bulk, flag it:
     if($bulkForwardIndel+$bulkReverseIndel > $max_vaf * $bulktotal) {
       $site_tags .= ";BULK_SEEN($dplxForwardIndel+$dplxReverseIndel/$bulktotal)";
