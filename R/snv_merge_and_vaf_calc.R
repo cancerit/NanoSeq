@@ -247,8 +247,8 @@ if (num_snvs > 0) {
       snvs_new2[new_row, "BEND"] = paste(snvs_tmp[, "BEND"], collapse = ",")
       snvs_new2[new_row, "TRI"] = snvs_tmp[1, "TRI"]
       snvs_new2[new_row, "QPOS"] = paste(snvs_tmp[, "QPOS"], collapse = ",")
-      snvs_new2[new_row, "DEPTH_FWD"] = median(snvs_tmp[, "DEPTH_FWD"])
-      snvs_new2[new_row, "DEPTH_REV"] = median(snvs_tmp[, "DEPTH_REV"])
+      snvs_new2[new_row, "DEPTH_FWD"] = median(as.numeric(snvs_tmp[, "DEPTH_FWD"]))
+      snvs_new2[new_row, "DEPTH_REV"] = median(as.numeric(snvs_tmp[, "DEPTH_REV"]))
       snvs_new2[new_row, "DEPTH_NORM_FWD"] = snvs_tmp[1, "DEPTH_NORM_FWD"]
       snvs_new2[new_row, "DEPTH_NORM_REV"] = snvs_tmp[1, "DEPTH_NORM_REV"]
       snvs_new2[new_row, "TIMES_CALLED"] = freq
@@ -373,25 +373,25 @@ if (num_indels > 0) {
       indels_new[new_row, "DP4"] = indels_tmp[1, "DP4"]
       indels_new[new_row, "mut_id"] = indels_tmp[1, "mut_id"]
 
-      indels_new[new_row, "BBEG"] = paste(indels_new[, "BBEG"], collapse = ",")
-      indels_new[new_row, "BEND"] = paste(indels_new[, "BEND"], collapse = ",")
-      indels_new[new_row, "QPOS"] = paste(indels_new[, "QPOS"], collapse = ",")
-      indels_new[new_row, "DEPTH_FWD"] = median(indels_new[, "DEPTH_FWD"])
-      indels_new[new_row, "DEPTH_REV"] = median(indels_new[, "DEPTH_REV"])
-      indels_new[new_row, "DEPTH_NORM_FWD"] = indels_new[1, "DEPTH_NORM_FWD"]
-      indels_new[new_row, "DEPTH_NORM_REV"] = indels_new[1, "DEPTH_NORM_REV"]
-      indels_new[new_row, "DPLX_ASXS"] = paste(indels_new[, "DPLX_ASXS"], collapse = ",")
-      indels_new[new_row, "DPLX_CLIP"] = paste(indels_new[, "DPLX_CLIP"], collapse = ",")
-      indels_new[new_row, "DPLX_NM"] = paste(indels_new[, "DPLX_NM"], collapse = ",")
-      indels_new[new_row, "BULK_ASXS"] = paste(indels_new[, "BULK_ASXS"], collapse = ",")
-      indels_new[new_row, "BULK_NM"] = paste(indels_new[, "BULK_NM"], collapse = ",")
+      indels_new[new_row, "BBEG"] = paste(indels_tmp[, "BBEG"], collapse = ",")
+      indels_new[new_row, "BEND"] = paste(indels_tmp[, "BEND"], collapse = ",")
+      indels_new[new_row, "QPOS"] = paste(indels_tmp[, "QPOS"], collapse = ",")
+      indels_new[new_row, "DEPTH_FWD"] = median(as.numeric(indels_tmp[, "DEPTH_FWD"]))
+      indels_new[new_row, "DEPTH_REV"] = median(as.numeric(indels_tmp[, "DEPTH_REV"]))
+      indels_new[new_row, "DEPTH_NORM_FWD"] = indels_tmp[1, "DEPTH_NORM_FWD"]
+      indels_new[new_row, "DEPTH_NORM_REV"] = indels_tmp[1, "DEPTH_NORM_REV"]
+      indels_new[new_row, "DPLX_ASXS"] = paste(indels_tmp[, "DPLX_ASXS"], collapse = ",")
+      indels_new[new_row, "DPLX_CLIP"] = paste(indels_tmp[, "DPLX_CLIP"], collapse = ",")
+      indels_new[new_row, "DPLX_NM"] = paste(indels_tmp[, "DPLX_NM"], collapse = ",")
+      indels_new[new_row, "BULK_ASXS"] = paste(indels_tmp[, "BULK_ASXS"], collapse = ",")
+      indels_new[new_row, "BULK_NM"] = paste(indels_tmp[, "BULK_NM"], collapse = ",")
     }
   }
 
   indels_new = indels_new[order(indels_new$chr, indels_new$pos),]
 
   # drop some columns:
-  indels_new = indels_new[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "rb_id", "TYPE", "TIMES_CALLED", "SEQ")]
+  indels_new = indels_new[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "rb_id", "TYPE", "TIMES_CALLED", "SEQ","BBEG","BEND","QPOS","DEPTH_FWD","DEPTH_REV","DEPTH_NORM_FWD","DEPTH_NORM_REV","DPLX_ASXS","DPLX_CLIP","DPLX_NM","BULK_ASXS","BULK_NM")]
 
   ##########################################################################################
   # Calculate VAFs for indels 
