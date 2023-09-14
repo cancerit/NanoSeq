@@ -109,7 +109,7 @@ while(<IN>) {
   my $bulk_rev = $bulkReverseTotal;
   next if($bulk_fwd + $bulk_rev < $bulk_min_cov); # Bulk minimum coverage
   next if($dplxCLIP > $max_clip);
-  next if($dplxNM > 20); # made very liberal to allow long indels. Check the impact!
+  next if($dplxNM > 20); # made very liberal to allow long indels. Check the impact! --> it seems is working, good
   next if($dplxASXS < $min_asxs || $bulkASXS < $min_asxs ); #fa8: fixed bug, we needed to check AS-XS for the bulk too
   															#     Fixed but: from bitwise OR to logical OR (ainsss)
 
