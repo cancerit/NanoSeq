@@ -1,5 +1,9 @@
 # CHANGES
 
+## 3.5.0
+* Minor bug in the indel pipeline fixed (was using bitwise OR instead of logical OR)
+* New quality metrics added to the indel calls such that SNVs and indels come out with the same metrics
+
 ## 3.4.0
 
 * Fixed faulty PART step that was dropping last genomic intervals for targeted experiments
