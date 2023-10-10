@@ -55,7 +55,7 @@ ipak_bioc <- function(pkg){
 
 if( (version$major == 3 && version$minor >=5) || version$major > 3) {
   # biocmanager versions of R
-  if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+  if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager", version="3.10")
   BiocManager::install(ask=FALSE, lib=instLib, lib.loc=instLib)
   ipak_bioc(c("deepSNV"))
   ipak_bioc(c("vcfR"))
