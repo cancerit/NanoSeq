@@ -107,6 +107,7 @@ else
   get_distro "libdeflate" "https://github.com/ebiggers/libdeflate/archive/$VER_LIBDEFLATE.tar.gz"
   tar --strip-components 1 -C libdeflate -zxf libdeflate.tar.gz
   cd libdeflate
+  mkdir build
   cmake -B build
   cmake --build build
   cmake --install build

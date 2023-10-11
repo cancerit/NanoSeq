@@ -1,4 +1,4 @@
-FROM  ubuntu:22.04 as builder
+FROM  ubuntu:18.04 as builder
 
 USER  root
 
@@ -22,12 +22,13 @@ RUN apt-get install -yq --no-install-recommends pkg-config
 RUN apt-get install -yq --no-install-recommends wget
 
 # if ubuntu 18.04
-# RUN apt install -yq --no-install-recommends software-properties-common dirmngr
-# RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
-# RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
-# RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
-# RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
-RUN apt-get install -yq --no-install-recommends r-base=4.1.2-1ubuntu2
+RUN apt install -yq --no-install-recommends software-properties-common dirmngr
+RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
+RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
+# if ubuntu 22.04
+# RUN apt-get install -yq --no-install-recommends r-base=4.1.2-1ubuntu2
 
 RUN apt-get install -yq --no-install-recommends zlib1g-dev
 RUN apt-get install -yq --no-install-recommends libbz2-dev
@@ -64,7 +65,7 @@ RUN bash build/opt-build.sh $OPT
 COPY . .
 RUN bash build/opt-build-local.sh $OPT
 
-FROM ubuntu:22.04
+FROM ubuntu:18.04
 
 LABEL maintainer="cgphelp@sanger.ac.uk" \
       uk.ac.sanger.cgp="Cancer, Ageing and Somatic Mutation, Wellcome Trust Sanger Institute" \
