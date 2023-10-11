@@ -1,4 +1,4 @@
-FROM  ubuntu:22.04 as builder
+FROM  ubuntu:18.04 as builder
 
 USER  root
 
@@ -21,6 +21,7 @@ RUN apt-get install -yq --no-install-recommends gcc
 RUN apt-get install -yq --no-install-recommends pkg-config
 RUN apt-get install -yq --no-install-recommends wget
 RUN apt-get install -yq --no-install-recommends locales
+RUN daflkad
 RUN apt-get install -yq --no-install-recommends r-base=4.1.2-1ubuntu2
 RUN apt-get install -yq --no-install-recommends zlib1g-dev
 RUN apt-get install -yq --no-install-recommends libbz2-dev
@@ -57,7 +58,7 @@ RUN bash build/opt-build.sh $OPT
 COPY . .
 RUN bash build/opt-build-local.sh $OPT
 
-FROM ubuntu:22.04
+FROM ubuntu:18.04
 
 LABEL maintainer="cgphelp@sanger.ac.uk" \
       uk.ac.sanger.cgp="Cancer, Ageing and Somatic Mutation, Wellcome Trust Sanger Institute" \
