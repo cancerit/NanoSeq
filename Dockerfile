@@ -21,7 +21,7 @@ RUN apt-get install -yq --no-install-recommends gcc
 RUN apt-get install -yq --no-install-recommends pkg-config
 RUN apt-get install -yq --no-install-recommends wget
 RUN apt-get install -yq --no-install-recommends locales
-RUN apt-get install -yq --no-install-recommends r-base
+RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
 RUN apt-get install -yq --no-install-recommends zlib1g-dev
 RUN apt-get install -yq --no-install-recommends libbz2-dev
 RUN apt-get install -yq --no-install-recommends liblzma-dev
@@ -74,7 +74,7 @@ ca-certificates \
 time \
 zlib1g \
 python3 \
-r-base \
+r-base=4.1.3-1.1804.0 \
 r-cran-ggplot2 \
 r-cran-data.table \
 r-cran-epitools \
