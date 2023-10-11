@@ -108,7 +108,7 @@ else
   tar --strip-components 1 -C libdeflate -zxf libdeflate.tar.gz
   cd libdeflate
   mkdir build
-  cmake -B build
+  cmake -S . -B build
   cmake --build build
   cmake --install build
   cmake --install build --prefix $INST_PATH
