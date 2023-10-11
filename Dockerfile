@@ -74,7 +74,7 @@ ca-certificates \
 time \
 zlib1g \
 python3 \
-r-base=4.1.3-1.1804.0 \
+r-base=4.1.2-1ubuntu2 \
 r-cran-ggplot2 \
 r-cran-data.table \
 r-cran-epitools \
