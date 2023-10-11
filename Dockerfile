@@ -61,7 +61,7 @@ FROM ubuntu:22.04
 
 LABEL maintainer="cgphelp@sanger.ac.uk" \
       uk.ac.sanger.cgp="Cancer, Ageing and Somatic Mutation, Wellcome Trust Sanger Institute" \
-      version="1.0.0" \
+      version="1.0.1" \
       description="nanoseq docker"
 
 ENV DEBIAN_FRONTEND=noninteractive
