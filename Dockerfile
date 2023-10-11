@@ -23,8 +23,6 @@ RUN apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) m
 RUN apt-get install -yq --no-install-recommends cmake=3.25.2-0kitware1ubuntu18.04.1
 
 RUN apt-get install -yq --no-install-recommends make
-RUN apt-get install -yq --no-install-recommends bzip2
-RUN apt-get install -yq --no-install-recommends gcc
 RUN apt-get install -yq --no-install-recommends pkg-config
 
 # if ubuntu 18.04
