@@ -14,15 +14,21 @@ RUN apt-get -yq update
 RUN apt-get install -yq --no-install-recommends locales
 RUN apt-get install -yq --no-install-recommends g++
 RUN apt-get install -yq --no-install-recommends ca-certificates
-RUN apt-get install -yq --no-install-recommends cmake
+RUN apt-get install -yq --no-install-recommends wget
+
+# install latest cmake so opt-build.sh works - the initial installs will also help install R
+RUN apt-get install -yq --no-install-recommends software-properties-common lsb-release
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+RUN apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+RUN apt-get install -yq --no-install-recommends cmake=3.25.2-0kitware1ubuntu18.04.1
+
 RUN apt-get install -yq --no-install-recommends make
 RUN apt-get install -yq --no-install-recommends bzip2
 RUN apt-get install -yq --no-install-recommends gcc
 RUN apt-get install -yq --no-install-recommends pkg-config
-RUN apt-get install -yq --no-install-recommends wget
 
 # if ubuntu 18.04
-RUN apt install -yq --no-install-recommends software-properties-common dirmngr
+RUN apt install -yq --no-install-recommends dirmngr
 RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
 RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
 RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
