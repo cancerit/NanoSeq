@@ -29,8 +29,12 @@ RUN apt-get install -yq --no-install-recommends pkg-config
 RUN apt install -yq --no-install-recommends dirmngr
 RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
 RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+RUN apt-get install -yq --no-install-recommends r-base-core=4.1.3-1.1804.0
+RUN apt-mark hold r-base-core
+RUN apt-get install -yq --no-install-recommends r-cran-mass=7.3-51.5-2bionic0 r-cran-class=7.3-16-1bionic0 r-cran-nnet=7.3-13-1bionic0
 RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
 RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
+RUN apt-mark hold r-base r-recommended
 # if ubuntu 22.04
 # RUN apt-get install -yq --no-install-recommends r-base=4.1.2-1ubuntu2
 
@@ -99,11 +103,15 @@ unattended-upgrade -d -v && \
 apt-get remove -yq unattended-upgrades && \
 apt-get autoremove -yq
 
-RUN apt install -yq software-properties-common --no-install-recommends dirmngr
+RUN apt install -yq --no-install-recommends software-properties-common dirmngr
 RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
 RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+RUN apt-get install -yq --no-install-recommends r-base-core=4.1.3-1.1804.0
+RUN apt-mark hold r-base-core
+RUN apt-get install -yq --no-install-recommends r-cran-mass=7.3-51.5-2bionic0 r-cran-class=7.3-16-1bionic0 r-cran-nnet=7.3-13-1bionic0
 RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
 RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
+RUN apt-mark hold r-base r-recommended
 RUN apt-get install -yq --no-install-recommends r-cran-ggplot2
 RUN apt-get install -yq --no-install-recommends r-cran-data.table
 RUN apt-get install -yq --no-install-recommends r-cran-epitools
