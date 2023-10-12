@@ -86,12 +86,6 @@ ca-certificates \
 time \
 zlib1g \
 python3 \
-r-base=4.1.2-1ubuntu2 \
-r-cran-ggplot2 \
-r-cran-data.table \
-r-cran-epitools \
-r-cran-gridextra \
-r-cran-seqinr \
 libxml2 \
 libgsl27 \
 libperl5.34 \
@@ -103,6 +97,17 @@ unattended-upgrades && \
 unattended-upgrade -d -v && \
 apt-get remove -yq unattended-upgrades && \
 apt-get autoremove -yq
+
+RUN apt install -yq software-properties-common --no-install-recommends dirmngr
+RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
+RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
+RUN apt-get install -yq --no-install-recommends r-cran-ggplot2
+RUN apt-get install -yq --no-install-recommends r-cran-data.table
+RUN apt-get install -yq --no-install-recommends r-cran-epitools
+RUN apt-get install -yq --no-install-recommends r-cran-gridextra
+RUN apt-get install -yq --no-install-recommends r-cran-seqinr
 
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
