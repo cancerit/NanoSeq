@@ -120,7 +120,6 @@ RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
 RUN apt-mark hold r-base r-recommended
 ADD build/libInstall2.R build/
 RUN Rscript build/libInstall2.R
-dafdda
 
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
