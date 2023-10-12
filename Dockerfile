@@ -88,6 +88,8 @@ locales \
 curl \
 wget \
 make \
+g++ \
+gcc \
 ca-certificates \
 time \
 zlib1g \
