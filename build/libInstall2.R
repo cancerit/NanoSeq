@@ -32,4 +32,4 @@
 ###########################
 
 #install R packages
-install.packages(c("ggplot2", "data.table", "epitools", "gridextra", "seqinr"))
+install.packages(c("ggplot2", "data.table", "epitools", "gridExtra", "seqinr"))

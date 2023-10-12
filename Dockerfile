@@ -90,6 +90,9 @@ wget \
 make \
 g++ \
 gcc \
+gfortran \
+libblas-dev \
+liblapack-dev \
 ca-certificates \
 time \
 zlib1g \
