@@ -82,6 +82,7 @@ RUN apt-get install -yq --no-install-recommends \
 apt-transport-https \
 locales \
 curl \
+wget \
 ca-certificates \
 time \
 zlib1g \
