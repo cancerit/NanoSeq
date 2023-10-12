@@ -87,8 +87,8 @@ time \
 zlib1g \
 python3 \
 libxml2 \
-libgsl27 \
-libperl5.34 \
+libgsl23 \
+libperl5.26 \
 libcapture-tiny-perl \
 libfile-which-perl \
 libpng16-16 \
