@@ -87,6 +87,7 @@ apt-transport-https \
 locales \
 curl \
 wget \
+make \
 ca-certificates \
 time \
 zlib1g \
