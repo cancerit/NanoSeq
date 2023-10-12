@@ -112,11 +112,8 @@ RUN apt-get install -yq --no-install-recommends r-cran-mass=7.3-51.5-2bionic0 r-
 RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
 RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
 RUN apt-mark hold r-base r-recommended
-RUN apt-get install -yq --no-install-recommends r-cran-ggplot2
-RUN apt-get install -yq --no-install-recommends r-cran-data.table
-RUN apt-get install -yq --no-install-recommends r-cran-epitools
-RUN apt-get install -yq --no-install-recommends r-cran-gridextra
-RUN apt-get install -yq --no-install-recommends r-cran-seqinr
+ADD build/libInstall2.R build/
+RUN Rscript build/libInstall2.R
 
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
