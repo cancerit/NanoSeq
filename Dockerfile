@@ -96,6 +96,7 @@ liblapack-dev \
 ca-certificates \
 time \
 zlib1g \
+libz-dev \
 python3 \
 libxml2 \
 libgsl23 \
