@@ -308,7 +308,7 @@ foreach my $rb_id (keys %indels) {
         $overlapping_mask++;
       }
     }
-    if($overlapping_mask > 0.5 * length($fields[3])) {
+    if($overlapping_mask > 0.25 * length($fields[3])) {
 	    $fields[6] = "MASKED";
     }
     $info[$count] = join "\t",@fields;
