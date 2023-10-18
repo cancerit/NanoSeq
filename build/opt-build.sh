@@ -107,8 +107,10 @@ else
   get_distro "libdeflate" "https://github.com/ebiggers/libdeflate/archive/$VER_LIBDEFLATE.tar.gz"
   tar --strip-components 1 -C libdeflate -zxf libdeflate.tar.gz
   cd libdeflate
-  make -j$CPU CFLAGS="-fPIC -O3" libdeflate.a
-  PREFIX=$INST_PATH make install
+  cmake -B build
+  cmake --build build
+  cmake --install build
+  cmake --install build --prefix $INST_PATH
   cd $SETUP_DIR
   rm -r libdeflate.tar.gz
   touch $SETUP_DIR/libdeflate.success
