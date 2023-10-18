@@ -1,4 +1,4 @@
-FROM  ubuntu:22.04 as builder
+FROM  ubuntu:18.04 as builder
 
 USER  root
 
@@ -14,14 +14,30 @@ RUN apt-get -yq update
 RUN apt-get install -yq --no-install-recommends locales
 RUN apt-get install -yq --no-install-recommends g++
 RUN apt-get install -yq --no-install-recommends ca-certificates
-RUN apt-get install -yq --no-install-recommends cmake
-RUN apt-get install -yq --no-install-recommends make
-RUN apt-get install -yq --no-install-recommends bzip2
-RUN apt-get install -yq --no-install-recommends gcc
-RUN apt-get install -yq --no-install-recommends pkg-config
 RUN apt-get install -yq --no-install-recommends wget
-RUN apt-get install -yq --no-install-recommends locales
-RUN apt-get install -yq --no-install-recommends r-base
+
+# install latest cmake so opt-build.sh works - the initial installs will also help install R
+RUN apt-get install -yq --no-install-recommends software-properties-common lsb-release
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+RUN apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+RUN apt-get install -yq --no-install-recommends cmake=3.25.2-0kitware1ubuntu18.04.1
+
+RUN apt-get install -yq --no-install-recommends make
+RUN apt-get install -yq --no-install-recommends pkg-config
+
+# if ubuntu 18.04
+RUN apt install -yq --no-install-recommends dirmngr
+RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+RUN apt-get install -yq --no-install-recommends r-base-core=4.1.3-1.1804.0
+RUN apt-mark hold r-base-core
+RUN apt-get install -yq --no-install-recommends r-cran-mass=7.3-51.5-2bionic0 r-cran-class=7.3-16-1bionic0 r-cran-nnet=7.3-13-1bionic0
+RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
+RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
+RUN apt-mark hold r-base r-recommended
+# if ubuntu 22.04
+# RUN apt-get install -yq --no-install-recommends r-base=4.1.2-1ubuntu2
+
 RUN apt-get install -yq --no-install-recommends zlib1g-dev
 RUN apt-get install -yq --no-install-recommends libbz2-dev
 RUN apt-get install -yq --no-install-recommends liblzma-dev
@@ -57,11 +73,11 @@ RUN bash build/opt-build.sh $OPT
 COPY . .
 RUN bash build/opt-build-local.sh $OPT
 
-FROM ubuntu:22.04
+FROM ubuntu:18.04
 
 LABEL maintainer="cgphelp@sanger.ac.uk" \
       uk.ac.sanger.cgp="Cancer, Ageing and Somatic Mutation, Wellcome Trust Sanger Institute" \
-      version="1.0.0" \
+      version="1.0.1" \
       description="nanoseq docker"
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -70,19 +86,21 @@ RUN apt-get install -yq --no-install-recommends \
 apt-transport-https \
 locales \
 curl \
+wget \
+make \
+g++ \
+gcc \
+gfortran \
+libblas-dev \
+liblapack-dev \
 ca-certificates \
 time \
 zlib1g \
+libz-dev \
 python3 \
-r-base \
-r-cran-ggplot2 \
-r-cran-data.table \
-r-cran-epitools \
-r-cran-gridextra \
-r-cran-seqinr \
 libxml2 \
-libgsl27 \
-libperl5.34 \
+libgsl23 \
+libperl5.26 \
 libcapture-tiny-perl \
 libfile-which-perl \
 libpng16-16 \
@@ -91,6 +109,18 @@ unattended-upgrades && \
 unattended-upgrade -d -v && \
 apt-get remove -yq unattended-upgrades && \
 apt-get autoremove -yq
+
+RUN apt install -yq --no-install-recommends software-properties-common dirmngr
+RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+RUN apt-get install -yq --no-install-recommends r-base-core=4.1.3-1.1804.0
+RUN apt-mark hold r-base-core
+RUN apt-get install -yq --no-install-recommends r-cran-mass=7.3-51.5-2bionic0 r-cran-class=7.3-16-1bionic0 r-cran-nnet=7.3-13-1bionic0
+RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
+RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
+RUN apt-mark hold r-base r-recommended
+ADD build/libInstall2.R build/
+RUN Rscript build/libInstall2.R
 
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
