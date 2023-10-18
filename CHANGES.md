@@ -1,5 +1,9 @@
 # CHANGES
 
+## 3.5.1
+* Dockerfile updated to avoid snv_merge_and_vaf_calc.R bug and to improve reproducibility
+* Small change to hardcoded overlapping_mask value in indel caller
+
 ## 3.5.0
 * Minor bug in the indel pipeline fixed (was using bitwise OR instead of logical OR)
 * New quality metrics added to the indel calls such that SNVs and indels come out with the same metrics
