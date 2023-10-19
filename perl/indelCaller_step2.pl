@@ -283,7 +283,9 @@ foreach my $rb_id (keys %indels) {
     print "RESULT: $_\n";
     my @fields          = split(/\t/,$_);
     print STDERR "fields=@fields\n";
-    my $anyisok         = (keys(%{$indels{$rb_id}}))[0];
+    my @sorted_by_pos   = sort { $a <=> $b } keys %{$indels{$rb_id}};
+    my $anyisok         = $sorted_by_pos[0];
+    # my $anyisok         = (keys(%{$indels{$rb_id}}))[0];
     my $qpos            = $indels{$rb_id}->{$anyisok}->{"qpos"          };
     my $bbeg            = $indels{$rb_id}->{$anyisok}->{"bbeg"          };
 	my $bend            = $indels{$rb_id}->{$anyisok}->{"bend"          };
