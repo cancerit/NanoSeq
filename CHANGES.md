@@ -1,5 +1,9 @@
 # CHANGES
 
+## 3.5.2
+* Remove non-deterministic behaviour from indel caller
+* Missing semicolon in snv_merge_and_vaf_calc.R
+
 ## 3.5.1
 * Dockerfile updated to avoid snv_merge_and_vaf_calc.R bug and to improve reproducibility
 * Small change to hardcoded overlapping_mask value in indel caller

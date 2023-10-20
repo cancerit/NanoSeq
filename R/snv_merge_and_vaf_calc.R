@@ -493,7 +493,7 @@ if (num_indels > 0) {
   indels_final$INFO = paste(indels_final$INFO, rep("BAM_COV=", nrow(indels_final)), indels_final$BAM_COV, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("BAM_MUT_BQ10=", nrow(indels_final)), indels_final$BAM_MUT_BQ10, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("BAM_COV_BQ10=", nrow(indels_final)), indels_final$BAM_COV_BQ10, ";", sep = "")
-  indels_final$INFO = paste(indels_final$INFO, rep("RB=", nrow(indels_final)), indels_final$rb_id, "", sep = "")
+  indels_final$INFO = paste(indels_final$INFO, rep("RB=", nrow(indels_final)), indels_final$rb_id, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("QPOS=", nrow(indels_final)), indels_final$QPOS, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("DPLX_ASXS=", nrow(indels_final)), indels_final$DPLX_ASXS, ";", sep = "")
   indels_final$INFO = paste(indels_final$INFO, rep("DPLX_CLIP=", nrow(indels_final)), indels_final$DPLX_CLIP, ";", sep = "")
