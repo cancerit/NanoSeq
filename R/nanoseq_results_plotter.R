@@ -561,17 +561,15 @@ if (n_variants_unmasked > 0 & n_variants_masked > 0 ) {
 tosave = as.data.frame(matrix(nrow=2,ncol=5))
 colnames(tosave) = c("subs","total","burden","burden_lci","burden_uci")
 rownames(tosave) = c("masked","unmasked")
-tosave["masked",] = c(n_variants_masked / (n_reference_masked, 
-                      n_variants_masked),
+tosave["masked",] = c(n_variants_masked, n_reference_masked+ n_variants_masked,
                       n_variants_masked / (n_reference_masked + n_variants_masked),
                       ci_masked[1],
                       ci_masked[2])
-tosave["unmasked",] = c(n_variants_unmasked / (n_reference_unmasked, 
-                      n_variants_unmasked),
+tosave["unmasked",] = c(n_variants_unmasked, n_reference_unmasked + n_variants_unmasked,
                       n_variants_unmasked / (n_reference_unmasked + n_variants_unmasked),
                       ci_unmasked[1],
                       ci_unmasked[2])
-write.table(tosave,file="obs_burdens.pre_vs_post_masking.tsv",sep="\t",row.names=T,col.names=T,quote=F)
+write.table(tosave,file=paste(out_name, ".obs_burdens.pre_vs_post_masking.tsv", sep = ""),sep="\t",row.names=T,col.names=T,quote=F)
 # end.
 
 ##########################################################################################
