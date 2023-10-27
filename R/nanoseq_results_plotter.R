@@ -43,35 +43,27 @@ READ_LENGTH = 151
 
 args = commandArgs(TRUE)
 
-if (length(args) == 0) {
-  cat("nanoseq_results_plotter.R  directory  output_prefix [trinucleotide_frequencies_file]\n\n")
-  cat("Must specify a directory with the various CSV files and a prefix for the output files.\n")
-  cat("Optionally a file containing the background genomic (pyrimidine-based) trinucleotide absolute counts (for normalization purposes). If not provided, human frequencies will be assumed.\n\n")
-  cat("This script generates a series of plots and tables summarizing the results of the variantcaller.\n\n")
-  quit(save = "no", status = 0)
-}
-
-if (length(args) < 2 || length(args) > 3) {
-  cat("nanoseq_results_plotter.R  directory  output_prefix [trinucleotide_frequencies_file]\n\n")
-  cat("Must specify a directory with the various CSV files and a prefix for the output files.\n")
-  cat("Optionally a file containing the background genomic (pyrimidine-based) trinucleotide absolute counts (for normalization purposes). If not provided, human frequencies will be assumed.\n\n")
-  cat("This script generates a series of plots and tables summarizing the results of the variantcaller.\n\n")
+if (length(args) == 0 || length(args) < 2 || length(args) > 3) {
+  message("nanoseq_results_plotter.R  directory  output_prefix [trinucleotide_frequencies_file]\n\n")
+  message("Must specify a directory with the various CSV files and a prefix for the output files.\n")
+  message("Optionally a file containing the background genomic (pyrimidine-based) trinucleotide absolute counts (for normalization purposes). If not provided, human frequencies will be assumed.\n\n")
+  message("This script generates a series of plots and tables summarizing the results of the variantcaller.\n\n")
   quit(save = "no", status = 1)
 }
 
 dir_res = args[1]
 out_name = args[2]
 if (length(args) == 3) {
-  cat("Reading genomic trinucleotide absolute counts from file: ", args[3], "\n", sep = "")
+  message(sprintf("Reading genomic trinucleotide absolute counts from file: %s\n", args[3]))
   order = c("ACA", "ACC", "ACG", "ACT", "ATA", "ATC", "ATG", "ATT", "CCA", "CCC", "CCG", "CCT", "CTA", "CTC", "CTG", "CTT",
             "GCA", "GCC", "GCG", "GCT", "GTA", "GTC", "GTG", "GTT", "TCA", "TCC", "TCG", "TCT", "TTA", "TTC", "TTG", "TTT")
   genome_counts_tmp = read.table(args[3], sep = "\t", stringsAsFactors = F, header = F, row.names = 1)
   if (nrow(genome_counts_tmp) != length(order)) {
-    cat(args[3], " not properly formatted. Expected ", length(order), " rows, one for each pyrimidine trinucleotide\n", sep = "")
+    message(sprintf("%s not properly formatted. Expected %d rows, one for each pyrimidine trinucleotide\n", args[3], length(order)))
     quit(save = "no", status = 0)
   }
   if (sum(genome_counts_tmp[, 1]) < 1e6) {
-    cat(args[3], " does not seem to contain absolute counts.\n", sep = "")
+    message(sprintf("%s does not seem to contain absolute counts.\n", args[3]))
     quit(save = "no", status = 0)
   }
   genome_counts = vector()
@@ -224,7 +216,7 @@ dev.off()
 ##########################################################################################
 # Second: the subst type asymmetries by bins
 if (n_variants > 0) {
-  cat("       Calculating conf int for sub types...\n")
+  message("       Calculating conf int for sub types...\n")
   pdf(width = 9, height = 7, file = paste(out_name, ".subst_asym_and_rates_binned.pdf", sep = ""))
   BIN_SIZE = 10
 
@@ -324,7 +316,7 @@ if (n_variants > 0) {
     bin_mat[bin, "rate_uci"] <- conf.ints[2]
   }
 
-  cat("       Plotting results...\n")
+  message("       Plotting results...\n")
   plotting_order <- c("C>A", "G>T", "C>G", "G>C", "C>T", "G>A", "T>A", "A>T", "T>C", "A>G", "T>G", "A>C")
   colors <- rep(c("deepskyblue", "black", "firebrick2", "gray", "darkolivegreen3", "rosybrown2"), each = 2)
 
