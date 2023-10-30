@@ -47,7 +47,7 @@ import re
 import tempfile
 import copy
 
-version = '3.5.2'
+version = '3.5.4'
 
 parser = argparse.ArgumentParser()
 # arguments for all subcommands
@@ -1151,7 +1151,7 @@ if (args.subcommand == 'post'):
             tmpDir, tmpDir)
         runCommand(cmd)
 
-        cmd = "nanoseq_results_plotter.R %s/post %s/post/%s %s || true" % (
+        cmd = "nanoseq_results_plotter.R %s/post %s/post/%s %s" % (
             tmpDir, tmpDir, args.name, args.triNuc or "")
         runCommand(cmd)
 
