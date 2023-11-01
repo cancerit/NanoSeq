@@ -120,11 +120,15 @@ class VariantCaller {
 
     std::ofstream fout_coverage;
 
+    std::ofstream fout_discarded;
+
     ogzstream gzout_coverage;
 
     const char* outfile;
 
     const char* outfile_coverage;
+
+    const char* outfile_discarded;
 
     const char* bed;
 
@@ -213,6 +217,8 @@ class VariantCaller {
     void CollectMetrics();
 
     void WriteVariants(row_t *row);
+
+    void WriteDiscardedVariants(row_t *row);
 
     void WriteMismatches(row_t *row);
 

@@ -87,5 +87,5 @@ test :$(TARGETS)
 
 clean:
 	$(RM) $(TARGETS)
-	$(RM) ./test/table.test.bed.gz ./test/variant.test ./test/test.neat.bam ./test/test.post.bam
+	$(RM) ./test/table.test.bed.gz ./test/variant.test ./test/variant.test.discarded ./test/test.neat.bam ./test/test.post.bam
 # DO NOT DELETE THIS LINE -- make depend needs it
