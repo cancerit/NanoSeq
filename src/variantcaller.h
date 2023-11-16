@@ -109,6 +109,19 @@ typedef struct {
   int ismasked;
   std::string pyrcontext;
   std::string dplx_barcode;
+
+  // Filters
+  bool dplx_clip_filter;
+  bool alignment_score_filter;
+  bool mismatch_filter;
+  bool matched_normal_filter;
+  bool duplex_filter;
+  bool consensus_base_quality_filter;
+  bool indel_filter;
+  bool five_prime_trim_filter;
+  bool three_prime_trim_filter;
+  bool proper_pair_filter;
+  bool pass_all_filters;
 } row_t;
 
 
@@ -194,7 +207,7 @@ class VariantCaller {
 
     int ProperPairFilter(row_t *row);
 
-    bool PassesFilter(row_t *row);
+    void ApplyFilters(row_t *row);
 
     int IsVariant(row_t *row);
 

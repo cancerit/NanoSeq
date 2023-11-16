@@ -276,7 +276,7 @@ int VariantCaller::ProperPairFilter(row_t *row) {
 }
 
 
-bool VariantCaller::PassesFilter(row_t *row) {
+void VariantCaller::ApplyFilters(row_t *row) {
   int t1  = VariantCaller::DplxClipFilter(row);
   int t2  = VariantCaller::AlignmentScoreFilter(row);
   int t3  = VariantCaller::MismatchFilter(row);
@@ -287,11 +287,20 @@ bool VariantCaller::PassesFilter(row_t *row) {
   int t8  = VariantCaller::FivePrimeTrimFilter(row);
   int t9  = VariantCaller::ThreePrimeTrimFilter(row);
   int t10 = VariantCaller::ProperPairFilter(row);
-  if ((t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8 + t9 + t10) == 10) {
-    return true;
-  } else {
-    return false;
-  }
+  bool pass = (t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8 + t9 + t10) == 10;
+
+  // Store filter results in row
+  row->dplx_clip_filter = t1;
+  row->alignment_score_filter = t2;
+  row->mismatch_filter = t3;
+  row->matched_normal_filter = t4;
+  row->duplex_filter = t5;
+  row->consensus_base_quality_filter = t6;
+  row->indel_filter = t7;
+  row->five_prime_trim_filter = t8;
+  row->three_prime_trim_filter = t9;
+  row->proper_pair_filter = t10;
+  row->pass_all_filters = pass;
 }
 
 
@@ -454,11 +463,12 @@ void VariantCaller::CollectMetrics() {
       if (VariantCaller::ContextIsCanonical(&row) == false) {
         continue;
       }
-      if (row.f1r2_call == row.f2r1_call) {
+      VariantCaller::ApplyFilters(&row); // Apply filters to row
+      if (row.f1r2_call == row.f2r1_call) { // Check if both strands consistent
         row.call = row.f1r2_call;
         //fa8: moved this so we know if it is variant or not before applying the NM filter:
         row.isvariant  = VariantCaller::IsVariant(&row);
-        if (VariantCaller::PassesFilter(&row)) {
+        if (row.pass_all_filters) {
           row.ismasked   = VariantCaller::IsMasked(&row);
           row.pyrcontext = VariantCaller::PyrimidineContext(&row);
           this->burdens[row.ismasked][row.isvariant]++;
@@ -502,7 +512,7 @@ void VariantCaller::CollectMetrics() {
           }
         }
       } else { // this is for strand-specific errors (where f1r2 != f2r1)
-        if (VariantCaller::PassesFilter(&row)) {
+        if (row.pass_all_filters) {
           VariantCaller::WriteMismatches(&row);
         }
       }
@@ -755,6 +765,26 @@ void VariantCaller::WriteDiscardedVariants(row_t *row) {
   this->fout_discarded << row->ismasked;
   this->fout_discarded << "\t";
   this->fout_discarded << row->dplx_barcode;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->dplx_clip_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->alignment_score_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->mismatch_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->matched_normal_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->duplex_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->consensus_base_quality_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->indel_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->five_prime_trim_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->three_prime_trim_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->proper_pair_filter;
   this->fout_discarded << std::endl;
 }
 
@@ -1075,6 +1105,8 @@ void Options(int argc, char **argv, VariantCaller *vc) {
       throw std::runtime_error(er.str());
     }
   }
+
+  // Record the command
   int i;
   vc->fout <<"# ";
   for (i=0; i < argc; i++)
@@ -1083,6 +1115,16 @@ void Options(int argc, char **argv, VariantCaller *vc) {
     vc->fout << " ";
     }
   vc->fout << std::endl;
+
+  if (vc->outfile_discarded != NULL) { // If discarded_outfile exists, record command there too
+    vc->fout_discarded << "# ";
+    for (i=0; i < argc; i++) {
+      vc->fout_discarded << argv[i];
+      vc->fout_discarded << " ";
+    }
+    vc->fout_discarded << std::endl;
+  }
+
   if(vc->outfile_coverage != NULL) {
     vc->gzout_coverage.open(vc->outfile_coverage);
   }
