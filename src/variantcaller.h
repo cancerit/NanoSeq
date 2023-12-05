@@ -121,6 +121,7 @@ typedef struct {
   bool five_prime_trim_filter;
   bool three_prime_trim_filter;
   bool proper_pair_filter;
+  bool vaf_filter;
   bool pass_all_filters;
 } row_t;
 
@@ -208,6 +209,8 @@ class VariantCaller {
     int ProperPairFilter(row_t *row);
 
     void ApplyFilters(row_t *row);
+    
+    int VafFilter(row_t *row);
 
     int IsVariant(row_t *row);
 

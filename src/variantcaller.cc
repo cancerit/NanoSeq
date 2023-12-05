@@ -303,17 +303,23 @@ void VariantCaller::ApplyFilters(row_t *row) {
   row->pass_all_filters = pass;
 }
 
-
-int VariantCaller::IsVariant(row_t *row) {
+int VariantCaller::VafFilter(row_t *row) {
   std::vector<int> bfwd = {row->bfwd_A, row->bfwd_C, row->bfwd_G, row->bfwd_T};
   std::vector<int> brev = {row->brev_A, row->brev_C, row->brev_G, row->brev_T};
+  if(row->f1r2_call == row->f2r1_call) { // Check if both strands consistent
+    row->call = row->f1r2_call;
+  }
   int i = INDEX[row->call];
   if(row->bfwd_canonical > 0 && bfwd[i]/row->bfwd_canonical > this->vaf ) {
     return 0;
-  }
-  if(row->brev_canonical > 0 && brev[i]/row->brev_canonical > this->vaf ) {
+  } else if(row->brev_canonical > 0 && brev[i]/row->brev_canonical > this->vaf ) {
     return 0;
+  } else {
+	  return 1;
   }
+}
+
+int VariantCaller::IsVariant(row_t *row) {
   if(row->context[1] != row->call) {
     return 1;  
   } else {
@@ -463,12 +469,19 @@ void VariantCaller::CollectMetrics() {
       if (VariantCaller::ContextIsCanonical(&row) == false) {
         continue;
       }
-      VariantCaller::ApplyFilters(&row); // Apply filters to row
+
       if (row.f1r2_call == row.f2r1_call) { // Check if both strands consistent
-        row.call = row.f1r2_call;
         //fa8: moved this so we know if it is variant or not before applying the NM filter:
+        row.call = row.f1r2_call;
         row.isvariant  = VariantCaller::IsVariant(&row);
-        if (row.pass_all_filters) {
+        VariantCaller::ApplyFilters(&row); // Apply filters to row
+        if(row.isvariant && row.f1r2_call != row.context[1] && row.f2r1_call != row.context[1]) { // fa8: these conditions are redundant
+	        row.vaf_filter = VariantCaller::VafFilter(&row); // fa8: This one has to go separately 
+    	                                                     // from the other filters
+      	} else {
+      		row.vaf_filter = 1;
+      	}
+        if (row.pass_all_filters && row.vaf_filter) {
           row.ismasked   = VariantCaller::IsMasked(&row);
           row.pyrcontext = VariantCaller::PyrimidineContext(&row);
           this->burdens[row.ismasked][row.isvariant]++;
@@ -501,17 +514,18 @@ void VariantCaller::CollectMetrics() {
               lastRow = row;
             }
           }
-
           if (row.chrom_beg != curr) {
             this->coverage++;
             curr = row.chrom_beg;
           }
-        } else { // retain variants that fail filters
+        }  else {  // retain variants that fail filters
           if (row.isvariant and this->outfile_discarded != NULL) {
             VariantCaller::WriteDiscardedVariants(&row);
           }
         }
       } else { // this is for strand-specific errors (where f1r2 != f2r1)
+        // row.isvariant = 0;
+        VariantCaller::ApplyFilters(&row); // Apply filters to row
         if (row.pass_all_filters) {
           VariantCaller::WriteMismatches(&row);
         }
@@ -785,6 +799,8 @@ void VariantCaller::WriteDiscardedVariants(row_t *row) {
   this->fout_discarded << row->three_prime_trim_filter;
   this->fout_discarded << "\t";
   this->fout_discarded << row->proper_pair_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->vaf_filter;
   this->fout_discarded << std::endl;
 }
 
