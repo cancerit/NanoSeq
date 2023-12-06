@@ -1123,7 +1123,7 @@ if (args.subcommand == 'post'):
                                 'stdcontext,pyrsub,stdsub,ismasked,dplxBarcode,'
                                 'dplx_clip_filter,alignment_score_filter,mismatch_filter,matched_normal_filter,'
                                 'duplex_filter,consensus_base_quality_filter,indel_filter,five_prime_trim_filter,'
-                                'three_prime_trim_filter,proper_pair_filter\n')
+                                'three_prime_trim_filter,proper_pair_filter,vaf_filter\n')
         csvIO['Mismatches'].write('chrom,chromStart,context,commonSNP,'
                                   'shearwater,bulkASXS,bulkNM,bulkForwardA,bulkForwardC,bulkForwardG,'
                                   'bulkForwardT,bulkForwardIndel,bulkReverseA,bulkReverseC,bulkReverseG,'
