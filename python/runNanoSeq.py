@@ -423,9 +423,9 @@ def runCommand(command):
         print("\nExecuting: %s\n" % ijob)
         p = subprocess.Popen(
             ijob, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        p.wait()
+        std: tuple = p.communicate()
         if (p.returncode != 0):
-            error = p.stderr.read().decode()
+            error = std[1].decode()
             sys.stderr.write("\n!Error processing:  %s\n" % ijob)
             raise ValueError(error)
     return
