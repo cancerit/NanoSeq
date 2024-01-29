@@ -148,6 +148,11 @@ n_variants <- burdens[ismasked == 0][isvariant == 1]$count
 n_reference <- burdens[ismasked == 0][isvariant == 0]$count
 n_unique <- nrow(unique_variants[ismasked == 0])
 
+if(length(n_reference) == 0) {
+  message("0 reference calls. Exiting…\n")) 
+  quit(save = "no", status = 1)
+}
+
 if (length(n_variants) == 0) { n_variants = 0; }
 metrics <- data.frame("Metric" = c("total variants", "unique variants",
   "total variant + reference", "uncorrected burden", "physical coverage"),
@@ -568,181 +573,182 @@ write.table(tosave,file=paste(out_name, ".obs_burdens.pre_vs_post_masking.tsv", 
 # Mismatches
 # To understand error profile - damage during library preparation
 mismatches = read.table(paste(dirname, 'mismatches.csv', sep = "/"), sep = ",", header = T)
-mismatches$sub = paste(unlist(sapply(mismatches$mismatch, function(x) unlist(strsplit(x, ""))[2])), ">", unlist(sapply(mismatches$mismatch, function(x) unlist(strsplit(x, ""))[5])), sep = "")
-mismatches = mismatches[which(mismatches$ismasked == 0),]
-mismatches = mismatches[which(mismatches$mismatch != "UNKNOWN"),]
-total = nrow(mismatches)
 
-pdf(width = 5, height = 5, file = paste(out_name, ".mismatches.subst_asym.pdf", sep = ""))
+if(nrow(mismatches) > 0) {
+  mismatches$sub = paste(unlist(sapply(mismatches$mismatch, function(x) unlist(strsplit(x, ""))[2])), ">", unlist(sapply(mismatches$mismatch, function(x) unlist(strsplit(x, ""))[5])), sep = "")
+  mismatches = mismatches[which(mismatches$ismasked == 0),]
+  mismatches = mismatches[which(mismatches$mismatch != "UNKNOWN"),]
+  total = nrow(mismatches)
 
-subs = c("C>A", "G>T", "C>G", "G>C", "C>T", "G>A", "T>A", "A>T", "T>C", "A>G", "T>G", "A>C")
-colors = rep(c(rgb(34 / 255, 159 / 255, 198 / 255), rgb(26 / 255, 26 / 255, 26 / 255),
-          rgb(201 / 255, 93 / 255, 94 / 255), rgb(178 / 255, 182 / 255, 180 / 255),
-          rgb(153 / 255, 208 / 255, 62 / 255), rgb(217 / 255, 190 / 255, 217 / 255)), each = 2)
-par(mar = c(5, 5, 5, 5))
-counts = table(mismatches$sub)
-tmp_ = names(counts)
-counts = as.vector(counts)
-names(counts) = tmp_
-counts[setdiff(subs, names(counts))] = 0
-counts = counts[intersect(subs, names(counts))]
-counts = counts[subs]
-write.table(counts, file = paste(out_name, ".mismatches.subst_asym.tsv", sep = ""), quote = F, sep = "\t", row.names = F, col.names = F)
+  pdf(width = 5, height = 5, file = paste(out_name, ".mismatches.subst_asym.pdf", sep = ""))
 
-tick_10 = 10 * total / 100
-bar = barplot(counts, las = 2, col = colors,
-              xlab = "Substitution (read strand)", ylab = "Number of mutations", border = "NA",
-              ylim = c(0, max(counts) + 0.2 * max(counts)))
-axis(side = 4, at = c(0, tick_10, tick_10 * 2, tick_10 * 3), labels = c("0", "10", "20", "30"))
-mtext("% of mutations", side = 4, line = 2)
-# Add significance indicators
-pvalues = vector()
-for (i in c(1, 3, 5, 7, 9, 11)) {
-  j = i + 1
-  if (counts[i] + counts[j] > 0) {
-    pvalues[subs[i]] = binom.test(counts[i], counts[i] + counts[j])$p.value
-  } else {
-    pvalues[subs[i]] = 1
+  subs = c("C>A", "G>T", "C>G", "G>C", "C>T", "G>A", "T>A", "A>T", "T>C", "A>G", "T>G", "A>C")
+  colors = rep(c(rgb(34 / 255, 159 / 255, 198 / 255), rgb(26 / 255, 26 / 255, 26 / 255),
+            rgb(201 / 255, 93 / 255, 94 / 255), rgb(178 / 255, 182 / 255, 180 / 255),
+            rgb(153 / 255, 208 / 255, 62 / 255), rgb(217 / 255, 190 / 255, 217 / 255)), each = 2)
+  par(mar = c(5, 5, 5, 5))
+  counts = table(mismatches$sub)
+  tmp_ = names(counts)
+  counts = as.vector(counts)
+  names(counts) = tmp_
+  counts[setdiff(subs, names(counts))] = 0
+  counts = counts[intersect(subs, names(counts))]
+  counts = counts[subs]
+  write.table(counts, file = paste(out_name, ".mismatches.subst_asym.tsv", sep = ""), quote = F, sep = "\t", row.names = F, col.names = F)
+
+  tick_10 = 10 * total / 100
+  bar = barplot(counts, las = 2, col = colors,
+                xlab = "Substitution (read strand)", ylab = "Number of mutations", border = "NA",
+                ylim = c(0, max(counts) + 0.2 * max(counts)))
+  axis(side = 4, at = c(0, tick_10, tick_10 * 2, tick_10 * 3), labels = c("0", "10", "20", "30"))
+  mtext("% of mutations", side = 4, line = 2)
+  # Add significance indicators
+  pvalues = vector()
+  for (i in c(1, 3, 5, 7, 9, 11)) {
+    j = i + 1
+    if (counts[i] + counts[j] > 0) {
+      pvalues[subs[i]] = binom.test(counts[i], counts[i] + counts[j])$p.value
+    } else {
+      pvalues[subs[i]] = 1
+    }
   }
-}
-write.table(pvalues, file = paste(out_name, ".mismatches.subst_asym.pvals", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
-qvalues = p.adjust(pvalues, method = "BH")
-for (i in c(1, 3, 5, 7, 9, 11)) {
-  indicator = ""
-  if (qvalues[subs[i]] < 0.01) {
-    indicator = "**"
-  } else if (qvalues[subs[i]] < 0.1) {
-    indicator = "*"
+  write.table(pvalues, file = paste(out_name, ".mismatches.subst_asym.pvals", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
+  qvalues = p.adjust(pvalues, method = "BH")
+  for (i in c(1, 3, 5, 7, 9, 11)) {
+    indicator = ""
+    if (qvalues[subs[i]] < 0.01) {
+      indicator = "**"
+    } else if (qvalues[subs[i]] < 0.1) {
+      indicator = "*"
+    }
+    text((bar[i] + bar[i + 1]) / 2, max(counts[i], counts[i + 1]), indicator, pos = 3)
   }
-  text((bar[i] + bar[i + 1]) / 2, max(counts[i], counts[i + 1]), indicator, pos = 3)
-}
-dev.off()
+  dev.off()
 
-#########
-# Now the trinuc profiles
-pdf(width = 15, height = 8, file = paste(out_name, ".mismatches.trinuc-profile.pdf", sep = ""))
-par(mfrow = c(2, 1))
-par(mar = c(4, 6, 2, 2))
+  #########
+  # Now the trinuc profiles
+  pdf(width = 15, height = 8, file = paste(out_name, ".mismatches.trinuc-profile.pdf", sep = ""))
+  par(mfrow = c(2, 1))
+  par(mar = c(4, 6, 2, 2))
 
-complement_subs2pyr = function(sub) {
-  first = unlist(strsplit(sub, ""))[1]
-  from = unlist(strsplit(sub, ""))[2]
-  third = unlist(strsplit(sub, ""))[3]
-  to = unlist(strsplit(sub, ""))[5]
-  complement = vector()
-  complement[c("A", "C", "G", "T")] = c("T", "G", "C", "A")
-  pyr = c("C", "T")
-  if (from %in% pyr) {
-    return(sub)
-  } else {
-    sub = paste(complement[third], complement[from], complement[first], ">", complement[to], sep = "")
-    return(sub)
+  complement_subs2pyr = function(sub) {
+    first = unlist(strsplit(sub, ""))[1]
+    from = unlist(strsplit(sub, ""))[2]
+    third = unlist(strsplit(sub, ""))[3]
+    to = unlist(strsplit(sub, ""))[5]
+    complement = vector()
+    complement[c("A", "C", "G", "T")] = c("T", "G", "C", "A")
+    pyr = c("C", "T")
+    if (from %in% pyr) {
+      return(sub)
+    } else {
+      sub = paste(complement[third], complement[from], complement[first], ">", complement[to], sep = "")
+      return(sub)
+    }
   }
+
+  mismatches$mismatch_pyr = sapply(mismatches$mismatch, function(x) complement_subs2pyr(x))
+
+  colours = rep(c("deepskyblue", "black", "firebrick2", "gray", "darkolivegreen3", "rosybrown2"), each = 16)
+  sub_vec = c("C>A", "C>G", "C>T", "T>A", "T>C", "T>G")
+  ctx_vec = paste(rep(c("A", "C", "G", "T"), each = 4), rep(c("A", "C", "G", "T"), times = 4), sep = "-")
+  full_vec = paste(rep(sub_vec, each = 16), rep(ctx_vec, times = 6), sep = ",")
+  xstr = paste(substr(full_vec, 5, 5), substr(full_vec, 1, 1), substr(full_vec, 7, 7), sep = "")
+  ordered_names = paste(xstr, ">", rep(c("A", "G", "T", "A", "C", "G"), each = 16), sep = "")
+  tmp_ = table(mismatches[which(mismatches$mismatch == mismatches$mismatch_pyr), "mismatch"])
+  tri_obs = as.vector(tmp_)
+  names(tri_obs) = names(tmp_)
+  tri_obs[setdiff(ordered_names, names(tri_obs))] = 0
+  tri_obs = tri_obs[ordered_names]
+
+  # Observed counts
+  y = tri_obs;
+  maxy = max(y)
+  h = barplot(y, las = 2, col = colours, border = NA, ylim = c(0, maxy * 1.5), space = 1, cex.names = 0.6, names.arg = xstr, ylab = "Observed Pyrimidine mismatches counts", main = "Observed Pyirimidine mismatches counts")
+  for (j in 1:length(sub_vec)) {
+    xpos = h[c((j - 1) * 16 + 1, j * 16)]
+    rect(xpos[1] - 0.5, maxy * 1.2, xpos[2] + 0.5, maxy * 1.3, border = NA, col = colours[j * 16])
+    text(x = mean(xpos), y = maxy * 1.3, pos = 3, label = sub_vec[j])
+  }
+  write.table(tri_obs, file = paste(out_name, ".SSC-mismatches-Pyrimidine.triprofiles.tsv", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
+  tri_obs_pyr = tri_obs
+
+  tmp_ = table(mismatches[which(mismatches$mismatch != mismatches$mismatch_pyr), "mismatch_pyr"])
+  tri_obs = as.vector(tmp_)
+  names(tri_obs) = names(tmp_)
+  tri_obs[setdiff(ordered_names, names(tri_obs))] = 0
+  tri_obs = tri_obs[ordered_names]
+
+  # Observed counts
+  y = tri_obs;
+  maxy = max(y)
+  h = barplot(y, las = 2, col = colours, border = NA, ylim = c(0, maxy * 1.5), space = 1, cex.names = 0.6, names.arg = xstr, ylab = "Observed Purine mismatches counts", main = "Observed Purine mismatches counts")
+  for (j in 1:length(sub_vec)) {
+    xpos = h[c((j - 1) * 16 + 1, j * 16)]
+    rect(xpos[1] - 0.5, maxy * 1.2, xpos[2] + 0.5, maxy * 1.3, border = NA, col = colours[j * 16])
+    text(x = mean(xpos), y = maxy * 1.3, pos = 3, label = sub_vec[j])
+  }
+  dev.off()
+  write.table(tri_obs, file = paste(out_name, ".SSC-mismatches-Purine.triprofiles.tsv", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
+  tri_obs = tri_obs_pyr + tri_obs
+  write.table(tri_obs, file = paste(out_name, ".SSC-mismatches-Both.triprofiles.tsv", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
+
+
+  ##########################################################################################
+  # Now error rates based on SSC, by each of 96 trinuc-sub channels and global
+  tmp_ = table(mismatches[which(mismatches$mismatch == mismatches$mismatch_pyr), "mismatch"])
+  tri_obs = as.vector(tmp_)
+  names(tri_obs) = names(tmp_)
+  tri_obs[setdiff(ordered_names, names(tri_obs))] = 0
+  tri_obs = tri_obs[ordered_names]
+  tri_obs_pyr = tri_obs
+  tmp_ = table(mismatches[which(mismatches$mismatch != mismatches$mismatch_pyr), "mismatch_pyr"])
+  tri_obs = as.vector(tmp_)
+  names(tri_obs) = names(tmp_)
+  tri_obs[setdiff(ordered_names, names(tri_obs))] = 0
+  tri_obs = tri_obs[ordered_names]
+  tri_obs_pur = tri_obs
+
+  pdf(width = 15, height = 4, file = paste(out_name, ".DSC_estimated_error_rates.pdf", sep = ""))
+  par(mar = c(4, 6, 2, 2))
+  tris = sapply(names(tri_obs), function(x) unlist(strsplit(x, ">"))[1])
+  y = (tri_obs_pyr / (tri_bg[tris] / 2)) * (tri_obs_pur / (tri_bg[tris] / 2));
+  maxy = max(y)
+  ##y = (tri_obs_pyr/(tri_bg[tris])) * (tri_obs_pur/(tri_bg[tris])); maxy = max(y)
+  h = barplot(y, las = 2, col = colours, border = NA, ylim = c(0, maxy * 1.5), space = 1, cex.names = 0.6, names.arg = xstr, ylab = "Error rates", main = "Error rates")
+  for (j in 1:length(sub_vec)) {
+    xpos = h[c((j - 1) * 16 + 1, j * 16)]
+    rect(xpos[1] - 0.5, maxy * 1.2, xpos[2] + 0.5, maxy * 1.3, border = NA, col = colours[j * 16])
+    text(x = mean(xpos), y = maxy * 1.3, pos = 3, label = sub_vec[j])
+  }
+  dev.off()
+
+
+  # Global:
+  # Number of errors per channel:
+  errors_per_channel = y * tri_bg[tris]
+  total_error_rate = sum(errors_per_channel) / sum(tri_bg)
+
+  pdf(width = 15, height = 4, file = paste(out_name, ".DSC_errors_per_channel.pdf", sep = ""))
+  par(mar = c(4, 6, 2, 2))
+  tris = sapply(names(tri_obs), function(x) unlist(strsplit(x, ">"))[1])
+  y = errors_per_channel;
+  maxy = max(y)
+  h = barplot(y, las = 2, col = colours, border = NA, ylim = c(0, maxy * 1.5), space = 1, cex.names = 0.6, names.arg = xstr, ylab = "Predicted errors", main = "Predicted errors")
+  for (j in 1:length(sub_vec)) {
+    xpos = h[c((j - 1) * 16 + 1, j * 16)]
+    rect(xpos[1] - 0.5, maxy * 1.2, xpos[2] + 0.5, maxy * 1.3, border = NA, col = colours[j * 16])
+    text(x = mean(xpos), y = maxy * 1.3, pos = 3, label = sub_vec[j])
+  }
+  dev.off()
+
+  output = list()
+  output[["errors_per_channel"]] = errors_per_channel
+  output[["error_rates_per_channel"]] = y
+  output[["total_error_rate"]] = total_error_rate
+  output[["total_errors"]] = sum(errors_per_channel)
+  kkk = vector()
+  kkk["total_error_rate"] = total_error_rate
+  kkk["total_errors"] = output[["total_errors"]]
+  write.table(kkk, file = paste(out_name, ".estimated_error_rates.tsv", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
 }
-
-mismatches$mismatch_pyr = sapply(mismatches$mismatch, function(x) complement_subs2pyr(x))
-
-colours = rep(c("deepskyblue", "black", "firebrick2", "gray", "darkolivegreen3", "rosybrown2"), each = 16)
-sub_vec = c("C>A", "C>G", "C>T", "T>A", "T>C", "T>G")
-ctx_vec = paste(rep(c("A", "C", "G", "T"), each = 4), rep(c("A", "C", "G", "T"), times = 4), sep = "-")
-full_vec = paste(rep(sub_vec, each = 16), rep(ctx_vec, times = 6), sep = ",")
-xstr = paste(substr(full_vec, 5, 5), substr(full_vec, 1, 1), substr(full_vec, 7, 7), sep = "")
-ordered_names = paste(xstr, ">", rep(c("A", "G", "T", "A", "C", "G"), each = 16), sep = "")
-tmp_ = table(mismatches[which(mismatches$mismatch == mismatches$mismatch_pyr), "mismatch"])
-tri_obs = as.vector(tmp_)
-names(tri_obs) = names(tmp_)
-tri_obs[setdiff(ordered_names, names(tri_obs))] = 0
-tri_obs = tri_obs[ordered_names]
-
-# Observed counts
-y = tri_obs;
-maxy = max(y)
-h = barplot(y, las = 2, col = colours, border = NA, ylim = c(0, maxy * 1.5), space = 1, cex.names = 0.6, names.arg = xstr, ylab = "Observed Pyrimidine mismatches counts", main = "Observed Pyirimidine mismatches counts")
-for (j in 1:length(sub_vec)) {
-  xpos = h[c((j - 1) * 16 + 1, j * 16)]
-  rect(xpos[1] - 0.5, maxy * 1.2, xpos[2] + 0.5, maxy * 1.3, border = NA, col = colours[j * 16])
-  text(x = mean(xpos), y = maxy * 1.3, pos = 3, label = sub_vec[j])
-}
-write.table(tri_obs, file = paste(out_name, ".SSC-mismatches-Pyrimidine.triprofiles.tsv", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
-tri_obs_pyr = tri_obs
-
-tmp_ = table(mismatches[which(mismatches$mismatch != mismatches$mismatch_pyr), "mismatch_pyr"])
-tri_obs = as.vector(tmp_)
-names(tri_obs) = names(tmp_)
-tri_obs[setdiff(ordered_names, names(tri_obs))] = 0
-tri_obs = tri_obs[ordered_names]
-
-# Observed counts
-y = tri_obs;
-maxy = max(y)
-h = barplot(y, las = 2, col = colours, border = NA, ylim = c(0, maxy * 1.5), space = 1, cex.names = 0.6, names.arg = xstr, ylab = "Observed Purine mismatches counts", main = "Observed Purine mismatches counts")
-for (j in 1:length(sub_vec)) {
-  xpos = h[c((j - 1) * 16 + 1, j * 16)]
-  rect(xpos[1] - 0.5, maxy * 1.2, xpos[2] + 0.5, maxy * 1.3, border = NA, col = colours[j * 16])
-  text(x = mean(xpos), y = maxy * 1.3, pos = 3, label = sub_vec[j])
-}
-dev.off()
-write.table(tri_obs, file = paste(out_name, ".SSC-mismatches-Purine.triprofiles.tsv", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
-tri_obs = tri_obs_pyr + tri_obs
-write.table(tri_obs, file = paste(out_name, ".SSC-mismatches-Both.triprofiles.tsv", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
-
-
-##########################################################################################
-# Now error rates based on SSC, by each of 96 trinuc-sub channels and global
-tmp_ = table(mismatches[which(mismatches$mismatch == mismatches$mismatch_pyr), "mismatch"])
-tri_obs = as.vector(tmp_)
-names(tri_obs) = names(tmp_)
-tri_obs[setdiff(ordered_names, names(tri_obs))] = 0
-tri_obs = tri_obs[ordered_names]
-tri_obs_pyr = tri_obs
-tmp_ = table(mismatches[which(mismatches$mismatch != mismatches$mismatch_pyr), "mismatch_pyr"])
-tri_obs = as.vector(tmp_)
-names(tri_obs) = names(tmp_)
-tri_obs[setdiff(ordered_names, names(tri_obs))] = 0
-tri_obs = tri_obs[ordered_names]
-tri_obs_pur = tri_obs
-
-pdf(width = 15, height = 4, file = paste(out_name, ".DSC_estimated_error_rates.pdf", sep = ""))
-par(mar = c(4, 6, 2, 2))
-tris = sapply(names(tri_obs), function(x) unlist(strsplit(x, ">"))[1])
-y = (tri_obs_pyr / (tri_bg[tris] / 2)) * (tri_obs_pur / (tri_bg[tris] / 2));
-maxy = max(y)
-##y = (tri_obs_pyr/(tri_bg[tris])) * (tri_obs_pur/(tri_bg[tris])); maxy = max(y)
-h = barplot(y, las = 2, col = colours, border = NA, ylim = c(0, maxy * 1.5), space = 1, cex.names = 0.6, names.arg = xstr, ylab = "Error rates", main = "Error rates")
-for (j in 1:length(sub_vec)) {
-  xpos = h[c((j - 1) * 16 + 1, j * 16)]
-  rect(xpos[1] - 0.5, maxy * 1.2, xpos[2] + 0.5, maxy * 1.3, border = NA, col = colours[j * 16])
-  text(x = mean(xpos), y = maxy * 1.3, pos = 3, label = sub_vec[j])
-}
-dev.off()
-
-
-# Global:
-# Number of errors per channel:
-errors_per_channel = y * tri_bg[tris]
-total_error_rate = sum(errors_per_channel) / sum(tri_bg)
-
-pdf(width = 15, height = 4, file = paste(out_name, ".DSC_errors_per_channel.pdf", sep = ""))
-par(mar = c(4, 6, 2, 2))
-tris = sapply(names(tri_obs), function(x) unlist(strsplit(x, ">"))[1])
-y = errors_per_channel;
-maxy = max(y)
-h = barplot(y, las = 2, col = colours, border = NA, ylim = c(0, maxy * 1.5), space = 1, cex.names = 0.6, names.arg = xstr, ylab = "Predicted errors", main = "Predicted errors")
-for (j in 1:length(sub_vec)) {
-  xpos = h[c((j - 1) * 16 + 1, j * 16)]
-  rect(xpos[1] - 0.5, maxy * 1.2, xpos[2] + 0.5, maxy * 1.3, border = NA, col = colours[j * 16])
-  text(x = mean(xpos), y = maxy * 1.3, pos = 3, label = sub_vec[j])
-}
-dev.off()
-
-output = list()
-output[["errors_per_channel"]] = errors_per_channel
-output[["error_rates_per_channel"]] = y
-output[["total_error_rate"]] = total_error_rate
-output[["total_errors"]] = sum(errors_per_channel)
-kkk = vector()
-kkk["total_error_rate"] = total_error_rate
-kkk["total_errors"] = output[["total_errors"]]
-write.table(kkk, file = paste(out_name, ".estimated_error_rates.tsv", sep = ""), quote = F, sep = "\t", row.names = T, col.names = F)
-
-
