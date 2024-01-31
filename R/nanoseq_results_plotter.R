@@ -149,7 +149,7 @@ n_reference <- burdens[ismasked == 0][isvariant == 0]$count
 n_unique <- nrow(unique_variants[ismasked == 0])
 
 if(length(n_reference) == 0) {
-  message("0 reference calls. Exiting…\n")) 
+  message("0 reference calls. Exiting…\n")
   quit(save = "no", status = 1)
 }
 
