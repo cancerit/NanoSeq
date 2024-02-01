@@ -423,9 +423,9 @@ def runCommand(command):
         print("\nExecuting: %s\n" % ijob)
         p = subprocess.Popen(
             ijob, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        p.wait()
+        std: tuple = p.communicate()
         if (p.returncode != 0):
-            error = p.stderr.read().decode()
+            error = std[1].decode()
             sys.stderr.write("\n!Error processing:  %s\n" % ijob)
             raise ValueError(error)
     return
@@ -1205,10 +1205,10 @@ if (args.subcommand == 'post'):
             ifile = tmpDir+"/indel/%s.indel.filtered.vcf.gz" % (i+1)
             if ( os.stat(ifile).st_size == 0 ) : continue
             vcf2Merge.append(ifile)
-        cmd = "cp %s merged.vcf.gz ;"% vcf2Merge.pop(0)
-        for ifile in vcf2Merge[1:]:
-            cmd += " bcftools  concat --no-version -Oz -o tmp.xxx.vcf.gz merged.vcf.gz %s; mv tmp.xxx.vcf.gz merged.vcf.gz; "%ifile
-        cmd += "bcftools sort -Oz -o %s/post/%s.indel.vcf.gz merged.vcf.gz;" % (tmpDir, args.name)
+        cmd = "cp %s %s/indel/merged.vcf.gz ;" % (vcf2Merge.pop(0), tmpDir)
+        for ifile in vcf2Merge[0:]:
+            cmd += "bcftools concat --no-version -Oz -o %s/indel/tmp.xxx.vcf.gz %s/indel/merged.vcf.gz %s; mv %s/indel/tmp.xxx.vcf.gz %s/indel/merged.vcf.gz; " % (tmpDir, tmpDir, ifile, tmpDir, tmpDir)
+        cmd += "bcftools sort -Oz -o %s/post/%s.indel.vcf.gz %s/indel/merged.vcf.gz;" % (tmpDir, args.name, tmpDir)
         cmd += "bcftools index -t -f %s/post/%s.indel.vcf.gz " % (
             tmpDir, args.name)
         runCommand(cmd)
