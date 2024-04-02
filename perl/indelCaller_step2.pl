@@ -212,6 +212,9 @@ foreach my $rb_id (keys %indels) {
 
   print STDOUT "Step 3...\n";
   #`samtools mpileup --no-BAQ  -d 250 -m 2 -F 0.5 -r $chr:$start-$end --BCF --output-tags DP,DV,DP4,SP -f $ref_genome -o $tempdir/$out_name.bcf $tempdir/$out_name.tmp.bam`;
+  if($start <= 0) {
+	$start = 1;
+  }
   &runCmd("bcftools mpileup --no-BAQ  -L 250 -m 2 -F 0.5 -r \"$chr:$start-$end\" -O b -a DP,DV,DP4,SP -f $ref_genome -o $tempdir/$out_name.bcf $tempdir/$out_name.tmp.bam");
   
   print STDOUT "Step 4...\n";
