@@ -212,7 +212,7 @@ foreach my $rb_id (keys %indels) {
 
   print STDOUT "Step 3...\n";
   #`samtools mpileup --no-BAQ  -d 250 -m 2 -F 0.5 -r $chr:$start-$end --BCF --output-tags DP,DV,DP4,SP -f $ref_genome -o $tempdir/$out_name.bcf $tempdir/$out_name.tmp.bam`;
-  &runCmd("bcftools mpileup --no-BAQ  -L 250 -m 2 -F 0.5 -r \"$chr:$start-$end\" -O b -a DP,DV,DP4,SP -f $ref_genome -o $tempdir/$out_name.bcf $tempdir/$out_name.tmp.bam");
+  &runCmd("bcftools mpileup --no-BAQ --ignore-RG -L 250 -m 2 -F 0.5 -r \"$chr:$start-$end\" -O b -a DP,DV,DP4,SP -f $ref_genome -o $tempdir/$out_name.bcf $tempdir/$out_name.tmp.bam");
   
   print STDOUT "Step 4...\n";
   &runCmd( "bcftools index -f $tempdir/$out_name.bcf $tempdir/$out_name.indexed.bcf");
@@ -267,7 +267,7 @@ foreach my $rb_id (keys %indels) {
         }
         #clean up these lines so no tmp files appear
         if (/^##bcftoolsCommand=mpileup/) {
-          $_ ="##bcftoolsCommand=mpileup --no-BAQ -L 250 -m 2 -F 0.5 -O b -a DP,DV,DP4,SP\n";
+          $_ ="##bcftoolsCommand=mpileup --no-BAQ --ignore-RG -L 250 -m 2 -F 0.5 -O b -a DP,DV,DP4,SP\n";
         }
         if (/^##bcftools_callCommand=call/) {
           $_ ="##bcftools_callCommand=call --ploidy 1 --skip-variants snps --multiallelic-caller --variants-only -O v\n";
