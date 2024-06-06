@@ -56,10 +56,10 @@ process MARKDUP {
 
     input:
         tuple val(meta), path(cram), path(index)
-        path(ref_path)
+        tuple path(fasta), path(fai), path(bwt), path(dict)
 
     output:
-        tuple val(meta), path("optdup/${meta.name}.cram"), path("optdup/${meta.name}.cram.crai"), emit: cram
+        tuple val(meta), path("optdup/${meta.name}.${meta.ext}"), path("optdup/${meta.name}.${meta.ind_ext}"), emit: cram
         path  "versions.yml", emit: versions
 
     maxRetries 4
@@ -71,12 +71,12 @@ process MARKDUP {
         touch ${task.process}_${meta.id}_${meta.type}
         mkdir -p nsorted
         mkdir -p optdup
-        ln -s ../$cram ./nsorted/${meta.name}.cram
+        ln -s ../$cram ./nsorted/${meta.name}.${meta.ext}
         samtools view -H $cram | grep SO:queryname > /dev/null || \\
-            ( rm ./nsorted/${meta.name}.cram; samtools sort -@ $task.cpus -O cram -m 2G -n -o ./nsorted/${meta.name}.cram $cram )
-        samtools view --no-PG -@ $task.cpus -h ./nsorted/${meta.name}.cram | bamsormadup inputformat=sam level=0 blocksortverbose=0 rcsupport=1 threads=$task.cpus fragmergepar=$task.cpus optminpixeldif=10 | \\
-            bammarkduplicatesopt verbose=0 level=0 index=0 optminpixeldif=2500 | samtools view --no-PG -@ $task.cpus -C -o ./optdup/${meta.name}.cram
-        samtools index -@ $task.cpus ./optdup/${meta.name}.cram
+            ( rm ./nsorted/${meta.name}.${meta.ext}; samtools sort -@ $task.cpus -O cram -m 2G -n -o ./nsorted/${meta.name}.${meta.ext} $cram )
+        samtools view --no-PG -@ $task.cpus -h ./nsorted/${meta.name}.${meta.ext} | bamsormadup inputformat=sam level=0 blocksortverbose=0 rcsupport=1 threads=$task.cpus fragmergepar=$task.cpus optminpixeldif=10 | \\
+            bammarkduplicatesopt verbose=0 level=0 index=0 optminpixeldif=2500 | samtools view --no-PG -@ $task.cpus -C -o ./optdup/${meta.name}.${meta.ext}
+        samtools index -@ $task.cpus ./optdup/${meta.name}.${meta.ext}
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             bamsormadup: \$(bamsormadup -v 2>&1 | head -1 | sed 's/.*version //' | sed 's/\\.\$// ')
@@ -89,9 +89,9 @@ process MARKDUP {
         """
         mkdir -p nsorted
         mkdir -p optdup
-        ln -s ../$cram ./nsorted/${meta.name}.cram
-        touch ./optdup/${meta.name}.cram
-        touch ./optdup/${meta.name}.cram.crai
+        ln -s ../$cram ./nsorted/${meta.name}.${meta.ext}
+        touch ./optdup/${meta.name}.${meta.ext}
+        touch ./optdup/${meta.name}.${meta.ind_ext}
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             bamsormadup: \$(bamsormadup -v 2>&1 | head -1 | sed 's/.*version //' | sed 's/\\.\$// ')
@@ -104,20 +104,17 @@ process MARKDUP {
 process NANOSEQ_ADD_RB {
 
     tag "${meta.id}_${meta.type}"
+    label "normal4core"
     
     container params.nanoseq_image
 
     input:
         tuple val(meta), path(cram), path(index)
-        path( ref_path )
+        tuple path(fasta), path(fai), path(bwt), path(dict)
 
     output:
-        tuple val(meta), path("out/${meta.name}.cram"), path("out/${meta.name}.cram.crai"), emit: cram
+        tuple val(meta), path("out/${meta.name}.${meta.ext}"), path("out/${meta.name}.${meta.ind_ext}"), emit: cram
         path  "versions.yml", emit: versions
-
-    maxRetries 4
-    cpus 1
-    memory { task.exitStatus == 130 ? 2.GB * task.attempt : 2.GB }
 
     script:
         """
@@ -125,11 +122,11 @@ process NANOSEQ_ADD_RB {
         mkdir -p out
         NLINES=`samtools view $cram | head -1 | grep rb: | grep rc: | grep mb: | grep mc: | wc -l` || true
         if [ \$NLINES == 1 ]; then
-            bamaddreadbundles -I $cram -O ./out/${meta.name}.cram
-            samtools index ./out/${meta.name}.cram
+            bamaddreadbundles -I $cram -O ./out/${meta.name}.${meta.ext}
+            samtools index ./out/${meta.name}.${meta.ext}
         else
-          ln -s ../$cram ./out/${meta.name}.cram
-          ln -s ../$index ./out/${meta.name}.cram.crai
+          ln -s ../$cram ./out/${meta.name}.${meta.ext}
+          ln -s ../$index ./out/${meta.name}.${meta.ind_ext}
         fi
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -140,8 +137,8 @@ process NANOSEQ_ADD_RB {
     stub:
         """
         mkdir -p out
-        touch ./out/${meta.name}.cram
-        touch ./out/${meta.name}.cram.crai
+        touch ./out/${meta.name}.${meta.ext}
+        touch ./out/${meta.name}.${meta.ind_ext}
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             bamaddreadbundles: \$(runNanoSeq.py -v)
@@ -153,16 +150,16 @@ process NANOSEQ_ADD_RB {
 process NANOSEQ_DEDUP {
 
     tag "${meta.id}_${meta.type}"
-    
+
     container params.nanoseq_image
 
     input:
         tuple val(meta), path(cram), path(index)
-        path (ref_path)
+        tuple path(fasta), path(fai), path(bwt), path(dict)
         val m
 
     output:
-        tuple val(meta), path("out/${meta.name}.neat.cram"), path("out/${meta.name}.neat.cram.crai"), emit: cram
+        tuple val(meta), path("out/${meta.name}.neat.${meta.ext}"), path("out/${meta.name}.neat.${meta.ind_ext}"), emit: cram
         path  "versions.yml", emit: versions
 
     maxRetries 4
@@ -176,11 +173,11 @@ process NANOSEQ_DEDUP {
         NLINES1=`samtools view $cram | head -1 | grep -P "\\tRB:" | wc -l` || true
         NLINES2=`samtools view -H $cram | grep ^@PG | grep ID:randomreadinbundle | wc -l` || true
         if [ \$NLINES1 == 1 ] && [ \$NLINES2 == 0 ]; then
-            randomreadinbundle -I $cram -O ./out/${meta.name}.neat.cram
-            samtools index ./out/${meta.name}.neat.cram
+            randomreadinbundle -I $cram -O ./out/${meta.name}.neat.${meta.ext}
+            samtools index ./out/${meta.name}.neat.${meta.ext}
         else
-          ln -s ../$cram ./out/${meta.name}.neat.cram
-          ln -s ../$index ./out/${meta.name}.neat.cram.crai
+          ln -s ../$cram ./out/${meta.name}.neat.${meta.ext}
+          ln -s ../$index ./out/${meta.name}.neat.${meta.ind_ext}
         fi
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -191,8 +188,8 @@ process NANOSEQ_DEDUP {
     stub:
         """
         mkdir -p out
-        touch ./out/${meta.name}.neat.cram
-        touch ./out/${meta.name}.neat.cram.crai
+        touch ./out/${meta.name}.neat.${meta.ext}
+        touch ./out/${meta.name}.neat.${meta.ind_ext}
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
             randomreadinbundle: \$(runNanoSeq.py -v)
@@ -210,7 +207,7 @@ process VERIFY_BAMID {
     input:
         tuple val(meta), path(cram), path(index)
         val epsilon
-        path ref_path
+        tuple path(fasta), path(fai), path(bwt), path(dict)
         path vb_ud
         path vb_bed
         path vb_mu
@@ -234,7 +231,7 @@ process VERIFY_BAMID {
         samtools index -@ $task.cpus temp.bam
         ( VerifyBamID --Epsilon $epsilon --UDPath $vb_ud \\
             --BedPath $vb_bed --MeanPath $vb_mu \\
-            --Reference ${ref_path}/genome.fa --BamFile temp.bam > verifyBAMid/${meta.name}.verifyBAMid.txt 2> verifyBAMid/error ) || ( cp verifyBAMid/error verifyBAMid/${meta.name}.verifyBAMid.txt )
+            --Reference ${fasta} --BamFile temp.bam > verifyBAMid/${meta.name}.verifyBAMid.txt 2> verifyBAMid/error ) || ( cp verifyBAMid/error verifyBAMid/${meta.name}.verifyBAMid.txt )
         rm temp.bam
         rm temp.bam.bai
         cat <<-END_VERSIONS > versions.yml
@@ -262,7 +259,7 @@ process NANOSEQ_EFFI {
 
     input:
         tuple val(meta), path(cram), path(index), path(cram_neat), path(index_neat)
-        path ref_path
+        tuple path(fasta), path(fai), path(bwt), path(dict)
 
     publishDir "$params.outDir/outNextflow/$meta.id", mode: 'copy', pattern : "effi/*" , overwrite: true
 
@@ -280,7 +277,7 @@ process NANOSEQ_EFFI {
         """
         touch ${task.process}_${meta.id}_${meta.type}
         mkdir -p effi
-        efficiency_nanoseq.pl -t $cpus -d $cram_neat -x $cram -o effi/${meta.name}.effi -r ${ref_path}/genome.fa
+        efficiency_nanoseq.pl -t $cpus -d $cram_neat -x $cram -o effi/${meta.name}.effi -r ${fasta}
  
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
@@ -317,6 +314,7 @@ process NANOSEQ_VAF {
     maxRetries 4
     cpus 2
     memory { task.exitStatus == 130 ? 2.GB * task.attempt : 2.GB }
+    errorStrategy 'retry'
 
     script:
         """

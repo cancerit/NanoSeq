@@ -47,7 +47,7 @@ import re
 import tempfile
 import copy
 
-version = '3.5.4'
+version = '3.5.6'
 
 parser = argparse.ArgumentParser()
 # arguments for all subcommands
