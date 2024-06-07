@@ -28,7 +28,7 @@ file_exists(params.ref + ".dict", "samtools dict ")
 reference_paths = [
     params.ref,
     params.ref + ".fai",
-    params.ref + ".fa.bwt.2bit.64",
+    params.ref + ".bwt.2bit.64",
     params.ref + ".dict"]
 println(reference_paths)
 
