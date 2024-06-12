@@ -1,5 +1,9 @@
 # CHANGES
 
+## 3.5.6
+* Adding parameters to "bcftools mpileup" call to resolve issue for samples using multiple wells
+* Correcting code version
+
 ## 3.5.5
 * Fix bugs in nanoseq result plotter
 * Fix bugs in indel caller
