@@ -47,7 +47,7 @@ import re
 import tempfile
 import copy
 
-version = '3.5.4'
+version = '3.5.6'
 
 parser = argparse.ArgumentParser()
 # arguments for all subcommands
@@ -936,11 +936,11 @@ if (args.subcommand == 'var'):
             continue
 
         # construct variantcaller commands
-        cmd = "variantcaller -B %s -U %s -O %s -a %s -b %s -c %s -d %s -f %s -i %s -m %s -n %s -p %s -q %s -r %s -v %s -x %s -z %s ;" \
-            % ("%s/dsa/%s.dsa.bed.gz" % (tmpDir, i+1), "%s/var/%s.cov.bed" % (tmpDir, i+1), "%s/var/%s.var" % (tmpDir, i+1),
+        cmd = "variantcaller -B %s -U %s -O %s -D %s -a %s -b %s -c %s -d %s -f %s -i %s -m %s -n %s -p %s -q %s -r %s -v %s -x %s -z %s ;" \
+            % ("%s/dsa/%s.dsa.bed.gz" % (tmpDir, i+1), "%s/var/%s.cov.bed" % (tmpDir, i+1), "%s/var/%s.var" % (tmpDir, i+1), "%s/var/%s.discarded_var" % (tmpDir, i+1),
                args.a, args.b, args.c, args.d, args.f, args.i, args.m, args.n, args.p, args.q, args.r, args.v, args.x, args.z)
         cmd += "touch %s/var/%s.done" % (tmpDir, i+1)
-        if ( os.stat("%s/dsa/%s.dsa.bed.gz"%(tmpDir, i+1)).st_size == 0) : cmd = "touch %s/var/%s.var; touch %s/var/%s.cov.bed.gz; touch %s/var/%s.done" % (tmpDir, i+1,tmpDir, i+1,tmpDir, i+1)
+        if ( os.stat("%s/dsa/%s.dsa.bed.gz"%(tmpDir, i+1)).st_size == 0) : cmd = "touch %s/var/%s.var; touch %s/var/%s.discarded_var; touch %s/var/%s.cov.bed.gz; touch %s/var/%s.done" % (tmpDir, i+1,tmpDir, i+1,tmpDir, i+1,tmpDir, i+1)
         commands[i] = (cmd, )
 
     if (args.index is None or args.index == 1):
@@ -1068,6 +1068,8 @@ if (args.subcommand == 'post'):
                 sys.exit("\nvar job %s did not complete correctly\n" % (i+1))
             if (len(glob.glob(tmpDir+"/var/%s.var" % (i+1))) != 1):
                 sys.exit("\nvar job %s did not complete correctly\n" % (i+1))
+            if (len(glob.glob(tmpDir+"/var/%s.discarded_var" % (i+1))) != 1):
+                sys.exit("\nvar job %s did not complete correctly\n" % (i+1))
             if (len(glob.glob(tmpDir+"/var/%s.cov.bed.gz" % (i+1))) != 1):
                 sys.exit("\nvar job %s did not complete correctly\n" % (i+1))
 
@@ -1087,7 +1089,7 @@ if (args.subcommand == 'post'):
         # generate csv files
         print("\nGenerating CSV files for var\n")
         csvFiles = ['Coverage', 'CallVsQpos', 'PyrVsMask',
-                    'ReadBundles', 'Burdens', 'Variants', 'Mismatches']
+                    'ReadBundles', 'Burdens', 'Variants', 'DiscardedVariants', 'Mismatches']
         csvIO = {}
         for ifile in csvFiles:
             csvIO[ifile] = open('%s/post/%s.csv' %
@@ -1109,6 +1111,19 @@ if (args.subcommand == 'post'):
                                 'dplxCQrevC,dplxCQrevG,dplxCQrevT,bulkForwardTotal,bulkReverseTotal,'
                                 'dplxfwdTotal,dplxrevTotal,left,right,qpos,call,isvariant,pyrcontext,'
                                 'stdcontext,pyrsub,stdsub,ismasked,dplxBarcode\n')
+        csvIO['DiscardedVariants'].write('chrom,chromStart,context,commonSNP,'
+                                'shearwater,bulkASXS,bulkNM,bulkForwardA,bulkForwardC,bulkForwardG,'
+                                'bulkForwardT,bulkForwardIndel,bulkReverseA,bulkReverseC,bulkReverseG,'
+                                'bulkReverseT,bulkReverseIndel,dplxBreakpointBeg,dplxBreakpointEnd,'
+                                'bundleType,dplxASXS,dplxCLIP,dplxNM,dplxfwdA,dplxfwdC,dplxfwdG,dplxfwdT,'
+                                'dplxfwdIndel,dplxrevA,dplxrevC,dplxrevG,dplxrevT,dplxrevIndel,'
+                                'dplxCQfwdA,dplxCQfwdC,dplxCQfwdG,dplxCQfwdT,dplxCQrevA,'
+                                'dplxCQrevC,dplxCQrevG,dplxCQrevT,bulkForwardTotal,bulkReverseTotal,'
+                                'dplxfwdTotal,dplxrevTotal,left,right,qpos,call,isvariant,pyrcontext,'
+                                'stdcontext,pyrsub,stdsub,ismasked,dplxBarcode,'
+                                'dplx_clip_filter,alignment_score_filter,mismatch_filter,matched_normal_filter,'
+                                'duplex_filter,consensus_base_quality_filter,indel_filter,five_prime_trim_filter,'
+                                'three_prime_trim_filter,proper_pair_filter,vaf_filter\n')
         csvIO['Mismatches'].write('chrom,chromStart,context,commonSNP,'
                                   'shearwater,bulkASXS,bulkNM,bulkForwardA,bulkForwardC,bulkForwardG,'
                                   'bulkForwardT,bulkForwardIndel,bulkReverseA,bulkReverseC,bulkReverseG,'
@@ -1121,6 +1136,7 @@ if (args.subcommand == 'post'):
 
         # wirte body
         for i in range(nfiles):
+            # Write variants
             ifile = "%s/var/%s.var" % (tmpDir, i+1)
             for row in open(ifile, 'r'):
                 if (row[0] == '#'):
@@ -1128,6 +1144,16 @@ if (args.subcommand == 'post'):
                 arow = row.strip().split('\t')
                 if csvIO.get(arow[0], None):
                     csvIO[arow[0]].write('%s\n' % ','.join(arow[1:]))
+            
+            # Write discarded variants
+            dfile = "%s/var/%s.discarded_var" % (tmpDir, i+1)
+            for row in open(dfile, 'r'):
+                if (row[0] == '#'):
+                    continue
+                arow = row.strip().split('\t')
+                if csvIO.get(arow[0], None):
+                    csvIO[arow[0]].write('%s\n' % ','.join(arow[1:]))
+
 
         for ifile in csvIO.values():
             ifile.close()

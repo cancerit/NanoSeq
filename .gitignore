@@ -1,2 +1,4 @@
 bugfix-scratch/
-bug-data/
+*.sif
+notes/
+.vscode/

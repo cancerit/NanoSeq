@@ -124,7 +124,6 @@ void VariantCaller::CallDuplex(row_t *row) {
 }
 
 
-
 int VariantCaller::DplxClipFilter(row_t *row) {
   if (row->dplx_clip <= this->clip) {
     return 1;
@@ -277,7 +276,7 @@ int VariantCaller::ProperPairFilter(row_t *row) {
 }
 
 
-bool VariantCaller::PassesFilter(row_t *row) {
+void VariantCaller::ApplyFilters(row_t *row) {
   int t1  = VariantCaller::DplxClipFilter(row);
   int t2  = VariantCaller::AlignmentScoreFilter(row);
   int t3  = VariantCaller::MismatchFilter(row);
@@ -288,24 +287,39 @@ bool VariantCaller::PassesFilter(row_t *row) {
   int t8  = VariantCaller::FivePrimeTrimFilter(row);
   int t9  = VariantCaller::ThreePrimeTrimFilter(row);
   int t10 = VariantCaller::ProperPairFilter(row);
-  if ((t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8 + t9 + t10) == 10) {
-    return true;
-  } else {
-    return false;
-  }
+  bool pass = (t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8 + t9 + t10) == 10;
+
+  // Store filter results in row
+  row->dplx_clip_filter = t1;
+  row->alignment_score_filter = t2;
+  row->mismatch_filter = t3;
+  row->matched_normal_filter = t4;
+  row->duplex_filter = t5;
+  row->consensus_base_quality_filter = t6;
+  row->indel_filter = t7;
+  row->five_prime_trim_filter = t8;
+  row->three_prime_trim_filter = t9;
+  row->proper_pair_filter = t10;
+  row->pass_all_filters = pass;
 }
 
-
-int VariantCaller::IsVariant(row_t *row) {
+int VariantCaller::VafFilter(row_t *row) {
   std::vector<int> bfwd = {row->bfwd_A, row->bfwd_C, row->bfwd_G, row->bfwd_T};
   std::vector<int> brev = {row->brev_A, row->brev_C, row->brev_G, row->brev_T};
+  if(row->f1r2_call == row->f2r1_call) { // Check if both strands consistent
+    row->call = row->f1r2_call;
+  }
   int i = INDEX[row->call];
   if(row->bfwd_canonical > 0 && bfwd[i]/row->bfwd_canonical > this->vaf ) {
     return 0;
-  }
-  if(row->brev_canonical > 0 && brev[i]/row->brev_canonical > this->vaf ) {
+  } else if(row->brev_canonical > 0 && brev[i]/row->brev_canonical > this->vaf ) {
     return 0;
+  } else {
+	  return 1;
   }
+}
+
+int VariantCaller::IsVariant(row_t *row) {
   if(row->context[1] != row->call) {
     return 1;  
   } else {
@@ -455,11 +469,19 @@ void VariantCaller::CollectMetrics() {
       if (VariantCaller::ContextIsCanonical(&row) == false) {
         continue;
       }
-      if (row.f1r2_call == row.f2r1_call) {
-        row.call = row.f1r2_call;
+
+      if (row.f1r2_call == row.f2r1_call) { // Check if both strands consistent
         //fa8: moved this so we know if it is variant or not before applying the NM filter:
+        row.call = row.f1r2_call;
         row.isvariant  = VariantCaller::IsVariant(&row);
-        if (VariantCaller::PassesFilter(&row)) {
+        VariantCaller::ApplyFilters(&row); // Apply filters to row
+        if(row.isvariant && row.f1r2_call != row.context[1] && row.f2r1_call != row.context[1]) { // fa8: these conditions are redundant
+	        row.vaf_filter = VariantCaller::VafFilter(&row); // fa8: This one has to go separately 
+    	                                                     // from the other filters
+      	} else {
+      		row.vaf_filter = 1;
+      	}
+        if (row.pass_all_filters && row.vaf_filter) {
           row.ismasked   = VariantCaller::IsMasked(&row);
           row.pyrcontext = VariantCaller::PyrimidineContext(&row);
           this->burdens[row.ismasked][row.isvariant]++;
@@ -492,14 +514,19 @@ void VariantCaller::CollectMetrics() {
               lastRow = row;
             }
           }
-
           if (row.chrom_beg != curr) {
             this->coverage++;
             curr = row.chrom_beg;
           }
+        }  else {  // retain variants that fail filters
+          if (row.isvariant and this->outfile_discarded != NULL) {
+            VariantCaller::WriteDiscardedVariants(&row);
+          }
         }
       } else { // this is for strand-specific errors (where f1r2 != f2r1)
-        if (VariantCaller::PassesFilter(&row)) {
+        // row.isvariant = 0;
+        VariantCaller::ApplyFilters(&row); // Apply filters to row
+        if (row.pass_all_filters) {
           VariantCaller::WriteMismatches(&row);
         }
       }
@@ -634,6 +661,147 @@ void VariantCaller::WriteVariants(row_t *row) {
   this->fout << "\t";
   this->fout << row->dplx_barcode;
   this->fout << std::endl;
+}
+
+// For the moment this is a copy of the above function
+// Should write a general WriteVariant function and change the outstream for the specific destination
+void VariantCaller::WriteDiscardedVariants(row_t *row) {
+  this->fout_discarded << "DiscardedVariants";
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->chrom;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->chrom_beg;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->context;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->snp;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->shearwater;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bulk_asxs;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bulk_nm;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bfwd_A;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bfwd_C;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bfwd_G;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bfwd_T;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bfwd_I;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->brev_A;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->brev_C;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->brev_G;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->brev_T;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->brev_I;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bp_beg;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bp_end;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bndl_type;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->dplx_asxs;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->dplx_clip;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->dplx_nm;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_A;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_C;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_G;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_T;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_I;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_A;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_C;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_G;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_T;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_I;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_A_Q;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_C_Q;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_G_Q;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_T_Q;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_A_Q;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_C_Q;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_G_Q;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_T_Q;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->bfwd_total;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->brev_total;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f1r2_total;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->f2r1_total;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->left;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->right;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->min_qpos;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->call;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->isvariant;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->pyrcontext;
+  this->fout_discarded << "\t";
+  this->fout_discarded << VariantCaller::StrandContext(row);
+  this->fout_discarded << "\t";
+  this->fout_discarded << VariantCaller::PyrimidineSubstitution(row);
+  this->fout_discarded << "\t";
+  this->fout_discarded << VariantCaller::StrandSubstitution(row);
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->ismasked;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->dplx_barcode;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->dplx_clip_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->alignment_score_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->mismatch_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->matched_normal_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->duplex_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->consensus_base_quality_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->indel_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->five_prime_trim_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->three_prime_trim_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->proper_pair_filter;
+  this->fout_discarded << "\t";
+  this->fout_discarded << row->vaf_filter;
+  this->fout_discarded << std::endl;
 }
 
 
@@ -835,32 +1003,34 @@ void Usage() {
   fprintf(stderr, "\t-x\tmaximum cycle number\n");
   fprintf(stderr, "\t-v\tmaximum bulk VAF\n");
   fprintf(stderr, "\t-O\tprefix of the output file\n");
+  fprintf(stderr, "\t-D\tprefix of the discarded variant file [optional]\n");
   fprintf(stderr, "\t-U\tcoverage output file [optional]\n");
   fprintf(stderr, "\t-h\tHelp\n\n");
 }
 
 
 void Options(int argc, char **argv, VariantCaller *vc) {
-  vc->bed        = NULL;          // permissive -> strict
-  vc->asxs       = 100;
-  vc->bulk       = 5;
-  vc->bulk_total = 10;
-  vc->clip       = 0.1;           // 1 to 0
-  vc->dplx       = 2;
-  vc->frac       = 0.9;           // 0 to 1
-  vc->indel      = 1;             // 1 to 0
-  vc->nmms       = 3;
-  vc->ppair      = 0.95;          // 0 to 1
-  vc->qual       = 0;
-  vc->readlen    = 146;
-  vc->min_cycle  = 10;
-  vc->max_cycle  = 10;
-  vc->vaf        = 0.01;          // 1 to 0
-  vc->outfile    = NULL;
+  vc->bed               = NULL;          // permissive -> strict
+  vc->asxs              = 100;
+  vc->bulk              = 5;
+  vc->bulk_total        = 10;
+  vc->clip              = 0.1;           // 1 to 0
+  vc->dplx              = 2;
+  vc->frac              = 0.9;           // 0 to 1
+  vc->indel             = 1;             // 1 to 0
+  vc->nmms              = 3;
+  vc->ppair             = 0.95;          // 0 to 1
+  vc->qual              = 0;
+  vc->readlen           = 146;
+  vc->min_cycle         = 10;
+  vc->max_cycle         = 10;
+  vc->vaf               = 0.01;          // 1 to 0
+  vc->outfile           = NULL;
+  vc->outfile_discarded = NULL;
   int opt = 0;
   char suffix[] = ".gz";
   char buffer[600];
-  while ((opt = getopt(argc, argv, "B:a:b:z:c:d:f:i:m:n:p:q:r:v:x:O:U:h")) >= 0) {
+  while ((opt = getopt(argc, argv, "B:a:b:z:c:d:f:i:m:n:p:q:r:v:x:O:D:U:h")) >= 0) {
     switch (opt) {
       case 'B':
         vc->bed = optarg;
@@ -912,6 +1082,9 @@ void Options(int argc, char **argv, VariantCaller *vc) {
       case 'O':
         vc->outfile = optarg;
         break;
+      case 'D':
+        vc->outfile_discarded = optarg;
+        break;
       case 'U': //coverage
         strcpy(buffer,optarg);
         strcat(buffer,suffix);
@@ -938,6 +1111,18 @@ void Options(int argc, char **argv, VariantCaller *vc) {
     er << std::endl;
     throw std::runtime_error(er.str());
   }
+  if (vc->outfile_discarded != NULL) { 
+    vc->fout_discarded.open(vc->outfile_discarded);
+    if ( ! vc->fout_discarded.is_open() ) {
+      std::stringstream er;
+      er << "Error: cannot write discarded_output file ";
+      er << vc->outfile_discarded;
+      er << std::endl;
+      throw std::runtime_error(er.str());
+    }
+  }
+
+  // Record the command
   int i;
   vc->fout <<"# ";
   for (i=0; i < argc; i++)
@@ -946,6 +1131,16 @@ void Options(int argc, char **argv, VariantCaller *vc) {
     vc->fout << " ";
     }
   vc->fout << std::endl;
+
+  if (vc->outfile_discarded != NULL) { // If discarded_outfile exists, record command there too
+    vc->fout_discarded << "# ";
+    for (i=0; i < argc; i++) {
+      vc->fout_discarded << argv[i];
+      vc->fout_discarded << " ";
+    }
+    vc->fout_discarded << std::endl;
+  }
+
   if(vc->outfile_coverage != NULL) {
     vc->gzout_coverage.open(vc->outfile_coverage);
   }
