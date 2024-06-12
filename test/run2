@@ -28,7 +28,7 @@ echo -n "Testing variantcaller... "
 BIN_DIR="${PREFIX:-../opt}"
 
 set -e
-$BIN_DIR/bin/variantcaller -B table.test.bed.gz -a 50 -c 0 -n 3 -m 5 -x 5 -b 5 -d 2 -f 0.9 -i 1 -p 0 -q 60 -r 144 -v 0.01 -O variant.test
+$BIN_DIR/bin/variantcaller -B table.test.bed.gz -a 50 -c 0 -n 3 -m 5 -x 5 -b 5 -d 2 -f 0.9 -i 1 -p 0 -q 60 -r 144 -v 0.01 -O variant.test -D variant.test.discarded
 
 if diff -I'^# ' ./variant.test ./variant.control >/dev/null ; then
   echo Ok
