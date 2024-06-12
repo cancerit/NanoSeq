@@ -2,8 +2,7 @@
 
 ## 3.5.6
 * Adding parameters to "bcftools mpileup" call to resolve issue for samples using multiple wells
-* Correcting code version (must be updated for future tagged releases)
-* Nextflow improvements (Thanks Alexandra Tidd for the updates!)
+* Correcting code version
 
 ## 3.5.2
 * Remove non-deterministic behaviour from indel caller

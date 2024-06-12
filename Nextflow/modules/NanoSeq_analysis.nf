@@ -10,7 +10,7 @@ process COV {
     container params.nanoseq_image
 
     input :
-        tuple path(fasta), path(fai), path(bwt), path(dict)
+        path ref
         tuple val(meta), path(duplex), path(index_duplex), path(normal), path(index_normal)
         val q
         val exclude
@@ -37,7 +37,7 @@ process COV {
         mkdir -p $baseDir/work/temps/$meta.id/
         rm -rf $baseDir/work/temps/$meta.id/tmpNanoSeq/cov; #allow clean resume for hard links
         
-        runNanoSeq.py -R ${fasta} -A $normal -B $duplex -t $task.cpus --out $baseDir/work/temps/$meta.id/ cov -Q $q --exclude \"$exclude\"  \\
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex -t $task.cpus --out $baseDir/work/temps/$meta.id/ cov -Q $q --exclude \"$exclude\"  \\
             --include \"$include\" --larger $larger;
         
         mv $baseDir/work/temps/$meta.id/tmpNanoSeq/cov ./cov_tmp
@@ -85,7 +85,7 @@ process PART {
     container params.nanoseq_image
 
     input :
-        tuple path(fasta), path(fai), path(bwt), path(dict)
+        path ref
         tuple  val(meta), path(duplex), path(index_duplex), path(normal), path(index_normal)
         val np
         val excludeCov
@@ -112,7 +112,7 @@ process PART {
         mkdir -p part
         rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/part/*; #allow clean resume for hard links
 
-        runNanoSeq.py -R ${fasta} -A $normal -B $duplex --out $baseDir/work/temps/$meta.id part -n $np $excludeCov_arg $excludeBED_arg;
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id part -n $np $excludeCov_arg $excludeBED_arg;
         
         mv $baseDir/work/temps/$meta.id/tmpNanoSeq/part/* ./part/
         cat <<-END_VERSIONS > versions.yml
@@ -145,7 +145,7 @@ process DSA {
     container params.nanoseq_image
 
     input :
-        tuple path(fasta), path(fai), path(bwt), path(dict)
+        path ref
         tuple  val(meta), path(duplex), path(index_duplex), path(normal), path(index_normal)
         val np
         file snp_bed
@@ -167,7 +167,6 @@ process DSA {
 
     cpus 1
     memory '1.GB'
-    errorStrategy 'retry'
    
     script :
         //add the job index to the output metadata (to sort processes)
@@ -183,7 +182,7 @@ process DSA {
         rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/${ii}.dsa.bed.gz;
         if [ $ii -eq 1 ]; then rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/nfiles; rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/args.json; fi;
 
-        runNanoSeq.py -R ${fasta} -A $normal -B $duplex --out $baseDir/work/temps/$meta.id -j $ii -k $np dsa -d $d -q $q $snp_bed_arg $noise_bed_arg;
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id -j $ii -k $np dsa -d $d -q $q $snp_bed_arg $noise_bed_arg;
         
         mv $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/${ii}.* ./dsa/ ;
         if [ $ii -eq 1 ]; then mv $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/nfiles ./dsa/; mv $baseDir/work/temps/$meta.id/tmpNanoSeq/dsa/args.json ./dsa/; fi
@@ -219,7 +218,7 @@ process VAR {
     container params.nanoseq_image
 
     input :
-        tuple path(fasta), path(fai), path(bwt), path(dict)
+        path ref
         tuple val(meta), path(duplex), path(index_duplex), path(normal), path(index_normal)
         each ii
         val np
@@ -263,7 +262,7 @@ process VAR {
         rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.cov.bed.gz;
         if [ $ii -eq 1 ]; then rm -f $baseDir/work//temps/$meta.id/tmpNanoSeq/var/nfiles; rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/args.json; fi;
 
-        runNanoSeq.py -R ${fasta} -A $normal -B $duplex --out $baseDir/work/temps/$meta.id/ -j $ii -k $np var -a $a -b $b -c $c -d $d -f $f -i $i \
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id/ -j $ii -k $np var -a $a -b $b -c $c -d $d -f $f -i $i \
             -m $m -n $n -p $p -q $q -r $r -v $v -x $x -z $z;
         
         mv $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.* ./var/ ;
@@ -300,7 +299,7 @@ process INDEL {
     container params.nanoseq_image
 
     input :
-        tuple path(fasta), path(fai), path(bwt), path(dict)
+        path ref
         tuple  val(meta), path(duplex), path(index_duplex), path(normal), path(index_normal)
         each ii
         val np
@@ -337,7 +336,7 @@ process INDEL {
         rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.filtered.vcf.gz.tbi;
         if [ $ii -eq 1 ]; then rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/nfiles; rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/args.json; fi;
 
-        runNanoSeq.py -R ${fasta} -A $normal -B $duplex --out $baseDir/work/temps/$meta.id -j $ii -k $np indel --rb $rb --t3 $t3 --t5 $t5 -z $z -v $vaf -a $asxs -c $clip;
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id -j $ii -k $np indel --rb $rb --t3 $t3 --t5 $t5 -z $z -v $vaf -a $asxs -c $clip;
         
         rm $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.bed.gz; #not required for final calculations
         rm $baseDir/work/temps/$meta.id/tmpNanoSeq/indel/${ii}.indel.vcf.gz; #not required for final calculations
@@ -375,7 +374,7 @@ process POST {
     container params.nanoseq_image
 
     input :
-        tuple path(fasta), path(fai), path(bwt), path(dict)
+        path ref
         tuple  val(meta), path(duplex), path(index_duplex), path(normal), path(index_normal)
         file triNuc
 
@@ -390,6 +389,7 @@ process POST {
         path("post/*.tsv"), emit: tsv optional true
         path("post/*.pdf"), emit: pdf optional true
 
+
     cpus 2
     memory {  task.exitStatus == 130  ? 5.GB * task.attempt : 5.GB }
 
@@ -400,7 +400,7 @@ process POST {
         mkdir -p post
         rm -f $baseDir/work/temps/${meta.id}/tmpNanoSeq/post/*;
 
-        runNanoSeq.py -R ${fasta} -A $normal -B $duplex --out $baseDir/work/temps/${meta.id}/ -t $task.cpus post --name $meta.id $triNuc_arg;
+        runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/${meta.id}/ -t $task.cpus post --name $meta.id $triNuc_arg;
         
         mv $baseDir/work/temps/${meta.id}/tmpNanoSeq/post/* ./post/ ;
         cat <<-END_VERSIONS > versions.yml
@@ -442,7 +442,7 @@ def file_exists(x, name) {
 workflow NANOSEQ {
     take :
         crams
-        reference_paths
+        reference
         jobs
         // cov parameters
         cov_q
@@ -517,24 +517,24 @@ workflow NANOSEQ {
             triNuc_fh = file(post_triNuc)
         }
         
-        COV(reference_paths, crams, cov_q, cov_exclude, cov_include, cov_larger)
-        PART(reference_paths, COV.out.done, jobs, part_excludeCov, excludeBED_fh)
+        COV(reference, crams, cov_q, cov_exclude, cov_include, cov_larger)
+        PART(reference, COV.out.done, jobs, part_excludeCov, excludeBED_fh)
         jobIndexes = Channel.of(1..jobs)
         
-        DSA(reference_paths, PART.out.done,
+        DSA(reference, PART.out.done,
             jobs, snp_bed_fh, snp_bed_index_fh, noise_bed_fh, noise_bed_index_fh, dsa_d, dsa_q, jobIndexes)
         //this allows proper grouping when processing batches of samples so they can proceed with
         // analysis witout holdups and also correctly sorts things so that resume works as expected
         outDSA = DSA.out.done.map{[it[0].id,it]}.groupTuple(size:jobs, sort : { a, b -> a[0]["ii"] <=> b[0]["ii"]}).map{it[1][0].flatten() }
-        VAR(reference_paths, outDSA, jobIndexes,
+        VAR(reference, outDSA, jobIndexes,
             jobs, var_a, var_b, var_c, var_d, var_f, var_i, var_m, var_n, 
             var_p, var_q, var_r, var_v, var_x, var_z)
-        INDEL(reference_paths, outDSA, jobIndexes,
+        INDEL(reference, outDSA, jobIndexes,
                 jobs, indel_rb, indel_t3, indel_t5, indel_z, indel_v, indel_a, indel_c)
         //this allows proper grouping when processing batches of samples so they can proceed with
         // analysis witout holdups and also correctly sorts things so that resume works as expected
         outVAR_INDEL = VAR.out.done.mix(INDEL.out.done).map{[it[0].id,it]}.groupTuple(size: 2*jobs, sort : { a, b -> a[0]["ii"] <=> b[0]["ii"]}).map{it[1][0].flatten()}
-        POST(reference_paths, outVAR_INDEL, triNuc_fh )
+        POST(reference, outVAR_INDEL, triNuc_fh )
 
     emit :
         versions = POST.out.versions
