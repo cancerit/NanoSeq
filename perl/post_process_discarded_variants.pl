@@ -1,35 +1,4 @@
-#!/usr/bin/env perl
-
-########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
-# 
-# Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
-# 
-# This file is part of NanoSeq.
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-# 
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# 
-# 1. The usage of a range of years within a copyright statement contained within
-# this distribution should be interpreted as being equivalent to a list of years
-# including the first and last year specified and all consecutive years between
-# them. For example, a copyright statement that reads ‘Copyright (c) 2005, 2007-
-# 2009, 2011-2012’ should be interpreted as being identical to a statement that
-# reads ‘Copyright (c) 2005, 2007, 2008, 2009, 2011, 2012’ and a copyright
-# statement that reads ‘Copyright (c) 2005-2012’ should be interpreted as being
-# identical to a statement that reads ‘Copyright (c) 2005, 2006, 2007, 2008,
-# 2009, 2010, 2011, 2012’.
-###########################
+#!/usr/bin/perl -w
 
 use strict;
 use List::Util qw(min);
@@ -38,11 +7,23 @@ $|=1;
 # fa8, Nov 2023
 # This script reads the discardedvariants.csv file and creates a summary VCF
 # Output is written to standard output
-# E.g. perl post_process_discarded_variants.pl tmpNanoSeq/post/discardedvariants.csv > tmpNanoSeq/post/discardedvariants.vcf
+# E.g. perl post_process_discarded_variants.pl tmpNanoSeq/post/discardedvariants.csv reference_genome.fa > tmpNanoSeq/post/discardedvariants.vcf
 
+
+
+my $input_file = $ARGV[0];
+my $ref_genome = $ARGV[1];
+if(!defined($ref_genome) || $ref_genome eq "") {
+	print STDERR "Reference genome fasta file needs to be provided. Exiting...\n";
+	print STDERR "Usage:  perl post_process_discarded_variants.pl discardedvariants.csv reference_genome.fa > discardedvariants.vcf\n";
+	exit;
+}
+
+# Prepare header:
 my $header = 
 "##fileformat=VCFv4.2
 ##source=NanoSeq pipeline (discarded variants from post_process_discarded_variants.pl)
+##reference=file://$ref_genome 
 ##INFO=<ID=PYR_SUB,Number=1,Type=String,Description=\"Pyrimidine-based trinucleotide substitution\">
 ##INFO=<ID=N,Number=1,Type=Integer,Description=\"Number of times this variant has been discarded\">
 ##INFO=<ID=dplx_clip_filter,Number=1,Type=Integer,Description=\"Number of times this variant has failed the dplx_clip_filter\">
@@ -55,20 +36,27 @@ my $header =
 ##INFO=<ID=five_prime_trim_filter,Number=1,Type=Integer,Description=\"Number of times this variant has failed the five_prime_trim_filter\">
 ##INFO=<ID=three_prime_trim_filter,Number=1,Type=String,Description=\"Number of times this variant has failed the three_prime_trim_filter\">
 ##INFO=<ID=proper_pair_filter,Number=1,Type=String,Description=\"Number of times this variant has failed the proper_pair_filter\">
+##INFO=<ID=vaf_filter,Description=\"VAF in matched normal higher than threshold\">
 ##INFO=<ID=QPOS,Number=.,Type=Integer,Description=\"Read position closest to 5-prime end. Up to 10 QPOS are reported\">
 ##INFO=<ID=NORM_VAF,Number=1,Type=Float,Description=\"VAF in matched normal\">
 ##INFO=<ID=MEAN_DX_ASXS,Number=1,Type=Float,Description=\"mean AS-XS for duplex\">
 ##INFO=<ID=MEAN_NORM_ASXS,Number=1,Type=Float,Description=\"mean AS-XS for normal\">
 ##INFO=<ID=MEAN_DX_NM,Number=1,Type=Float,Description=\"mean NM for duplex\">
 ##INFO=<ID=MEAN_NORM_NM,Number=1,Type=Float,Description=\"mean NM for normal\">
+##INFO=<ID=NORM_COV,Number=1,Type=Integer,Description=\"Coverage in the matched normal\">
 ##FILTER=<ID=commonSNP,Description=\"Common SNP site\">
 ##FILTER=<ID=shearwater,Description=\"Noisy site\">
-##FILTER=<ID=not_in_masks,Description=\"Not in the commonSNP and noise masks\">
-#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
-
+##FILTER=<ID=not_in_masks,Description=\"Not in the commonSNP and noise masks\">\n";
+open(I, "$ref_genome.fai") || die "Error: cannot find file $ref_genome.fai\n";
+while(<I>) {
+	chomp;
+	my($contig_name,$length) = (split)[0,1];
+	$header .= "##contig=<ID=$contig_name,length=$length>\n";
+}
+close(I);
+$header .= "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
 print $header;
 
-my $input_file = $ARGV[0];
 my %ds;
 my %complement;
 $complement{"A"} = "T";
