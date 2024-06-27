@@ -45,9 +45,8 @@ $|=1;
 my $input_file = $ARGV[0];
 my $ref_genome = $ARGV[1];
 if(!defined($ref_genome) || $ref_genome eq "") {
-	print STDERR "Reference genome fasta file needs to be provided. Exiting...\n";
-	print STDERR "Usage:  perl post_process_discarded_variants.pl discardedvariants.csv reference_genome.fa > discardedvariants.vcf\n";
-	exit;
+	die "Reference genome fasta file needs to be provided. Exiting...\n".
+	"Usage:  perl post_process_discarded_variants.pl discardedvariants.csv reference_genome.fa > discardedvariants.vcf\n";
 }
 
 # Prepare header:
@@ -182,8 +181,8 @@ $complement{"T"} = "A";
 			$ds{"$chrom:$pos:$ref:$mut"}->{"mean_min_BQ"} = $ds{"$chrom:$pos:$ref:$mut"}->{"mean_min_BQ" } + min($dplxCQfwdT,$dplxCQrevT);
 			$ds{"$chrom:$pos:$ref:$mut"}->{"vaf_normal" } = ($bulkForwardT + $bulkReverseT)/$normal_coverage if($normal_coverage > 0);
 		} else {
-			print STDERR "Error: $call doesn't match A, C, G, T. Exiting...\n";
-			exit;
+			die "Error: $call doesn't match A, C, G, T. Exiting...\n";
+		
 		}
 		push(@{$ds{"$chrom:$pos:$ref:$mut"}->{"QPOS"}},$qpos);
 		$ds{"$chrom:$pos:$ref:$mut"}->{"dplx_clip_filter"             } = $ds{"$chrom:$pos:$ref:$mut"}->{"dplx_clip_filter"             } + $dplx_clip_filter;
