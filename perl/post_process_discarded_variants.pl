@@ -38,11 +38,22 @@ $|=1;
 # fa8, Nov 2023
 # This script reads the discardedvariants.csv file and creates a summary VCF
 # Output is written to standard output
-# E.g. perl post_process_discarded_variants.pl tmpNanoSeq/post/discardedvariants.csv > tmpNanoSeq/post/discardedvariants.vcf
+# E.g. perl post_process_discarded_variants.pl tmpNanoSeq/post/discardedvariants.csv reference_genome.fa > tmpNanoSeq/post/discardedvariants.vcf
 
+
+
+my $input_file = $ARGV[0];
+my $ref_genome = $ARGV[1];
+if(!defined($ref_genome) || $ref_genome eq "") {
+	die "Reference genome fasta file needs to be provided. Exiting...\n".
+	"Usage:  perl post_process_discarded_variants.pl discardedvariants.csv reference_genome.fa > discardedvariants.vcf\n";
+}
+
+# Prepare header:
 my $header = 
 "##fileformat=VCFv4.2
 ##source=NanoSeq pipeline (discarded variants from post_process_discarded_variants.pl)
+##reference=file://$ref_genome 
 ##INFO=<ID=PYR_SUB,Number=1,Type=String,Description=\"Pyrimidine-based trinucleotide substitution\">
 ##INFO=<ID=N,Number=1,Type=Integer,Description=\"Number of times this variant has been discarded\">
 ##INFO=<ID=dplx_clip_filter,Number=1,Type=Integer,Description=\"Number of times this variant has failed the dplx_clip_filter\">
@@ -55,20 +66,27 @@ my $header =
 ##INFO=<ID=five_prime_trim_filter,Number=1,Type=Integer,Description=\"Number of times this variant has failed the five_prime_trim_filter\">
 ##INFO=<ID=three_prime_trim_filter,Number=1,Type=String,Description=\"Number of times this variant has failed the three_prime_trim_filter\">
 ##INFO=<ID=proper_pair_filter,Number=1,Type=String,Description=\"Number of times this variant has failed the proper_pair_filter\">
+##INFO=<ID=vaf_filter,Description=\"VAF in matched normal higher than threshold\">
 ##INFO=<ID=QPOS,Number=.,Type=Integer,Description=\"Read position closest to 5-prime end. Up to 10 QPOS are reported\">
 ##INFO=<ID=NORM_VAF,Number=1,Type=Float,Description=\"VAF in matched normal\">
 ##INFO=<ID=MEAN_DX_ASXS,Number=1,Type=Float,Description=\"mean AS-XS for duplex\">
 ##INFO=<ID=MEAN_NORM_ASXS,Number=1,Type=Float,Description=\"mean AS-XS for normal\">
 ##INFO=<ID=MEAN_DX_NM,Number=1,Type=Float,Description=\"mean NM for duplex\">
 ##INFO=<ID=MEAN_NORM_NM,Number=1,Type=Float,Description=\"mean NM for normal\">
+##INFO=<ID=NORM_COV,Number=1,Type=Integer,Description=\"Coverage in the matched normal\">
 ##FILTER=<ID=commonSNP,Description=\"Common SNP site\">
 ##FILTER=<ID=shearwater,Description=\"Noisy site\">
-##FILTER=<ID=not_in_masks,Description=\"Not in the commonSNP and noise masks\">
-#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
-
+##FILTER=<ID=not_in_masks,Description=\"Not in the commonSNP and noise masks\">\n";
+open(I, "$ref_genome.fai") || die "Error: cannot find file $ref_genome.fai\n";
+while(<I>) {
+	chomp;
+	my($contig_name,$length) = (split)[0,1];
+	$header .= "##contig=<ID=$contig_name,length=$length>\n";
+}
+close(I);
+$header .= "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
 print $header;
 
-my $input_file = $ARGV[0];
 my %ds;
 my %complement;
 $complement{"A"} = "T";
@@ -163,8 +181,8 @@ $complement{"T"} = "A";
 			$ds{"$chrom:$pos:$ref:$mut"}->{"mean_min_BQ"} = $ds{"$chrom:$pos:$ref:$mut"}->{"mean_min_BQ" } + min($dplxCQfwdT,$dplxCQrevT);
 			$ds{"$chrom:$pos:$ref:$mut"}->{"vaf_normal" } = ($bulkForwardT + $bulkReverseT)/$normal_coverage if($normal_coverage > 0);
 		} else {
-			print STDERR "Error: $call doesn't match A, C, G, T. Exiting...\n";
-			exit;
+			die "Error: $call doesn't match A, C, G, T. Exiting...\n";
+		
 		}
 		push(@{$ds{"$chrom:$pos:$ref:$mut"}->{"QPOS"}},$qpos);
 		$ds{"$chrom:$pos:$ref:$mut"}->{"dplx_clip_filter"             } = $ds{"$chrom:$pos:$ref:$mut"}->{"dplx_clip_filter"             } + $dplx_clip_filter;
