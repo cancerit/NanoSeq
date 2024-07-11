@@ -1,5 +1,8 @@
 # CHANGES
 
+## 3.5.7
+* Update to discarded variant script to allow sorting of vcf discarded variant file
+
 ## 3.5.6
 * Adding parameters to "bcftools mpileup" call to resolve issue for samples using multiple wells
 * Correcting code version
