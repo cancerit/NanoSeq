@@ -474,6 +474,8 @@ void VariantCaller::CollectMetrics() {
         //fa8: moved this so we know if it is variant or not before applying the NM filter:
         row.call = row.f1r2_call;
         row.isvariant  = VariantCaller::IsVariant(&row);
+        row.ismasked   = VariantCaller::IsMasked(&row);
+        row.pyrcontext = VariantCaller::PyrimidineContext(&row);
         VariantCaller::ApplyFilters(&row); // Apply filters to row
         if(row.isvariant && row.f1r2_call != row.context[1] && row.f2r1_call != row.context[1]) { // fa8: these conditions are redundant
 	        row.vaf_filter = VariantCaller::VafFilter(&row); // fa8: This one has to go separately 
@@ -482,8 +484,6 @@ void VariantCaller::CollectMetrics() {
       		row.vaf_filter = 1;
       	}
         if (row.pass_all_filters && row.vaf_filter) {
-          row.ismasked   = VariantCaller::IsMasked(&row);
-          row.pyrcontext = VariantCaller::PyrimidineContext(&row);
           this->burdens[row.ismasked][row.isvariant]++;
           this->call_by_qpos[row.call][row.min_qpos][row.ismasked]++;
           this->pyr_by_mask[row.pyrcontext][row.ismasked]++;
@@ -533,7 +533,7 @@ void VariantCaller::CollectMetrics() {
     }
   }
   //write last line to coverage file
-  if(this->outfile_coverage != NULL and curr != -1 ) {
+  if(this->outfile_coverage != NULL and curr != -1 and cov > 0 ) {
     this->gzout_coverage << lastRow.chrom;
     this->gzout_coverage << "\t";
     this->gzout_coverage << lastRow.chrom_beg;
