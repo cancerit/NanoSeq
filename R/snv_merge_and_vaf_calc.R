@@ -300,7 +300,7 @@ if (num_snvs > 0) {
     total_mut = 0
     for (j in c(1:length(muts))) {
       total_mut = total_mut + kk[j, muts[j]] + kk[j, tolower(muts[j])]
-      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
     }
     snvs_final[i, "BAM_MUT"] = total_mut
     snvs_final[i, "BAM_COV"] = total_cov
@@ -316,7 +316,7 @@ if (num_snvs > 0) {
     total_mut = 0
     for (j in c(1:length(muts))) {
       total_mut = total_mut + kk[j, muts[j]] + kk[j, tolower(muts[j])]
-      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
     }
     snvs_final[i, "BAM_MUT_BQ10"] = total_mut
     snvs_final[i, "BAM_COV_BQ10"] = total_cov
@@ -420,9 +420,9 @@ if (num_indels > 0) {
   # BAM VAFs / bam2R
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 20, mask = 3844, mq = 30)
-    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
     if (indels_final[i, "TYPE"] == "del") {
-      total_mut = sum(kk[, c("DEL", "del", "-", "_")])
+      total_mut = sum(kk[, c("DEL", "del")])
     } else {
       #ins
       total_mut = sum(kk[, c("INS", "ins")])
@@ -436,9 +436,9 @@ if (num_indels > 0) {
   #cat("VAFs(3)...\n")
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 10, mask = 3844, mq = 30)
-    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
     if (indels_final[i, "TYPE"] == "del") {
-      total_mut = sum(kk[, c("DEL", "del", "-", "_")])
+      total_mut = sum(kk[, c("DEL", "del")])
     } else {
       #ins
       total_mut = sum(kk[, c("INS", "ins")])
