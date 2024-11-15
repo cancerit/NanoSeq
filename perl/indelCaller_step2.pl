@@ -177,6 +177,7 @@ my $once = 1;
 print STDOUT "\ntmp dir : $tempdir\n\n";
 foreach my $rb_id (keys %indels) {
   my($chr,$start,$end) = (split(/,/,$rb_id))[0,1,2];
+  if($start <= 0) {	$start = 1;	}
   my(%good_sites,%bad_sites);
   foreach my $pos ( keys %{$indels{$rb_id}} ) {
     if($indels{$rb_id}->{$pos}->{"sw"} == 0 && $indels{$rb_id}->{$pos}->{"snp"} == 0) {
