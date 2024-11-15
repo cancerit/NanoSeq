@@ -29,7 +29,7 @@ params.outDir = baseDir
 // *** Preprocessing and mapping params
 params.fastq_tags_m = 3
 params.fastq_tags_s = 4
-params.nanoseq_dedup_m = 2
+params.nanoseq_dedup_m = 1 # bug found by ao7. It was not used later though.
 
 // *** NanoSeq parameters
 params.jobs = 100
