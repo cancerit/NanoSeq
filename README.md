@@ -260,7 +260,7 @@ A bash script is provided in the LSF directory as a template for execution of al
 
 ### Genomic masks
 
-Genomic masks for common SNP masking and detection of noisy/variable genomic sites. Masks for GRCh37 are available [here](https://drive.google.com/drive/folders/1wqkgpRTuf4EUhqCGSLA4fIg9qEEw3ZcL?usp=sharing).
+Genomic masks for common SNP masking and detection of noisy/variable genomic sites. Masks for GRCh37 and GRCh38 are available [here](https://drive.google.com/drive/folders/1wqkgpRTuf4EUhqCGSLA4fIg9qEEw3ZcL?usp=sharing).
 
 These masks have recently been updated. "RE" versions now include the TGCA restriction site. In all cases, "RE" and "WGS", the new masks now include new sites found to be prone to artefacts in NovaSeqX.
 
