@@ -589,7 +589,7 @@ if (args.subcommand == 'cov'):
 
     gintervals = []
     for ichr in chrList:
-        gintervals.append(GInterval(ichr, 1, rnames[ichr]-1))
+        gintervals.append(GInterval(ichr, 2, rnames[ichr]-1))
     gintervals.sort()
 
     reorderchr = []
