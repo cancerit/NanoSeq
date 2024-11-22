@@ -53,7 +53,7 @@ void Usage() {
 
 
 static void SetupOptions(int argc, char **argv, Options *opts) {
-  opts->max_plp_depth    = 1000000;
+  opts->max_plp_depth    = 20000000;
   opts->min_dplx_depth   = 2;
   opts->offset           = 1;
   opts->min_base_quality = 30;
