@@ -300,7 +300,8 @@ if (num_snvs > 0) {
     total_mut = 0
     for (j in c(1:length(muts))) {
       total_mut = total_mut + kk[j, muts[j]] + kk[j, tolower(muts[j])]
-      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+      # total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     }
     snvs_final[i, "BAM_MUT"] = total_mut
     snvs_final[i, "BAM_COV"] = total_cov
@@ -316,7 +317,8 @@ if (num_snvs > 0) {
     total_mut = 0
     for (j in c(1:length(muts))) {
       total_mut = total_mut + kk[j, muts[j]] + kk[j, tolower(muts[j])]
-      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+      # total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     }
     snvs_final[i, "BAM_MUT_BQ10"] = total_mut
     snvs_final[i, "BAM_COV_BQ10"] = total_cov
