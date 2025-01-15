@@ -1011,7 +1011,7 @@ void Usage() {
 
 void Options(int argc, char **argv, VariantCaller *vc) {
   vc->bed               = NULL;          // permissive -> strict
-  vc->asxs              = 100;
+  vc->asxs              = 50;
   vc->bulk              = 5;
   vc->bulk_total        = 10;
   vc->clip              = 0.1;           // 1 to 0
@@ -1020,7 +1020,7 @@ void Options(int argc, char **argv, VariantCaller *vc) {
   vc->indel             = 1;             // 1 to 0
   vc->nmms              = 3;
   vc->ppair             = 0.95;          // 0 to 1
-  vc->qual              = 0;
+  vc->qual              = 45;
   vc->readlen           = 146;
   vc->min_cycle         = 10;
   vc->max_cycle         = 10;
