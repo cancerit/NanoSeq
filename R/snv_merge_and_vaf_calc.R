@@ -537,11 +537,11 @@ header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Float,Desc
 header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Float,Description=\"Matched normal reverse reads depth\">"
 header[length(header) + 1] = "##INFO=<ID=RB,Number=.,Type=String,Description=\"Read bundle id(s): chr:breakpoints:barcodes\">"
 header[length(header) + 1] = "##INFO=<ID=SEQ,Number=1,Type=String,Description=\"Sequence context for indels\">"
-header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=.,Type=Integer,Description=\"AS-XS for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=.,Type=Integer,Description=\"Clipping for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Integer,Description=\"Mismatches in duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=.,Type=Integer,Description=\"AS-XS for bulk\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Integer,Description=\"Mismatches in bulk\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=.,Type=Integer,Description=\"AS-XS for duplex\">"
+header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=.,Type=Integer,Description=\"Clipping for duplex\">"
+header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Integer,Description=\"Mismatches in duplex\">"
+header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=.,Type=Integer,Description=\"AS-XS for bulk\">"
+header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Integer,Description=\"Mismatches in bulk\">"
 header[length(header) + 1] = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
 
 muts_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]
