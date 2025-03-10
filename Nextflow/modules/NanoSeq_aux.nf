@@ -138,7 +138,7 @@ process NANOSEQ_ADD_RB {
         """
         touch ${task.process}_${meta.id}_${meta.type}
         mkdir -p out
-        NLINES=`samtools view $cram | head -1 | grep rb: | grep rc: | grep mb: | grep mc: | wc -l` || true
+        NLINES=`samtools view $cram | head -100 | grep rb: | grep rc: | grep mb: | grep mc: | wc -l` || true
         ## *MODIFIED* (ao7): fixed numeric comparison operator
         ## if [ \$NLINES != 0 ]; then
         if [ \$NLINES -ne 0 ]; then
