@@ -35,6 +35,7 @@ params.nanoseq_dedup_m = 1 # bug found by ao7. It was not used later though.
 params.jobs = 100
 //  cov
 params.cov_Q = 0
+params.min_mapQ = 20 # suggested by Alex and Adrian
 if ( params.grch37 ) {//for GRCh37 reference
     params.cov_exclude = "MT,GL%,NC_%,hs37d5"
     params.snp_bed = "/path/to/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
