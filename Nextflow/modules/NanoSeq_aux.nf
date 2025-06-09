@@ -18,7 +18,10 @@ process ADD_NANOSEQ_FASTQ_TAGS {
 
     maxRetries 4
     cpus 1
-    memory { task.exitStatus == 130 ? 500.MB * task.attempt : 500.MB }
+    // *MODIFIED* (ao7): added task.exitStatus == Integer.MAX_VALUE;
+    //                   the default value of task.exitStatus in the absence of an .exitcode file for the previous execution
+    //memory { ( task.exitStatus == 130 ) ? 500.MB * task.attempt : 500.MB }
+    memory { ( task.exitStatus == 130 || task.exitStatus == Integer.MAX_VALUE ) ? 500.MB * task.attempt : 500.MB }
 
     script:
         def read1 = reads[0]
@@ -64,7 +67,13 @@ process MARKDUP {
 
     maxRetries 4
     cpus 5
-    memory { task.exitStatus == 130  ? 25.GB * task.attempt : 25.GB }
+    // *MODIFIED* (ao7): increased memory; added task.exitStatus == Integer.MAX_VALUE;
+    //                   the default value of task.exitStatus in the absence of an .exitcode file for the previous execution
+    // memory { ( task.exitStatus == 130 || task.exitStatus == 140) ? 25.GB * task.attempt : 25.GB }
+    // queue { task.exitStatus == 140 ? "long" : "normal" }
+    memory { ( task.exitStatus == 130 || task.exitStatus == 140 || task.exitStatus == Integer.MAX_VALUE ) ? 40.GB * task.attempt : 40.GB }
+    queue { ( task.exitStatus == 140 || task.exitStatus == Integer.MAX_VALUE ) ? "long" : "normal" }
+    //
 
     script:
         """
@@ -117,14 +126,23 @@ process NANOSEQ_ADD_RB {
 
     maxRetries 4
     cpus 1
-    memory { task.exitStatus == 130 ? 2.GB * task.attempt : 2.GB }
+    // *MODIFIED* (ao7): added task.exitStatus == Integer.MAX_VALUE;
+    //                   the default value of task.exitStatus in the absence of an .exitcode file for the previous execution
+    //memory { task.exitStatus == 130 ? 2.GB * task.attempt : 2.GB }
+    //queue { task.exitStatus == 140 ? "long" : "normal" }
+    memory { ( task.exitStatus == 130 || task.exitStatus == Integer.MAX_VALUE ) ? 2.GB * task.attempt : 2.GB }
+    queue { ( task.exitStatus == 140 || task.exitStatus == Integer.MAX_VALUE ) ? "long" : "normal" }
+    //
 
     script:
         """
         touch ${task.process}_${meta.id}_${meta.type}
         mkdir -p out
-        NLINES=`samtools view $cram | head -1 | grep rb: | grep rc: | grep mb: | grep mc: | wc -l` || true
-        if [ \$NLINES == 1 ]; then
+        NLINES=`samtools view -F 2820 $cram | head -100 | grep rb: | grep rc: | grep mb: | grep mc: | wc -l` || true
+        ## *MODIFIED* (ao7): fixed numeric comparison operator
+        ## if [ \$NLINES != 0 ]; then
+        if [ \$NLINES -ne 0 ]; then
+        ##
             bamaddreadbundles -I $cram -O ./out/${meta.name}.cram
             samtools index ./out/${meta.name}.cram
         else
@@ -167,17 +185,27 @@ process NANOSEQ_DEDUP {
 
     maxRetries 4
     cpus 1
-    memory { task.exitStatus == 130  ? 2.GB * task.attempt : 2.GB }
+    // *MODIFIED* (ao7): added task.exitStatus == Integer.MAX_VALUE;
+    //                   the default value of task.exitStatus in the absence of an .exitcode file for the previous execution
+    //memory { task.exitStatus == 130 ? 10.GB * task.attempt : 10.GB }
+    memory { ( task.exitStatus == 130 || task.exitStatus == Integer.MAX_VALUE ) ? 10.GB * task.attempt : 10.GB }
+    //
 
     script:
         """
         touch ${task.process}_${meta.id}_${meta.type}
         mkdir -p out
-        NLINES1=`samtools view $cram | head -1 | grep -P "\\tRB:" | wc -l` || true
+        NLINES1=`samtools view -H $cram | grep ^@PG | grep ID:bamaddreadbundles | wc -l` || true
         NLINES2=`samtools view -H $cram | grep ^@PG | grep ID:randomreadinbundle | wc -l` || true
-        if [ \$NLINES1 == 1 ] && [ \$NLINES2 == 0 ]; then
-            randomreadinbundle -I $cram -O ./out/${meta.name}.neat.cram
-            samtools index ./out/${meta.name}.neat.cram
+        ## *MODIFIED* (ao7): fixed numeric comparison operators
+        ## if [ \$NLINES1 > 0 ] && [ \$NLINES2 == 0 ]; then
+        if [ \$NLINES1 -gt 0 ] && [ \$NLINES2 -eq 0 ]; then
+        ##
+            ## *MODIFIED* (ao7): added -m parameter
+            ##randomreadinbundle -I $cram -O ./dedup/${meta.name}.neat.cram
+            randomreadinbundle -I $cram -O ./dedup/${meta.name}.neat.cram -m $m
+            ##
+            samtools index ./dedup/${meta.name}.neat.cram
         else
           ln -s ../$cram ./out/${meta.name}.neat.cram
           ln -s ../$index ./out/${meta.name}.neat.cram.crai
@@ -272,7 +300,11 @@ process NANOSEQ_EFFI {
 
     maxRetries MAXN
     cpus 4
-    memory { task.exitStatus == 130  ? 25.GB * task.attempt : 25.GB }
+    // *MODIFIED* (ao7): added task.exitStatus == Integer.MAX_VALUE;
+    //                   the default value of task.exitStatus in the absence of an .exitcode file for the previous execution
+    //memory { task.exitStatus == 130  ? 25.GB * task.attempt : 25.GB }
+    memory { ( task.exitStatus == 130 || task.exitStatus == Integer.MAX_VALUE ) ? 25.GB * task.attempt : 25.GB }
+    //
     errorStrategy { task.attempt == MAXN ? 'ignore' : 'retry' }
 
     script:
@@ -316,7 +348,11 @@ process NANOSEQ_VAF {
 
     maxRetries 4
     cpus 2
-    memory { task.exitStatus == 130 ? 2.GB * task.attempt : 2.GB }
+    // *MODIFIED* (ao7): added task.exitStatus == Integer.MAX_VALUE;
+    //                   the default value of task.exitStatus in the absence of an .exitcode file for the previous execution
+    //memory { task.exitStatus == 130 ? 10.GB * task.attempt : 10.GB }
+    memory { ( task.exitStatus == 130 || task.exitStatus == Integer.MAX_VALUE ) ? 10.GB * task.attempt : 10.GB }
+    //
 
     script:
         """

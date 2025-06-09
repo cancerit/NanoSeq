@@ -142,7 +142,7 @@ parser_varO.add_argument('-n', type=int, action='store',
 parser_varO.add_argument('-p', type=int, action='store', default=0,
                          help="minimum fraction of reads that are proper-pairs (0)")
 parser_varO.add_argument('-q', type=int, action='store',
-                         default=60, help="minimum consensus base quality (60)")
+                         default=45, help="minimum consensus base quality (45)")
 parser_varO.add_argument('-r', type=int, action='store',
                          default=144, help="read length (after 5' trimming) (144)")
 parser_varO.add_argument('-v', type=float, action='store',
@@ -589,7 +589,7 @@ if (args.subcommand == 'cov'):
 
     gintervals = []
     for ichr in chrList:
-        gintervals.append(GInterval(ichr, 1, rnames[ichr]))
+        gintervals.append(GInterval(ichr, 2, rnames[ichr]-1))
     gintervals.sort()
 
     reorderchr = []

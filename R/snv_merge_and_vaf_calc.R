@@ -300,7 +300,8 @@ if (num_snvs > 0) {
     total_mut = 0
     for (j in c(1:length(muts))) {
       total_mut = total_mut + kk[j, muts[j]] + kk[j, tolower(muts[j])]
-      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+      # total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     }
     snvs_final[i, "BAM_MUT"] = total_mut
     snvs_final[i, "BAM_COV"] = total_cov
@@ -316,7 +317,8 @@ if (num_snvs > 0) {
     total_mut = 0
     for (j in c(1:length(muts))) {
       total_mut = total_mut + kk[j, muts[j]] + kk[j, tolower(muts[j])]
-      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+      # total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     }
     snvs_final[i, "BAM_MUT_BQ10"] = total_mut
     snvs_final[i, "BAM_COV_BQ10"] = total_cov
@@ -420,9 +422,10 @@ if (num_indels > 0) {
   # BAM VAFs / bam2R
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 20, mask = 3844, mq = 30)
-    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+    # total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+    total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     if (indels_final[i, "TYPE"] == "del") {
-      total_mut = sum(kk[, c("DEL", "del", "-", "_")])
+      total_mut = sum(kk[, c("DEL", "del")])
     } else {
       #ins
       total_mut = sum(kk[, c("INS", "ins")])
@@ -436,9 +439,10 @@ if (num_indels > 0) {
   #cat("VAFs(3)...\n")
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 10, mask = 3844, mq = 30)
-    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+    # total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+    total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     if (indels_final[i, "TYPE"] == "del") {
-      total_mut = sum(kk[, c("DEL", "del", "-", "_")])
+      total_mut = sum(kk[, c("DEL", "del")])
     } else {
       #ins
       total_mut = sum(kk[, c("INS", "ins")])
@@ -535,11 +539,11 @@ header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Float,Desc
 header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Float,Description=\"Matched normal reverse reads depth\">"
 header[length(header) + 1] = "##INFO=<ID=RB,Number=.,Type=String,Description=\"Read bundle id(s): chr:breakpoints:barcodes\">"
 header[length(header) + 1] = "##INFO=<ID=SEQ,Number=1,Type=String,Description=\"Sequence context for indels\">"
-header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=.,Type=Integer,Description=\"AS-XS for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=.,Type=Integer,Description=\"Clipping for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Integer,Description=\"Mismatches in duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=.,Type=Integer,Description=\"AS-XS for bulk\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Integer,Description=\"Mismatches in bulk\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=.,Type=Integer,Description=\"AS-XS for duplex\">"
+header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=.,Type=Integer,Description=\"Clipping for duplex\">"
+header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Integer,Description=\"Mismatches in duplex\">"
+header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=.,Type=Integer,Description=\"AS-XS for bulk\">"
+header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Integer,Description=\"Mismatches in bulk\">"
 header[length(header) + 1] = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
 
 muts_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]

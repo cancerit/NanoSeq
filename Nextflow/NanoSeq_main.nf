@@ -29,12 +29,13 @@ params.outDir = baseDir
 // *** Preprocessing and mapping params
 params.fastq_tags_m = 3
 params.fastq_tags_s = 4
-params.nanoseq_dedup_m = 2
+params.nanoseq_dedup_m = 1 # bug found by ao7. It was not used later though.
 
 // *** NanoSeq parameters
 params.jobs = 100
 //  cov
 params.cov_Q = 0
+params.min_mapQ = 20 # suggested by Alex and Adrian
 if ( params.grch37 ) {//for GRCh37 reference
     params.cov_exclude = "MT,GL%,NC_%,hs37d5"
     params.snp_bed = "/path/to/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
@@ -71,7 +72,7 @@ params.var_i = 1.0
 params.var_m = 8
 params.var_n = 3
 params.var_p = 0
-params.var_q = 60
+params.var_q = 45
 params.var_r = 144
 params.var_v = 0.01
 params.var_x = 8
