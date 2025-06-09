@@ -29,19 +29,19 @@ params.outDir = baseDir
 // *** Preprocessing and mapping params
 params.fastq_tags_m = 3
 params.fastq_tags_s = 4
-params.nanoseq_dedup_m = 1 # bug found by ao7. It was not used later though.
+params.nanoseq_dedup_m = 1  // bug found by ao7. It was not used later though.
 
 // *** NanoSeq parameters
 params.jobs = 100
 //  cov
 params.cov_Q = 0
-params.min_mapQ = 20 # suggested by Alex and Adrian
+params.min_mapQ = 20  // suggested by Alex and Adrian
 if ( params.grch37 ) {//for GRCh37 reference
     params.cov_exclude = "MT,GL%,NC_%,hs37d5"
     params.snp_bed = "/path/to/reference/human/GRCH37d5/botseq/SNP.sorted.bed.gz"
     params.noise_bed = "/path/to/reference/human/GRCH37d5/botseq/NOISE.sorted.bed.gz"
 } else if ( params.grch38 ) {//for GRCh38 reference
-    params.cov_exclude = "chrM,chr%_random,chrUn_%,chr%_alt,HLA-%" 
+    params.cov_exclude = "chrM,chr%_random,chrUn_%,chr%_alt,HLA-%"
     params.snp_bed = "/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/SNP.sorted.GRCh38.bed.gz"
     params.noise_bed = "/path/to/reference/human/GRCh38_full_analysis_set_plus_decoy_hla/botseq/NOISE.sorted.GRCh38.bed.gz"
 } else {
@@ -52,7 +52,7 @@ if ( params.grch37 ) {//for GRCh37 reference
 file_exists( params.snp_bed, "snp_bed" )
 file_exists( params.noise_bed, "noise_bed" )
 params.cov_include = ""
-params.cov_larger = 0 
+params.cov_larger = 0
 // part parameters
 params.part_excludeBED = ""
 file_exists( params.part_excludeBED, "part_excludeBED" )
@@ -132,7 +132,7 @@ if ( fields.contains("d_fastq1") && fields.contains("d_fastq2") && fields.contai
        fields.contains("n_fastq2") ) {
     input_ss = Channel
         .from( ss.text )
-        .splitCsv(header: true).map(row -> { 
+        .splitCsv(header: true).map(row -> {
             assert (  ! list_ids.contains(row.id ) ) : "\nids in sample sheet must be unique\n\n"
             list_ids.add(row.id)
             file_exists(row.d_fastq1,"d_fastq1")
@@ -151,7 +151,7 @@ if ( fields.contains("d_fastq1") && fields.contains("d_fastq2") && fields.contai
 } else if ( fields.contains("d_cram") && fields.contains("n_cram") && params.remap ) {
     input_ss = Channel
         .from( ss.text )
-        .splitCsv(header: true).map(row -> { 
+        .splitCsv(header: true).map(row -> {
             assert (  ! list_ids.contains(row.id ) ) : "\nids in sample sheet must be unique\n\n"
             list_ids.add(row.id)
             file_exists(row.d_cram,"d_cram")
@@ -162,13 +162,13 @@ if ( fields.contains("d_fastq1") && fields.contains("d_fastq2") && fields.contai
                 meta_normal = it[0].clone()
                 meta_normal["type"]="normal"
                 duplex : [ meta_duplex, it[1] ]
-                normal : [ meta_normal, it[2] ] 
+                normal : [ meta_normal, it[2] ]
             }
     reMapIn = true
 //crams that dont need realignment, (need to check cram indexes)
 } else if ( fields.contains("d_cram") && fields.contains("n_cram") && ! params.remap ) {
     input_ss = Channel
-        .from( ss.text ).splitCsv(header: true).map(row -> { 
+        .from( ss.text ).splitCsv(header: true).map(row -> {
             assert (  ! list_ids.contains(row.id ) ) : "\nids in sample sheet must be unique\n\n"
             list_ids.add(row.id)
             file_exists(row.d_cram,"d_cram")
@@ -188,7 +188,7 @@ if ( fields.contains("d_fastq1") && fields.contains("d_fastq2") && fields.contai
 } else if ( fields.contains("d_bam") && fields.contains("n_bam") && params.remap ) {
     input_ss = Channel
         .from( ss.text )
-        .splitCsv(header: true).map(row -> { 
+        .splitCsv(header: true).map(row -> {
             assert (  ! list_ids.contains(row.id ) ) : "\nids in sample sheet must be unique\n\n"
             list_ids.add(row.id)
             file_exists(row.d_bam,"d_bam")
@@ -199,13 +199,13 @@ if ( fields.contains("d_fastq1") && fields.contains("d_fastq2") && fields.contai
                 meta_normal = it[0].clone()
                 meta_normal["type"]="normal"
                 duplex : [ meta_duplex, it[1] ]
-                normal : [ meta_normal, it[2] ] 
+                normal : [ meta_normal, it[2] ]
             }
     reMapIn = true
 //bams that dont need realignment, (need to check bam indexes)
 } else if ( fields.contains("d_bam") && fields.contains("n_bam") && ! params.remap ) {
     input_ss = Channel
-        .from( ss.text ).splitCsv(header: true).map(row -> { 
+        .from( ss.text ).splitCsv(header: true).map(row -> {
             assert (  ! list_ids.contains(row.id ) ) : "\nids in sample sheet must be unique\n\n"
             list_ids.add(row.id)
             file_exists(row.d_bam,"d_bam")
@@ -289,7 +289,7 @@ workflow MAP_FASTQ {
     main :
         ADD_NANOSEQ_FASTQ_TAGS( ch_fastq, params.fastq_tags_m, params.fastq_tags_s)
         BWAMEM2_MAP( ADD_NANOSEQ_FASTQ_TAGS.out.fastqs, reference_path )
-    
+
     emit :
         cram =  BWAMEM2_MAP.out.cram
         versions = BWAMEM2_MAP.out.versions
@@ -299,7 +299,7 @@ versions = Channel.empty() //accumulate all version files here
 
 workflow {
     if ( fastqIn ) { //fastq
- 
+
         //Merge normal's and duplex's into one channel
         ch_fastq_ss = input_ss.duplex.mix( input_ss.normal ).map{ meta, it ->
             meta["name"] = meta.id + "_" + meta.type
@@ -310,21 +310,21 @@ workflow {
     } else { //cram input
 
         //Merge normal's and duplex's into one channel
-        ch_cram_ss = input_ss.duplex.mix( input_ss.normal ).map{ 
+        ch_cram_ss = input_ss.duplex.mix( input_ss.normal ).map{
             it[0]["name"] = it[0].id + "_" + it[0].type
             it  }
 
         ch_cram = ch_cram_ss
     }
-    
+
     if ( reMapIn ) { //remapping
 
         MAP = BWAMEM2_REMAP( ch_cram_ss, reference_path)
-   
+
     }
 
     if ( fastqIn || reMapIn ) {
-        
+
         MARKDUP( MAP.cram, reference_path )
 
         versions = versions.concat(MAP.versions.first())
@@ -343,7 +343,7 @@ workflow {
 
     if ( params.vb_ud != "" &&  params.vb_bed != "" && params.vb_mu != "" ) {
         VERIFY_BAMID( NANOSEQ_DEDUP.out.cram, params.vb_epsilon, reference_path, params.vb_ud, params.vb_bed, params.vb_mu )
-    
+
         versions = versions.concat(VERIFY_BAMID.out.versions.first())
     }
 
@@ -359,11 +359,11 @@ workflow {
     ch_duplex_effi = ch_add_rb_duplex.join( ch_dedup_duplex ).map{it[1] + it[2][1..-1] }
 
     ch_input_effi = ch_normal_effi.mix(ch_duplex_effi)
-    
+
     NANOSEQ_EFFI( ch_input_effi, reference_path)
-    
+
     versions = versions.concat(NANOSEQ_EFFI.out.versions.first())
-    
+
     //Collate CRAMs for NanoSeq call
     //Must provide :  NANOSEQ_ADD_RB.out.cram (duplex) & NANOSEQ_DEDUP.out.cram (normal) ; as input arguments
 
@@ -372,10 +372,10 @@ workflow {
         meta.name = meta.id
         meta.type = "pair"
         [ meta ] + it[1][1..-1] + it[2][1..-1] }
-    
+
     NANOSEQ( ch_input_nanoseq, reference_path, params.jobs, params.cov_Q, params.cov_exclude, params.cov_include,
-        params.cov_larger, params.part_excludeBED, params.part_excludeCov, params.snp_bed, params.noise_bed, params.dsa_d, 
-        params.dsa_q, params.var_a, params.var_b, params.var_c, params.var_d, params.var_f, params.var_i, params.var_m, 
+        params.cov_larger, params.part_excludeBED, params.part_excludeCov, params.snp_bed, params.noise_bed, params.dsa_d,
+        params.dsa_q, params.var_a, params.var_b, params.var_c, params.var_d, params.var_f, params.var_i, params.var_m,
         params.var_n, params.var_p, params.var_q, params.var_r, params.var_v, params.var_x, params.var_z, params.indel_rb,
         params.indel_t3, params.indel_t5, params.indel_z, params.indel_v, params.indel_a, params.indel_c, params.post_triNuc)
 
