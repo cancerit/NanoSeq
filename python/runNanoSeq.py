@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
+# Copyright (c) 2022, 2025 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -1144,7 +1144,7 @@ if (args.subcommand == 'post'):
                 arow = row.strip().split('\t')
                 if csvIO.get(arow[0], None):
                     csvIO[arow[0]].write('%s\n' % ','.join(arow[1:]))
-            
+
             # Write discarded variants
             dfile = "%s/var/%s.discarded_var" % (tmpDir, i+1)
             for row in open(dfile, 'r'):

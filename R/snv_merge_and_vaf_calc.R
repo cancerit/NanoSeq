@@ -1,25 +1,25 @@
 #!/usr/bin/env Rscript
 
 ########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
-# 
+# Copyright (c) 2022, 2025 Genome Research Ltd
+#
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
-# 
+#
 # This file is part of NanoSeq.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# 
+#
 # 1. The usage of a range of years within a copyright statement contained within
 # this distribution should be interpreted as being equivalent to a list of years
 # including the first and last year specified and all consecutive years between
@@ -34,7 +34,7 @@
 #########################################################################################
 # This scripts receives a SNV vcf, an indel vcf, the sample deduplicated bam and
 # the xx.cov.bed.gz file and with all this creates a new VAF by:
-# * merging subs into DNVs and MNVs, using RB barcodes to discern if they are independent 
+# * merging subs into DNVs and MNVs, using RB barcodes to discern if they are independent
 #   events
 # * collapse and annotate repeated mutations
 # * calculate duplex & mut VAFs for subs and indels
@@ -203,7 +203,7 @@ if (num_snvs > 0) {
       snvs_new[new_row, "DPLX_CLIP"] = snvs_tmp[1, "DPLX_CLIP"]
       snvs_new[new_row, "DPLX_NM"] = snvs_tmp[1, "DPLX_NM"]
       snvs_new[new_row, "BULK_ASXS"] = snvs_tmp[1, "BULK_ASXS"]
-      snvs_new[new_row, "BULK_NM"] = snvs_tmp[1, "BULK_NM"]         
+      snvs_new[new_row, "BULK_NM"] = snvs_tmp[1, "BULK_NM"]
       if (nrow(snvs_tmp) == 2) {
         snvs_new[new_row, "TYPE"] = "dnv"
       }
@@ -265,7 +265,7 @@ if (num_snvs > 0) {
 
   # drop some columns:
   snvs_new2 = snvs_new2[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "TRI", "rb_id", "QPOS", "DEPTH_FWD",
-                         "DEPTH_REV", "DEPTH_NORM_FWD", "DEPTH_NORM_REV", "TYPE", "TIMES_CALLED", "DPLX_ASXS", 
+                         "DEPTH_REV", "DEPTH_NORM_FWD", "DEPTH_NORM_REV", "TYPE", "TIMES_CALLED", "DPLX_ASXS",
                          "DPLX_CLIP", "DPLX_NM", "BULK_ASXS", "BULK_NM")]
 
 
@@ -396,10 +396,10 @@ if (num_indels > 0) {
   indels_new = indels_new[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "rb_id", "TYPE", "TIMES_CALLED", "SEQ","BBEG","BEND","QPOS","DEPTH_FWD","DEPTH_REV","DEPTH_NORM_FWD","DEPTH_NORM_REV","DPLX_ASXS","DPLX_CLIP","DPLX_NM","BULK_ASXS","BULK_NM")]
 
   ##########################################################################################
-  # Calculate VAFs for indels 
+  # Calculate VAFs for indels
   # Duplex VAFs
   # INDELS:
-  # Do it separately. Because indels don't pass filters, we need to sum them (TIMES_SEEN) to 
+  # Do it separately. Because indels don't pass filters, we need to sum them (TIMES_SEEN) to
   # the duplex coverage seen in cov_bed
   #cat("VAFs(1)...\n")
   indels_new_filt = indels_new[grep("PASS", indels_new$filter, invert = T),]

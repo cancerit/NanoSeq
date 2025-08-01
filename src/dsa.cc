@@ -1,23 +1,23 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
-# 
+# Copyright (c) 2022, 2025 Genome Research Ltd
+#
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
-# 
+#
 # This file is part of NanoSeq.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# 
+#
 # 1. The usage of a range of years within a copyright statement contained within
 # this distribution should be interpreted as being equivalent to a list of years
 # including the first and last year specified and all consecutive years between
@@ -42,7 +42,7 @@ void Usage() {
   fprintf(stderr, "\t-D\tMask BED file name\n");
   fprintf(stderr, "\t-R\tReference sequence file (faidx indexed)\n");
   fprintf(stderr, "\t-Q\tMinimum base quality for bulk sequencing (def 30)\n");
-  fprintf(stderr, "\t-M\tRemove duplex reads w/ MAPQ smaller than this (def 0)\n"); 
+  fprintf(stderr, "\t-M\tRemove duplex reads w/ MAPQ smaller than this (def 0)\n");
   fprintf(stderr, "\t-r\tReference or contig name\n");
   fprintf(stderr, "\t-b\tStart coordinate\n");
   fprintf(stderr, "\t-e\tEnd coordinate\n");
