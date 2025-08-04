@@ -1,6 +1,6 @@
-FROM  ubuntu:18.04 as builder
+FROM ubuntu:18.04 AS builder
 
-USER  root
+USER root
 
 # ALL tool versions used by opt-build.sh
 ENV VER_SAMTOOLS="1.18"
@@ -12,9 +12,8 @@ ENV VER_LIBDEFLATE="v1.18"
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get -yq update
 RUN apt-get install -yq --no-install-recommends locales
-RUN apt-get install -yq --no-install-recommends g++
 RUN apt-get install -yq --no-install-recommends ca-certificates
-RUN apt-get install -yq --no-install-recommends wget
+RUN apt-get install -yq --no-install-recommends wget curl
 
 # install latest cmake so opt-build.sh works - the initial installs will also help install R
 RUN apt-get install -yq --no-install-recommends software-properties-common lsb-release
@@ -24,13 +23,14 @@ RUN apt-get install -yq --no-install-recommends cmake=3.25.2-0kitware1ubuntu18.0
 
 RUN apt-get install -yq --no-install-recommends make
 RUN apt-get install -yq --no-install-recommends pkg-config
+RUN apt-get install -yq --no-install-recommends gcc-8 g++-8
 
 # if ubuntu 18.04
 RUN apt install -yq --no-install-recommends dirmngr
 RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
 RUN add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
-RUN apt-get install -yq --no-install-recommends r-base-core=4.1.3-1.1804.0
-RUN apt-mark hold r-base-core
+RUN apt-get install -yq --no-install-recommends r-base-core=4.1.3-1.1804.0 r-base-dev=4.1.3-1.1804.0
+RUN apt-mark hold r-base-core r-base-dev
 RUN apt-get install -yq --no-install-recommends r-cran-mass=7.3-51.5-2bionic0 r-cran-class=7.3-16-1bionic0 r-cran-nnet=7.3-13-1bionic0
 RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
 RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
@@ -52,7 +52,6 @@ RUN apt-get install -yq --no-install-recommends libgsl-dev
 RUN apt-get install -yq --no-install-recommends libperl-dev
 RUN apt-get install -yq --no-install-recommends libpng-dev
 
-
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
 
@@ -69,8 +68,26 @@ ADD build/libInstall.R build/
 ADD build/opt-build.sh build/
 RUN bash build/opt-build.sh $OPT
 
+# Install deepSNV
+RUN mkdir -p "/opt/wtsi-cgp/R-lib"
+
+RUN Rscript -e 'install.packages(c("remotes", "BiocManager"))'
+
+# NOTE: deepSNV 1.40.0 requires gcc 8 to compile
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+
+# Required to compile VGAM
+RUN apt install -yq --no-install-recommends libgfortran-8-dev
+
+RUN Rscript -e 'library("remotes"); remotes::install_version("curl", "5.2.1", lib = "/opt/wtsi-cgp/R-lib", lib.loc = "/opt/wtsi-cgp/R-lib")'
+RUN Rscript -e 'library("remotes"); remotes::install_version("httr", "1.4.7", lib = "/opt/wtsi-cgp/R-lib", lib.loc = "/opt/wtsi-cgp/R-lib")'
+RUN Rscript -e 'library("BiocManager"); BiocManager::install("VGAM", version = "3.14", update = FALSE, lib = "/opt/wtsi-cgp/R-lib",  lib.loc = "/opt/wtsi-cgp/R-lib")'
+RUN Rscript -e 'library("BiocManager"); BiocManager::install("deepSNV", version = "3.14", update = FALSE, lib = "/opt/wtsi-cgp/R-lib",  lib.loc = "/opt/wtsi-cgp/R-lib")'
+RUN Rscript -e 'library("BiocManager"); BiocManager::install("vcfR", version = "3.14", update = FALSE, lib = "/opt/wtsi-cgp/R-lib",  lib.loc = "/opt/wtsi-cgp/R-lib")'
+
 # build the tools in this repo, separate to reduce build time on errors
 COPY . .
+ADD build/opt-build-local.sh build/
 RUN bash build/opt-build-local.sh $OPT
 
 FROM ubuntu:18.04
@@ -135,6 +152,9 @@ ENV LANG en_US.UTF-8
 
 RUN mkdir -p $OPT
 COPY --from=builder $OPT $OPT
+
+# Shared library required by VGAM
+RUN apt install -yq --no-install-recommends libgfortran-8-dev
 
 ## USER CONFIGURATION
 RUN adduser --disabled-password --gecos '' ubuntu && chsh -s /bin/bash && mkdir -p /home/ubuntu

@@ -13,7 +13,7 @@ jobs:
   license_chk:
     machine:
       # need machine as want to mount a volume
-      image: ubuntu-2004:202107-02
+      image: default
     steps:
       - checkout
       - run:

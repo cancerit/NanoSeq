@@ -1,25 +1,25 @@
 #!/usr/bin/env Rscript
 
 ########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
-# 
+# Copyright (c) 2022, 2025 Genome Research Ltd
+#
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
-# 
+#
 # This file is part of NanoSeq.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# 
+#
 # 1. The usage of a range of years within a copyright statement contained within
 # this distribution should be interpreted as being equivalent to a list of years
 # including the first and last year specified and all consecutive years between
@@ -34,7 +34,7 @@
 #########################################################################################
 # This scripts receives a SNV vcf, an indel vcf, the sample deduplicated bam and
 # the xx.cov.bed.gz file and with all this creates a new VAF by:
-# * merging subs into DNVs and MNVs, using RB barcodes to discern if they are independent 
+# * merging subs into DNVs and MNVs, using RB barcodes to discern if they are independent
 #   events
 # * collapse and annotate repeated mutations
 # * calculate duplex & mut VAFs for subs and indels
@@ -203,7 +203,7 @@ if (num_snvs > 0) {
       snvs_new[new_row, "DPLX_CLIP"] = snvs_tmp[1, "DPLX_CLIP"]
       snvs_new[new_row, "DPLX_NM"] = snvs_tmp[1, "DPLX_NM"]
       snvs_new[new_row, "BULK_ASXS"] = snvs_tmp[1, "BULK_ASXS"]
-      snvs_new[new_row, "BULK_NM"] = snvs_tmp[1, "BULK_NM"]         
+      snvs_new[new_row, "BULK_NM"] = snvs_tmp[1, "BULK_NM"]
       if (nrow(snvs_tmp) == 2) {
         snvs_new[new_row, "TYPE"] = "dnv"
       }
@@ -265,7 +265,7 @@ if (num_snvs > 0) {
 
   # drop some columns:
   snvs_new2 = snvs_new2[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "TRI", "rb_id", "QPOS", "DEPTH_FWD",
-                         "DEPTH_REV", "DEPTH_NORM_FWD", "DEPTH_NORM_REV", "TYPE", "TIMES_CALLED", "DPLX_ASXS", 
+                         "DEPTH_REV", "DEPTH_NORM_FWD", "DEPTH_NORM_REV", "TYPE", "TIMES_CALLED", "DPLX_ASXS",
                          "DPLX_CLIP", "DPLX_NM", "BULK_ASXS", "BULK_NM")]
 
 
@@ -300,7 +300,8 @@ if (num_snvs > 0) {
     total_mut = 0
     for (j in c(1:length(muts))) {
       total_mut = total_mut + kk[j, muts[j]] + kk[j, tolower(muts[j])]
-      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+      # total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     }
     snvs_final[i, "BAM_MUT"] = total_mut
     snvs_final[i, "BAM_COV"] = total_cov
@@ -316,7 +317,8 @@ if (num_snvs > 0) {
     total_mut = 0
     for (j in c(1:length(muts))) {
       total_mut = total_mut + kk[j, muts[j]] + kk[j, tolower(muts[j])]
-      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+      # total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+      total_cov = total_cov + sum(kk[j, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     }
     snvs_final[i, "BAM_MUT_BQ10"] = total_mut
     snvs_final[i, "BAM_COV_BQ10"] = total_cov
@@ -394,10 +396,10 @@ if (num_indels > 0) {
   indels_new = indels_new[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "rb_id", "TYPE", "TIMES_CALLED", "SEQ","BBEG","BEND","QPOS","DEPTH_FWD","DEPTH_REV","DEPTH_NORM_FWD","DEPTH_NORM_REV","DPLX_ASXS","DPLX_CLIP","DPLX_NM","BULK_ASXS","BULK_NM")]
 
   ##########################################################################################
-  # Calculate VAFs for indels 
+  # Calculate VAFs for indels
   # Duplex VAFs
   # INDELS:
-  # Do it separately. Because indels don't pass filters, we need to sum them (TIMES_SEEN) to 
+  # Do it separately. Because indels don't pass filters, we need to sum them (TIMES_SEEN) to
   # the duplex coverage seen in cov_bed
   #cat("VAFs(1)...\n")
   indels_new_filt = indels_new[grep("PASS", indels_new$filter, invert = T),]
@@ -420,9 +422,10 @@ if (num_indels > 0) {
   # BAM VAFs / bam2R
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 20, mask = 3844, mq = 30)
-    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+    # total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+    total_cov = total_cov + sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     if (indels_final[i, "TYPE"] == "del") {
-      total_mut = sum(kk[, c("DEL", "del", "-", "_")])
+      total_mut = sum(kk[, c("DEL", "del")])
     } else {
       #ins
       total_mut = sum(kk[, c("INS", "ins")])
@@ -436,9 +439,10 @@ if (num_indels > 0) {
   #cat("VAFs(3)...\n")
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 10, mask = 3844, mq = 30)
-    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t", "-", "_")], na.rm = T)
+    # total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
+    total_cov = total_cov + sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     if (indels_final[i, "TYPE"] == "del") {
-      total_mut = sum(kk[, c("DEL", "del", "-", "_")])
+      total_mut = sum(kk[, c("DEL", "del")])
     } else {
       #ins
       total_mut = sum(kk[, c("INS", "ins")])
@@ -535,11 +539,11 @@ header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_FWD,Number=1,Type=Float,Desc
 header[length(header) + 1] = "##INFO=<ID=DEPTH_NORM_REV,Number=1,Type=Float,Description=\"Matched normal reverse reads depth\">"
 header[length(header) + 1] = "##INFO=<ID=RB,Number=.,Type=String,Description=\"Read bundle id(s): chr:breakpoints:barcodes\">"
 header[length(header) + 1] = "##INFO=<ID=SEQ,Number=1,Type=String,Description=\"Sequence context for indels\">"
-header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=.,Type=Integer,Description=\"AS-XS for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=.,Type=Integer,Description=\"Clipping for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Integer,Description=\"Mismatches in duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=.,Type=Integer,Description=\"AS-XS for bulk\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Integer,Description=\"Mismatches in bulk\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=.,Type=Integer,Description=\"AS-XS for duplex\">"
+header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=.,Type=Integer,Description=\"Clipping for duplex\">"
+header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Integer,Description=\"Mismatches in duplex\">"
+header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=.,Type=Integer,Description=\"AS-XS for bulk\">"
+header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Integer,Description=\"Mismatches in bulk\">"
 header[length(header) + 1] = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
 
 muts_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]

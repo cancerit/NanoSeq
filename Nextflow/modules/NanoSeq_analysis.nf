@@ -244,6 +244,7 @@ process VAR {
         path "var/${ii}.done"
         path "var/${ii}.var"
         path "var/${ii}.cov.bed.gz"
+        path "var/${ii}.discarded_var"
         path 'var/nfiles' optional true
         path 'var/args.json' optional true
 
@@ -260,6 +261,7 @@ process VAR {
         rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.done; #allow clean resume for hard links
         rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.var;
         rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.cov.bed.gz;
+        rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/${ii}.discarded_var;
         if [ $ii -eq 1 ]; then rm -f $baseDir/work//temps/$meta.id/tmpNanoSeq/var/nfiles; rm -f $baseDir/work/temps/$meta.id/tmpNanoSeq/var/args.json; fi;
 
         runNanoSeq.py -R ${ref}/genome.fa -A $normal -B $duplex --out $baseDir/work/temps/$meta.id/ -j $ii -k $np var -a $a -b $b -c $c -d $d -f $f -i $i \
@@ -281,6 +283,7 @@ process VAR {
         touch ./var/${ii}.done
         touch ./var/${ii}.var
         touch ./var/${ii}.cov.bed.gz
+        touch ./var/${ii}.discarded_var
         if [ $ii -eq 1 ]; then touch ./var/nfiles; touch ./var/args.json; fi
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
