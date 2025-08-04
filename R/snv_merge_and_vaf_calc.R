@@ -537,9 +537,9 @@ header[length(header) + 1] = "##INFO=<ID=RB,Number=.,Type=String,Description=\"R
 header[length(header) + 1] = "##INFO=<ID=SEQ,Number=1,Type=String,Description=\"Sequence context for indels\">"
 header[length(header) + 1] = "##INFO=<ID=DPLX_ASXS,Number=.,Type=Integer,Description=\"AS-XS for duplex\">\n"
 header[length(header) + 1] = "##INFO=<ID=DPLX_CLIP,Number=.,Type=Integer,Description=\"Clipping for duplex\">\n"
-header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Integer,Description=\"Mismatches in duplex\">\n"
+header[length(header) + 1] = "##INFO=<ID=DPLX_NM,Number=.,Type=Float,Description=\"Mismatches in duplex\">\n"
 header[length(header) + 1] = "##INFO=<ID=BULK_ASXS,Number=.,Type=Integer,Description=\"AS-XS for bulk\">\n"
-header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Integer,Description=\"Mismatches in bulk\">\n"
+header[length(header) + 1] = "##INFO=<ID=BULK_NM,Number=.,Type=Float,Description=\"Mismatches in bulk\">\n"
 header[length(header) + 1] = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
 
 muts_final = snvs_final[, c("chr", "pos", "kk", "ref", "mut", "qual", "filter", "INFO")]
