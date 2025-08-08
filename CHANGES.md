@@ -1,6 +1,6 @@
 # CHANGES
 
-## [UNRELEASED]
+## 3.6.0
 
 * Parameter default: minimum consensus quality lowered to 45, more appropriate when base qualities are binned (as in NovaSeq X data)
 * Parameter default: minimum AS-XS score (`asxs`) lowered from 100 to 50, recommended for restriction enzyme (RE) setups (10 recommended for targeted setups), in `variantcaller.cc`
