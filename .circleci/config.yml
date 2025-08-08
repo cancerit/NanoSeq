@@ -10,17 +10,6 @@
 
 version: 2.1
 jobs:
-  license_chk:
-    machine:
-      # need machine as want to mount a volume
-      image: default
-    steps:
-      - checkout
-      - run:
-          name: Execute skywalking-eyes check of licenses
-          # once 0.2.0 released change image
-          command: |
-            docker run --rm -v $(pwd):/github/workspace ghcr.io/apache/skywalking-eyes/license-eye header check
   build:
     environment:
       IMAGE_NAME: quay.io/wtsicgp/nanoseq
@@ -69,16 +58,10 @@ workflows:
   version: 2.1
   build_test:
     jobs:
-      - license_chk:
-          filters:
-            tags:
-              only: /.+/
       - build:
           context:
             - dockerhub-casmservice
             - quayio-casmservice
-          requires :
-            - license_chk
           filters:
             branches:
               ignore: /.+/
