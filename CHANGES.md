@@ -1,31 +1,53 @@
 # CHANGES
 
+## 3.6.0
+
+* Parameter default: minimum consensus quality lowered to 45, more appropriate when base qualities are binned (as in NovaSeq X data)
+* Parameter default: minimum AS-XS score (`asxs`) lowered from 100 to 50, recommended for restriction enzyme (RE) setups (10 recommended for targeted setups), in `variantcaller.cc`
+* Coverage: filter out non-strictly-positive coverage values in `variantcaller.cc`
+* High-depth: doubled the maximum pileup depth (`max_plp_depth`) in `dsa.cc`
+* Fragmented references and circular contigs: exclude liminal positions of each contig (avoids crash on trinucleotide context retrieval)
+* Variant calling: clamp start positions to one as minimum in `indelCaller_step2.pl`
+* Coverage calculation: fix deletion counts in `snv_merge_and_vaf_calc.R`
+* Coverage calculation: exclude insertions in `snv_merge_and_vaf_calc.R`
+* Variant calling: fix calculation of the reference allele length for indels in `indelCaller_step3.R`
+* Nextflow: add discarded variants file to output
+* Nextflow: update process memory and queue setup
+
 ## 3.5.7
+
 * Update to discarded variant script to allow sorting of vcf discarded variant file
 
 ## 3.5.6
+
 * Adding parameters to "bcftools mpileup" call to resolve issue for samples using multiple wells
 * Correcting code version
 
 ## 3.5.5
+
 * Fix bugs in nanoseq result plotter
 * Fix bugs in indel caller
 
 ## 3.5.4
+
 * Fix bugs in nanoseq result plotter
 
 ## 3.5.3
+
 * Fix bugs in nanoseq result plotter
 
 ## 3.5.2
+
 * Remove non-deterministic behaviour from indel caller
 * Missing semicolon in snv_merge_and_vaf_calc.R
 
 ## 3.5.1
+
 * Dockerfile updated to avoid snv_merge_and_vaf_calc.R bug and to improve reproducibility
 * Small change to hardcoded overlapping_mask value in indel caller
 
 ## 3.5.0
+
 * Minor bug in the indel pipeline fixed (was using bitwise OR instead of logical OR)
 * New quality metrics added to the indel calls such that SNVs and indels come out with the same metrics
 
@@ -49,7 +71,7 @@
 ## 3.2.0
 
 * Modified BAM processing as to keep unmapped reads
-* Fixed VCF filter bug in VAF script 
+* Fixed VCF filter bug in VAF script
 
 ## 3.1.0
 
@@ -88,10 +110,10 @@
 * Fixed incorrect default argument (-d)
 * Added argument for file name of results
 * Removed plugin option from htslib that was causing issues with CRAM
-* Set seqs_per_slice to 1000 in htslib for improved CRAM streaming 
+* Set seqs_per_slice to 1000 in htslib for improved CRAM streaming
 * Fixed off by one errors in part
 * Fixed interval test in part
-* Added consistency checks for contigs in BAM files 
+* Added consistency checks for contigs in BAM files
 
 ## 2.1.0
 
@@ -127,4 +149,3 @@
 * Updated to htslib 1.11
 * Added licencing information
 * Added error checks when reading
-

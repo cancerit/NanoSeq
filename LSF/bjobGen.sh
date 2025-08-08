@@ -135,7 +135,7 @@ runNanoSeq.py -k \$LSB_JOBINDEX_END -j \$LSB_JOBINDEX  \\
   -m 8 \\
   -n 3 \\
   -p 0 \\
-  -q 60 \\
+  -q 45 \\
   -r 144 \\
   -v 0.01 \\
   -x 8 \\

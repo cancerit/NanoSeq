@@ -1,23 +1,23 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
-# 
+# Copyright (c) 2022, 2025 Genome Research Ltd
+#
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
-# 
+#
 # This file is part of NanoSeq.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# 
+#
 # 1. The usage of a range of years within a copyright statement contained within
 # this distribution should be interpreted as being equivalent to a list of years
 # including the first and last year specified and all consecutive years between
@@ -37,7 +37,7 @@ char ALPH[4] =
 std::map<char, int> INDEX =
   {{'A', 0}, {'C', 1}, {'G', 2}, {'T', 3}};
 
-std::map<char, char> COMPLEMENT = 
+std::map<char, char> COMPLEMENT =
   {{'A','T'}, {'C','G'}, {'G','C'}, {'T','A'}};
 
 
@@ -113,7 +113,7 @@ void VariantCaller::CallDuplex(row_t *row) {
   std::vector<int> f2r1 = {row->f2r1_A, row->f2r1_C, row->f2r1_G, row->f2r1_T};
   row->f1r2_call = 'N';
   row->f2r1_call = 'N';
-  for (int i = 0; i < 4; i++) { 
+  for (int i = 0; i < 4; i++) {
     if ((f1r2[i]/row->f1r2_canonical) >= this->frac) {
       row->f1r2_call = ALPH[i];
     }
@@ -135,7 +135,7 @@ int VariantCaller::DplxClipFilter(row_t *row) {
 
 int VariantCaller::AlignmentScoreFilter(row_t *row) {
   if ((row->bulk_asxs >= this->asxs) &&
-      (row->dplx_asxs >= this->asxs)) { 
+      (row->dplx_asxs >= this->asxs)) {
     return 1;
   } else {
     return 0;
@@ -230,7 +230,7 @@ int VariantCaller::FivePrimeTrimFilter(row_t *row) {
     }
   } else {
     assert(row->bndl_type == 3);
-    if ((row->left >= this->min_cycle) && 
+    if ((row->left >= this->min_cycle) &&
         (row->right >= this->min_cycle)) {
       return 1;
     } else {
@@ -321,7 +321,7 @@ int VariantCaller::VafFilter(row_t *row) {
 
 int VariantCaller::IsVariant(row_t *row) {
   if(row->context[1] != row->call) {
-    return 1;  
+    return 1;
   } else {
     return 0;
   }
@@ -474,16 +474,16 @@ void VariantCaller::CollectMetrics() {
         //fa8: moved this so we know if it is variant or not before applying the NM filter:
         row.call = row.f1r2_call;
         row.isvariant  = VariantCaller::IsVariant(&row);
+        row.ismasked   = VariantCaller::IsMasked(&row);
+        row.pyrcontext = VariantCaller::PyrimidineContext(&row);
         VariantCaller::ApplyFilters(&row); // Apply filters to row
         if(row.isvariant && row.f1r2_call != row.context[1] && row.f2r1_call != row.context[1]) { // fa8: these conditions are redundant
-	        row.vaf_filter = VariantCaller::VafFilter(&row); // fa8: This one has to go separately 
+	        row.vaf_filter = VariantCaller::VafFilter(&row); // fa8: This one has to go separately
     	                                                     // from the other filters
       	} else {
       		row.vaf_filter = 1;
       	}
         if (row.pass_all_filters && row.vaf_filter) {
-          row.ismasked   = VariantCaller::IsMasked(&row);
-          row.pyrcontext = VariantCaller::PyrimidineContext(&row);
           this->burdens[row.ismasked][row.isvariant]++;
           this->call_by_qpos[row.call][row.min_qpos][row.ismasked]++;
           this->pyr_by_mask[row.pyrcontext][row.ismasked]++;
@@ -533,7 +533,7 @@ void VariantCaller::CollectMetrics() {
     }
   }
   //write last line to coverage file
-  if(this->outfile_coverage != NULL and curr != -1 ) {
+  if(this->outfile_coverage != NULL and curr != -1 and cov > 0 ) {
     this->gzout_coverage << lastRow.chrom;
     this->gzout_coverage << "\t";
     this->gzout_coverage << lastRow.chrom_beg;
@@ -1011,7 +1011,7 @@ void Usage() {
 
 void Options(int argc, char **argv, VariantCaller *vc) {
   vc->bed               = NULL;          // permissive -> strict
-  vc->asxs              = 100;
+  vc->asxs              = 50;
   vc->bulk              = 5;
   vc->bulk_total        = 10;
   vc->clip              = 0.1;           // 1 to 0
@@ -1020,7 +1020,7 @@ void Options(int argc, char **argv, VariantCaller *vc) {
   vc->indel             = 1;             // 1 to 0
   vc->nmms              = 3;
   vc->ppair             = 0.95;          // 0 to 1
-  vc->qual              = 0;
+  vc->qual              = 45;
   vc->readlen           = 146;
   vc->min_cycle         = 10;
   vc->max_cycle         = 10;
@@ -1111,7 +1111,7 @@ void Options(int argc, char **argv, VariantCaller *vc) {
     er << std::endl;
     throw std::runtime_error(er.str());
   }
-  if (vc->outfile_discarded != NULL) { 
+  if (vc->outfile_discarded != NULL) {
     vc->fout_discarded.open(vc->outfile_discarded);
     if ( ! vc->fout_discarded.is_open() ) {
       std::stringstream er;

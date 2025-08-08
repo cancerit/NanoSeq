@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
+# Copyright (c) 2022, 2025 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -47,7 +47,7 @@ import re
 import tempfile
 import copy
 
-version = '3.5.7'
+version = '3.6.0'
 
 parser = argparse.ArgumentParser()
 # arguments for all subcommands
@@ -142,7 +142,7 @@ parser_varO.add_argument('-n', type=int, action='store',
 parser_varO.add_argument('-p', type=int, action='store', default=0,
                          help="minimum fraction of reads that are proper-pairs (0)")
 parser_varO.add_argument('-q', type=int, action='store',
-                         default=60, help="minimum consensus base quality (60)")
+                         default=45, help="minimum consensus base quality (45)")
 parser_varO.add_argument('-r', type=int, action='store',
                          default=144, help="read length (after 5' trimming) (144)")
 parser_varO.add_argument('-v', type=float, action='store',
@@ -589,7 +589,7 @@ if (args.subcommand == 'cov'):
 
     gintervals = []
     for ichr in chrList:
-        gintervals.append(GInterval(ichr, 1, rnames[ichr]))
+        gintervals.append(GInterval(ichr, 2, rnames[ichr]-1))
     gintervals.sort()
 
     reorderchr = []
@@ -1144,7 +1144,7 @@ if (args.subcommand == 'post'):
                 arow = row.strip().split('\t')
                 if csvIO.get(arow[0], None):
                     csvIO[arow[0]].write('%s\n' % ','.join(arow[1:]))
-            
+
             # Write discarded variants
             dfile = "%s/var/%s.discarded_var" % (tmpDir, i+1)
             for row in open(dfile, 'r'):
