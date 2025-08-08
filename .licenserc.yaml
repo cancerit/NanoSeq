@@ -3,7 +3,7 @@ header:
     spdx-id: AGPL-3.0-or-later
     copyright-owner: Genome Research Ltd
     content: |
-      Copyright (c) 2022 Genome Research Ltd
+      Copyright (c) [0-9]{4}(, *[0-9]{4})* Genome Research Ltd
 
       Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 
