@@ -423,7 +423,7 @@ if (num_indels > 0) {
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 20, mask = 3844, mq = 30)
     # total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
-    total_cov = total_cov + sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
+    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     if (indels_final[i, "TYPE"] == "del") {
       total_mut = sum(kk[, c("DEL", "del")])
     } else {
@@ -440,7 +440,7 @@ if (num_indels > 0) {
   for (i in c(1:nrow(indels_final))) {
     kk = bam2R(dedup_bam, indels_final[i, "chr"], indels_final[i, "pos"], indels_final[i, "pos"], q = 10, mask = 3844, mq = 30)
     # total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","INS","del","ins")], na.rm = T)
-    total_cov = total_cov + sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
+    total_cov = sum(kk[1, c("A", "C", "G", "T", "a", "c", "g", "t","DEL","del")], na.rm = T) # shouldn't count INS / ins
     if (indels_final[i, "TYPE"] == "del") {
       total_mut = sum(kk[, c("DEL", "del")])
     } else {
