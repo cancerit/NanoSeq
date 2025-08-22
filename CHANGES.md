@@ -1,5 +1,9 @@
 # CHANGES
 
+## 3.6.1
+
+* Fixed an issue in snv_merge_and_vaf_calc.R where total_cov (used to calculate BAM_COV and BAM_VAF) was calculated incorrectly. 
+
 ## 3.6.0
 
 * Parameter default: minimum consensus quality lowered to 45, more appropriate when base qualities are binned (as in NovaSeq X data)
