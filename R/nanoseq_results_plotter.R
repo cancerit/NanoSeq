@@ -374,6 +374,7 @@ pyrvsmask_unmasked = pyrvsmask[which(pyrvsmask$ismasked == 0),]
 tri_bg = pyrvsmask_unmasked$count
 names(tri_bg) = pyrvsmask_unmasked$pyrcontext
 tri_bg[setdiff(names(genome_counts), names(tri_bg))] = 0
+tri_bg = tri_bg[names(genome_counts)]
 
 if (n_variants > 0) {
 
