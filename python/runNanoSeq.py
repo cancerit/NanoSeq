@@ -867,7 +867,7 @@ if (args.subcommand == 'dsa'):
             cmd += f"dsa -A {args.normal} -B {args.duplex} {snpOpt} {maskOpt} -R {args.ref} -d {args.d} -Q {args.q} -M {mapQ} {testOpt} -r \"{dsaInt.chr}\" -b {dsaInt.beg} -e {dsaInt.end} {pipe} \"{tmpDir}/dsa/{i+1}.dsa.bed\" ;"
             
             # check number of fields in the last line it has to have 45 fields
-            cmd += "awk \'BEGIN{FS=\"\\t\"}END{  if (NF != 45)  print " + f'"Truncated dsa output file for job {i+1} !"' + " > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\'" + f"{tmpDir}/dsa/{i+1}.dsa.bed;"
+            cmd += "awk \'BEGIN{FS=\"\\t\"}END{  if (NF != 45)  print " + f'"Truncated dsa output file for job {i+1} !"' + " > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' " + f"{tmpDir}/dsa/{i+1}.dsa.bed;"
        
         cmd += f"bgzip -f -l 2 {tmpDir}/dsa/{i+1}.dsa.bed; sleep 2; bgzip -t {tmpDir}/dsa/{i+1}.dsa.bed.gz;"
         
