@@ -842,41 +842,51 @@ if (args.subcommand == 'dsa'):
     commands = [(None, )] * njobs
     for i in range(njobs):
         # check for restarts
-        if (os.path.isfile("%s/dsa/%s.done" % (tmpDir, i+1)) and
-                os.path.isfile("%s/dsa/%s.dsa.bed.gz" % (tmpDir, i+1))):
+        if (os.path.isfile(f"{tmpDir}/dsa/{i+1}.done") and os.path.isfile(f"{tmpDir}/dsa/{i+1}.dsa.bed.gz")):
             continue
 
-        # construct dsa commands
-        cmd = ""
+        # construct dsa command script
+        cmd = "set -e;"
         testOpt = ""
         snpOpt = ""
         maskOpt = ""
         if (args.no_test):
             testOpt = "-t"
-        if ( args.snp is not None ) :
-            snpOpt = "-C %s"%args.snp
-        if ( args.mask is not None ) :
-            maskOpt = "-D %s"%args.mask
+        if (args.snp is not None):
+            snpOpt = f"-C {args.snp}"
+        if (args.mask is not None):
+            maskOpt = f"-D {args.mask}"
 
         for (ii, iinterval) in enumerate(intervalsPerCPU[i]):
             dsaInt = iinterval.convert2DSAInput()
-            pipe = ">" if ii == 0 else ">>"  # ensure first command overwrittes
-            cmd += "dsa -A %s -B %s  %s %s -R %s -d %s -Q %s -M %s %s -r \"%s\" -b %s -e %s %s %s ;" \
-                % (args.normal, args.duplex, snpOpt, maskOpt, args.ref, args.d, args.q, mapQ, testOpt,
-                   dsaInt.chr, dsaInt.beg, dsaInt.end, pipe, "%s/dsa/%s.dsa.bed" % (tmpDir, i + 1))
-        # check number of fields in the last line it has to have 45 fields
-        cmd += "awk  \'END{  if (NF != 45)  print \"Truncated dsa output file for job %s !\" > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' %s/dsa/%s.dsa.bed;" % (i+1, tmpDir, i+1)
-        cmd += "bgzip -f -l 2 %s/dsa/%s.dsa.bed; sleep 2; bgzip -t %s/dsa/%s.dsa.bed.gz;" % (
-            tmpDir, i+1, tmpDir, i+1)
-        cmd += "touch %s/dsa/%s.done" % (tmpDir, i+1)
-        if ( len(intervalsPerCPU[i]) == 0 ) : cmd = "touch %s/dsa/%s.dsa.bed.gz;touch %s/dsa/%s.done" % (tmpDir, i+1,tmpDir, i+1)
+            
+            # ensure first command overwrites
+            pipe = ">" if ii == 0 else ">>"  
+
+            # build dsa command for this interval
+            cmd += f"dsa -A {args.normal} -B {args.duplex} {snpOpt} {maskOpt} -R {args.ref} -d {args.d} -Q {args.q} -M {mapQ} {testOpt} -r \"{dsaInt.chr}\" -b {dsaInt.beg} -e {dsaInt.end} {pipe} \"{tmpDir}/dsa/{i+1}.dsa.bed\" ;"
+            
+            # check number of fields in the last line it has to have 45 fields
+            cmd += "awk \'BEGIN{FS=\"\\t\"}END{  if (NF != 45)  print " + f'"Truncated dsa output file for job {i+1} !"' + " > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\'" + f"{tmpDir}/dsa/{i+1}.dsa.bed;"
+       
+        cmd += f"bgzip -f -l 2 {tmpDir}/dsa/{i+1}.dsa.bed; sleep 2; bgzip -t {tmpDir}/dsa/{i+1}.dsa.bed.gz;"
+        
+        cmd += f"touch {tmpDir}/dsa/{i+1}.done"
+
+        if (len(intervalsPerCPU[i]) == 0):
+            cmd = f"touch {tmpDir}/dsa/{i+1}.dsa.bed.gz;"
+            cmd += f"touch {tmpDir}/dsa/{i+1}.done"
+        
         commands[i] = (cmd, )
 
+        with open(f"{tmpDir}/dsa/{i+1}.dsa.cmd", "w") as cmd_file:
+            cmd_file.write(cmd.replace(';', ';\n\n'))
+
     if (args.index is None or args.index == 1):
-        with open("%s/dsa/nfiles" % (tmpDir), "w") as iofile:
+        with open(f"{tmpDir}/dsa/nfiles", "w") as iofile:
             iofile.write(str(njobs))
 
-    # execute dsa commans
+    # execute dsa commands
     print("Starting dsa calculation\n")
     if (args.index is None):
         # multithread
