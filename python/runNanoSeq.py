@@ -799,6 +799,23 @@ if (args.subcommand == 'part'):
     runCommand(cmd)
     print("\nCompleted part job\n")
 
+
+def _run_dsa_command(cmd_file_path: str):
+    if not os.path.exists(cmd_file_path):
+        raise ValueError(f"Invalid command path: {cmd_file_path}")
+    
+    run_command = f"bash {cmd_file_path}"
+    
+    print(f"Executing {run_command}")
+    p = subprocess.Popen(run_command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    std: tuple = p.communicate()
+
+    if (p.returncode != 0):
+        error = std[1].decode()
+        sys.stderr.write(f"Error processing: {run_command}")
+        raise ValueError(error)
+
+
 # dsa section
 if (args.subcommand == 'dsa'):
     if (not os.path.isfile(tmpDir+'/part/args.json')):
@@ -839,12 +856,17 @@ if (args.subcommand == 'dsa'):
     with open(tmpDir+'/cov/args.json') as iofile:
         mapQ = json.load(iofile)['Q']
 
-    commands = [(None, )] * njobs
+    command_files = [None] * njobs
     for i in range(njobs):
-        # check for restarts
-        if (os.path.isfile(f"{tmpDir}/dsa/{i+1}.done") and os.path.isfile(f"{tmpDir}/dsa/{i+1}.dsa.bed.gz")):
-            continue
+        done_file = f"{tmpDir}/dsa/{i+1}.done"
+        bed_file = f"{tmpDir}/dsa/{i+1}.dsa.bed"
+        cmd_file = f"{tmpDir}/dsa/{i+1}.dsa.cmd"
 
+
+        # check for restarts
+        if os.path.isfile(done_file) and os.path.isfile(bed_file + ".gz"):
+            continue
+        
         # construct dsa command script
         cmd = "set -e;"
         testOpt = ""
@@ -864,38 +886,38 @@ if (args.subcommand == 'dsa'):
             pipe = ">" if ii == 0 else ">>"  
 
             # build dsa command for this interval
-            cmd += f"dsa -A {args.normal} -B {args.duplex} {snpOpt} {maskOpt} -R {args.ref} -d {args.d} -Q {args.q} -M {mapQ} {testOpt} -r \"{dsaInt.chr}\" -b {dsaInt.beg} -e {dsaInt.end} {pipe} \"{tmpDir}/dsa/{i+1}.dsa.bed\" ;"
+            cmd += f"dsa -A {args.normal} -B {args.duplex} {snpOpt} {maskOpt} -R {args.ref} -d {args.d} -Q {args.q} -M {mapQ} {testOpt} -r \"{dsaInt.chr}\" -b {dsaInt.beg} -e {dsaInt.end} {pipe} \"{bed_file}\";"
             
             # check number of fields in the last line it has to have 45 fields
-            cmd += "awk \'BEGIN{FS=\"\\t\"}END{  if (NF != 45)  print " + f'"Truncated dsa output file for job {i+1} !"' + " > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' " + f"{tmpDir}/dsa/{i+1}.dsa.bed;"
+            cmd += "awk \'BEGIN{FS=\"\\t\"}END{  if (NF != 45)  print " + f'"Truncated dsa output file for job {i+1} !"' + " > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' " + f"{bed_file};"
        
-        cmd += f"bgzip -f -l 2 {tmpDir}/dsa/{i+1}.dsa.bed; sleep 2; bgzip -t {tmpDir}/dsa/{i+1}.dsa.bed.gz;"
-        
-        cmd += f"touch {tmpDir}/dsa/{i+1}.done"
+        cmd += f"bgzip -f -l 2 {bed_file}; sleep 2; bgzip -t {bed_file}.gz;"
+        cmd += f"touch {done_file}"
 
         if (len(intervalsPerCPU[i]) == 0):
-            cmd = f"touch {tmpDir}/dsa/{i+1}.dsa.bed.gz;"
-            cmd += f"touch {tmpDir}/dsa/{i+1}.done"
+            cmd = f"touch {bed_file}.gz;"
+            cmd += f"touch {done_file}"
         
-        commands[i] = (cmd, )
 
-        with open(f"{tmpDir}/dsa/{i+1}.dsa.cmd", "w") as cmd_file:
-            cmd_file.write(cmd.replace(';', ';\n\n'))
+        with open(cmd_file, "w") as cmd_fh:
+            cmd_fh.write(cmd.replace(';', ';\n\n'))
+        
+        command_files[i] = cmd_file
 
-    if (args.index is None or args.index == 1):
+    if args.index is None or args.index == 1:
         with open(f"{tmpDir}/dsa/nfiles", "w") as iofile:
             iofile.write(str(njobs))
 
     # execute dsa commands
-    print("Starting dsa calculation\n")
-    if (args.index is None):
+    print("Starting dsa calculation")
+    if args.index is None:
         # multithread
         with Pool(args.threads) as p:
-            p.starmap(runCommand, commands)
+            p.starmap(_run_dsa_command, command_files)
     else:
         # array execution
-        runCommand(commands[args.index - 1][0])
-    print("Completed dsa calculation\n")
+        _run_dsa_command(command_files[args.index - 1])
+    print("Completed dsa calculation")
 
 # var section
 if (args.subcommand == 'var'):
