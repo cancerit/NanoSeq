@@ -868,7 +868,7 @@ if (args.subcommand == 'dsa'):
             continue
         
         # construct dsa command script
-        cmd = "set -e;"
+        cmds = ["set -e;"]
         testOpt = ""
         snpOpt = ""
         maskOpt = ""
@@ -886,21 +886,19 @@ if (args.subcommand == 'dsa'):
             pipe = ">" if ii == 0 else ">>"  
 
             # build dsa command for this interval
-            cmd += f"dsa -A {args.normal} -B {args.duplex} {snpOpt} {maskOpt} -R {args.ref} -d {args.d} -Q {args.q} -M {mapQ} {testOpt} -r \"{dsaInt.chr}\" -b {dsaInt.beg} -e {dsaInt.end} {pipe} \"{bed_file}\";"
+            cmds.append(f"dsa -A {args.normal} -B {args.duplex} {snpOpt} {maskOpt} -R {args.ref} -d {args.d} -Q {args.q} -M {mapQ} {testOpt} -r \"{dsaInt.chr}\" -b {dsaInt.beg} -e {dsaInt.end} {pipe} \"{bed_file}\";")
             
             # check number of fields in the last line it has to have 45 fields
-            cmd += "awk \'BEGIN{FS=\"\\t\"}END{  if (NF != 45)  print " + f'"Truncated dsa output file for job {i+1} !"' + " > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' " + f"{bed_file};"
+            cmds.append("awk \'BEGIN{FS=\"\\t\"}END{  if (NF != 45)  print " + f'"Truncated dsa output file for job {i+1} !"' + " > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' " + f"\"{bed_file}\";")
        
-        cmd += f"bgzip -f -l 2 {bed_file}; sleep 2; bgzip -t {bed_file}.gz;"
-        cmd += f"touch {done_file}"
+        cmds.append(f"bgzip -f -l 2 \"{bed_file}\"; sleep 2; bgzip -t \"{bed_file}.gz\";")
+        cmds.append(f"touch \"{done_file}\"")
 
         if (len(intervalsPerCPU[i]) == 0):
-            cmd = f"touch {bed_file}.gz;"
-            cmd += f"touch {done_file}"
-        
+            cmds = [f"touch \"{bed_file}\".gz;", f"touch \"{done_file}\""] 
 
         with open(cmd_file, "w") as cmd_fh:
-            cmd_fh.write(cmd.replace(';', ';\n\n'))
+            cmd_fh.write(cmd.replace("\n".join(cmds))
         
         command_files[i] = cmd_file
 
