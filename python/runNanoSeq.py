@@ -898,7 +898,7 @@ if (args.subcommand == 'dsa'):
             cmds = [f"touch \"{bed_file}\".gz;", f"touch \"{done_file}\""] 
 
         with open(cmd_file, "w") as cmd_fh:
-            cmd_fh.write(cmd.replace("\n".join(cmds)))
+            cmd_fh.write("\n".join(cmds))
         
         command_files[i] = cmd_file
 
