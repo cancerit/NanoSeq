@@ -5,7 +5,10 @@ g++ \
     -I"$HOME/.homebrew/include" \
     -L"external/gzstream" \
     -I"external/gzstream" \
+    -I"external/bedtk" \
     src/pileup.cc \
+    external/bedtk/cgranges.o \
+    src/bedtk_lite.cc \
     src/bed_reader.cc \
     src/writeout.cc \
     src/read_bundler.cc \
