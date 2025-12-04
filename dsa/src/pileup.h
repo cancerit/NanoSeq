@@ -49,6 +49,8 @@
 #include "read_bundler.h"
 #include "writeout.h"
 
+#define BUNDLE_TYPE_BULK 0
+#define BUNDLE_TYPE_DUPLEX 1
 
 typedef struct {
   htsFile* fp;
@@ -57,7 +59,6 @@ typedef struct {
   int duplex;
   sam_hdr_t* head;
 } aux_t;
-
 
 class Pileup {
  private:
@@ -73,16 +74,11 @@ class Pileup {
     const bam_pileup1_t **plp;
     ogzstream  gzout;
 
-
  public:
     void Initiate(Options *options);
-
     std::string Header();
-
     std::string PositionString(int pos);
-
     char* GetTrinucleotideContext(int pos);
-
     void MultiplePileup();
 };
 

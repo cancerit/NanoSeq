@@ -64,8 +64,7 @@ std::vector<std::string> tokenize(std::string str, char delimiter) {
   return tokens;
 }
 
-
-bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, int i) {
+bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, const int bundle_type) {
   int op1 = 0;
   int op2 = 0;
   int op3 = 0;
@@ -90,14 +89,16 @@ bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, int i) {
       }
     }
   }
-  // i: bulk = 0, duplex = 1
-  if (i == 0) {
-    return ( op3 == 0 || ( op3 + op4 )== 2 );
-  } else {
-    return ((op1 + op2 + op3) == 3);
+  switch (bundle_type) {
+    case BUNDLE_TYPE_BULK:
+      return (op3 == 0 || (op3 + op4) == 2);
+    case BUNDLE_TYPE_DUPLEX:
+      return ((op1 + op2 + op3) == 3);
+    default:
+      // TODO: throw error
+      return false;
   }
 }
-
 
 void Pileup::Initiate(Options *opts) {
   //test that we can write output file
@@ -161,8 +162,8 @@ void Pileup::Initiate(Options *opts) {
       er << std::endl;
       throw std::runtime_error(er.str());
     }
-    if (  this->opts->doTests   ) { //allow to skip tests
-      if (BamIsCorrectlyPreprocessed(this->data[i]->head, i) == false) {
+    if (this->opts->doTests) {  // allow to skip tests
+      if (!BamIsCorrectlyPreprocessed(this->data[i]->head, i)) {
         std::stringstream er;
         er << "Error : bam ";
         er << this->opts->bams[i];
