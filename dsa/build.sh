@@ -1,6 +1,8 @@
 g++ \
     -o dsa \
-    -std=c++0x -Wall \
+    -std=c++23 -Wall \
+    -Wno-unused-private-field \
+    -Wno-unused-function \
     -L"$HOME/.homebrew/lib" \
     -I"$HOME/.homebrew/include" \
     -L"external/gzstream" \

@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
+# Copyright (c) 2022, 2025 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -38,14 +38,15 @@ const char ALPH[4]     = {'A', 'C', 'G', 'T'};
 const double ALT_BASES = static_cast<double>(ALPH_LEN - 1);
 const double POWER     = static_cast<double>(10);
 
+/*
 std::map<int, std::map<int, int>> RTYPES =
   { {0, {{1, 0}, {2, 1}}}, {1, {{2, 0}, {1, 1}}} };
+*/
 
-
-int ReadBundler::AuxTagIsPresent(bam1_t* b, const char* tag) {
-  return (bam_aux_get(b, tag))? 1 : 0;
-}
-
+static const int RTYPES[STRAND_COUNT][READ_TYPE_COUNT] = {
+  {0, 1},
+  {1, 0}
+};
 
 char* ReadBundler::AuxTagToChar(bam1_t* b, const char* tag) {
   uint8_t *ptr = bam_aux_get(b, tag);
@@ -61,7 +62,6 @@ char* ReadBundler::AuxTagToChar(bam1_t* b, const char* tag) {
   }
   return bam_aux2Z(ptr);
 }
-
 
 int ReadBundler::AuxTagToInt(bam1_t* b, const char* tag) {
   uint8_t *ptr = bam_aux_get(b, tag);
@@ -80,13 +80,11 @@ int ReadBundler::AuxTagToInt(bam1_t* b, const char* tag) {
   return bam_aux2i(ptr);
 }
 
-
 int ReadBundler::ASMinusXS(bam1_t* b) {
   //fa8:
   //std::cerr << ReadBundler::AuxTagToInt(b, "AS") << "/" << ReadBundler::AuxTagToInt(b, "XS") << " : " << bam_get_qname(b) << std::endl;
   return ReadBundler::AuxTagToInt(b, "AS") - ReadBundler::AuxTagToInt(b, "XS");
 }
-
 
 int ReadBundler::IsFivePrimeClipped(bam1_t* b, int strand) {
   uint32_t *cigar = bam_get_cigar(b);
@@ -100,24 +98,36 @@ int ReadBundler::IsFivePrimeClipped(bam1_t* b, int strand) {
   }
 }
 
-
 // Returns false if position is not within template; for example, if the read
 // extends past its mate into adaptor
-bool ReadBundler::IsTemplate(int beg, int end) {
-  if ((this->pos >= (beg - this->offset)) &&
-      (this->pos <= (end - this->offset))) {
-    return true;
-  } else {
-    return false;
-  }
+bool ReadBundler::IsTemplate(const int beg, const int end) {
+  return
+    (this->pos >= (beg - this->offset)) &&
+    (this->pos <= (end - this->offset));
 }
 
+static inline int get_strand_index(const bam1_t *b) {
+  // ASSUMPTION: proper pair and strand have already been verified
+  static_assert(STRAND_INDEX_FORWARD == 0);
+  static_assert(STRAND_INDEX_REVERSE == 1);
+  return read_has_flag(b, BAM_FREVERSE);
+}
 
+static inline int get_read_type_index(const bam1_t *b) {
+  // ASSUMPTION: that one and only one BAM_FREAD* flag is set to be verified earlier
+  //  (this would be an unpredictable branch, while flag consistency verification is predictable)
+  static_assert(READ_TYPE_INDEX_READ_1 == 0);
+  static_assert(READ_TYPE_INDEX_READ_2 == 1);
+  return read_has_flag(b, BAM_FREAD2);
+}
+
+/*
 int ReadBundler::ReadStrand(bam1_t* b) {
+  // TODO: consider the implications...
   if (b->core.flag & BAM_FMREVERSE) {
-    return 0;
+    return STRAND_INDEX_FORWARD;
   } else if (b->core.flag & BAM_FREVERSE) {
-    return 1;
+    return STRAND_INDEX_REVERSE;
   } else {
     // read is not mapped to a strand, if proper pairs are required
     // this can be set to throw std::invalid_argument("Invalid strand");
@@ -125,30 +135,48 @@ int ReadBundler::ReadStrand(bam1_t* b) {
   }
 }
 
-
 int ReadBundler::ReadNumber(bam1_t* b) {
+  // TODO: optimise!
   if (b->core.flag & BAM_FREAD1) {
-    return 1;
+    return READ_TYPE_INDEX_READ_1;
   } else if (b->core.flag & BAM_FREAD2) {
-    return 2;
+    return READ_TYPE_INDEX_READ_2;
   } else {
     throw std::invalid_argument("Invalid read number");
   }
 }
+*/
 
+const int nt16_allele[16] = {
+  [0] = ALLELE_DISCARDED,
+  [BAM_NT_A] = ALLELE_DISCARDED,
+  [BAM_NT_C] = ALLELE_DISCARDED,
+  [3] = ALLELE_DISCARDED,
+  [BAM_NT_G] = ALLELE_DISCARDED,
+  [5] = ALLELE_DISCARDED,
+  [6] = ALLELE_DISCARDED,
+  [7] = ALLELE_DISCARDED,
+  [BAM_NT_T] = ALLELE_DISCARDED,
+  [9] = ALLELE_DISCARDED,
+  [10] = ALLELE_DISCARDED,
+  [11] = ALLELE_DISCARDED,
+  [12] = ALLELE_DISCARDED,
+  [13] = ALLELE_DISCARDED,
+  [14] = ALLELE_DISCARDED,
+  [15] = ALLELE_DISCARDED,
+};
 
-std::pair<char, int> ReadBundler::BaseAndQual(const bam_pileup1_t* p) {
+std::pair<int, int> ReadBundler::BaseAndQual(const bam_pileup1_t *p) {
   // We don't make use of indel quality scores, so gives these value -1
   if ((p->is_del) || (p->indel != 0)) {
     return std::make_pair('i', -1);
   } else {
     uint8_t *seq = bam_get_seq(p->b);
-    char base = static_cast<char>(seq_nt16_str[bam_seqi(seq, p->qpos)]);
+    int base = nt16_allele[bam_seqi(seq, p->qpos)];
     int qual  = bam_get_qual(p->b)[p->qpos];
     return std::make_pair(base, qual);
   }
 }
-
 
 // No pre-processing is performed on bulk bam
 // Keep non-properly-paired reads
@@ -163,12 +191,6 @@ bool ReadBundler::BulkIsUsable(bam1_t *b) {
   }
   return false;
 }
-
-
-int ReadBundler::IsProperPair(bam1_t *b) {
-  return (b->core.flag & BAM_FPROPER_PAIR)? 1 : 0;
-}
-
 
 identifier ReadBundler::DplxIdentifier(const bam_pileup1_t* p) {
   std::string idf1 = ReadBundler::AuxTagToChar(p->b, "RB");
@@ -187,30 +209,28 @@ identifier ReadBundler::DplxIdentifier(const bam_pileup1_t* p) {
   return idf;
 }
 
-
 void ReadBundler::UpdateDplxBundle(identifier idf, bundle* bndl,
   const bam_pileup1_t* p) {
   bndl->idf = idf;
-  int strand = ReadBundler::ReadStrand(p->b);
-  int read   = ReadBundler::ReadNumber(p->b);
-  int rtype  = RTYPES[strand][read];
-  std::pair<char, int> bq = ReadBundler::BaseAndQual(p);
+  const int strand = get_strand_index(p->b);
+  const int read = get_read_type_index(p->b);
+  const int rtype = RTYPES[strand][read];
+  std::pair<int, int> bq = ReadBundler::BaseAndQual(p);
   bndl->dplx_depth[strand][read]++;
   bndl->counts[rtype][bq.first]++;
   bndl->call[rtype].push_back(bq);
-  //fa8
-  //std::cerr << "bundle" << std::endl;
   bndl->asxs[rtype].push_back(ReadBundler::ASMinusXS(p->b));
   bndl->clip[rtype].push_back(ReadBundler::IsFivePrimeClipped(p->b, strand));
   bndl->nmms[rtype].push_back(ReadBundler::AuxTagToInt(p->b, "NM"));
-  bndl->ppair[rtype].push_back(ReadBundler::IsProperPair(p->b));
+  // bndl->ppair[rtype].push_back(read_is_in_proper_pair(p->b));
+  bndl->rtype_ppair_counts[rtype] += read_is_in_proper_pair(p->b);
+  bndl->rtype_read_counts[rtype]++;
 }
-
 
 void ReadBundler::UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p,
   int min_base_quality) {
-  int strand = ReadBundler::ReadStrand(p->b);
-  std::pair<char, int> bq = ReadBundler::BaseAndQual(p);
+  const int strand = get_strand_index(p->b);
+  std::pair<int, int> bq = ReadBundler::BaseAndQual(p);
   // only use bulk bundles where base quality is >= threshold
   // fa8:
   //std::cerr << bq.first << ":" << bq.second << "(" << min_base_quality << ")" << std::endl;
@@ -218,18 +238,15 @@ void ReadBundler::UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p,
   //if (bq.second >= min_base_quality) {
   // fa8 (disabling the filter for indels because they may have -1)
   if (bq.first == 'i' || bq.second >= min_base_quality) {
-    // fa8:
-  	//std::cerr << "   passed" << std::endl;
     bndl->counts[strand][bq.first]++;
     bndl->call[strand].push_back(bq);
-    //fa8
-    //std::cerr << "bulk" << std::endl;
     bndl->asxs[strand].push_back(ReadBundler::ASMinusXS(p->b));
     bndl->nmms[strand].push_back(ReadBundler::AuxTagToInt(p->b, "NM"));
-    bndl->ppair[strand].push_back(ReadBundler::IsProperPair(p->b));
+    // bndl->ppair[strand].push_back(read_is_in_proper_pair(p->b));
+    bndl->rtype_ppair_counts[strand] += read_is_in_proper_pair(p->b);
+    bndl->rtype_read_counts[strand]++;
   }
 }
-
 
 void ReadBundler::DplxConsensus(bundle* bndl) {
   for (int i = 0; i < 2; i++) {
@@ -265,7 +282,6 @@ void ReadBundler::DplxConsensus(bundle* bndl) {
   }
 }
 
-
 bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth,
   pileups plps) {
   this->pos    = pos;
@@ -281,12 +297,12 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth,
   for (auto it = bouts.begin(); it != bouts.end(); ) {
     // define duplex type: 0 = no duplex, 1 = fwd, 2 = rev, 3 = fwd and rev
     int bundle_type = 0;
-    if ((it->second.dplx_depth[0][1] >= min_dplx_depth) &&
-        (it->second.dplx_depth[0][2] >= min_dplx_depth)) {
+    if ((it->second.dplx_depth[STRAND_INDEX_FORWARD][READ_TYPE_INDEX_READ_1] >= min_dplx_depth) &&
+        (it->second.dplx_depth[STRAND_INDEX_FORWARD][READ_TYPE_INDEX_READ_2] >= min_dplx_depth)) {
       bundle_type += 1;
     }
-    if ((it->second.dplx_depth[1][1] >= min_dplx_depth) &&
-        (it->second.dplx_depth[1][2] >= min_dplx_depth)) {
+    if ((it->second.dplx_depth[STRAND_INDEX_REVERSE][READ_TYPE_INDEX_READ_1] >= min_dplx_depth) &&
+        (it->second.dplx_depth[STRAND_INDEX_REVERSE][READ_TYPE_INDEX_READ_2] >= min_dplx_depth)) {
       bundle_type += 2;
     }
     // remove low depth bundles
@@ -301,7 +317,6 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth,
   }
   return bouts;
 }
-
 
 bundle ReadBundler::BulkBundle(pileups plps, int min_base_quality) {
   bundle bndl;

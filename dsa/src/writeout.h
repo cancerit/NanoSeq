@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
+# Copyright (c) 2022, 2025 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -32,39 +32,19 @@
 #ifndef WRITEOUT_H_
 #define WRITEOUT_H_
 
-#include <algorithm>
 #include <iostream>
-#include <cmath>
-#include <string>
-#include <vector>
-#include <numeric>
 #include "gzstream.h"
 #include "read_bundler.h"
-
+#include "options.h"
 
 class WriteOut {
- public:
+  private:
     Options *opts;
+    std::ostream &out;  // output stream
 
-    int Round(double d);
-
-    std::string BaseQuals(bundle *bin);
-
-    std::string Counts(bundle *bin);
-
-    float MeanOfOneVector(std::vector<int> v1);
-
-    float MeanOfTwoVectors(std::vector<int> v1, std::vector<int> v2);
-
-    std::string BulkCovariates(bundle *bin);
-
-    std::string DplxCovariates(bundle *bin);
-
-    std::string ProperPairs(bundle *bin);
-
-    std::string IdentifierString(bundle *bin);
-
-    void WriteRows(bundle bulk, bundles dplx, std::string posn, ogzstream & gzout, bool out2stdout);
+  public:
+    WriteOut(Options *opt, ogzstream &gzout, const bool out2stdout);
+    void WriteRows(bundle bulk, bundles dplx, std::string posn);
 };
 
 #endif  // WRITEOUT_H_

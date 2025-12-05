@@ -7,10 +7,7 @@ BED parsing functionality from bedtk.c (see external/bedtk).
 #include <stdarg.h>
 #include <assert.h>
 #include <unistd.h>
-#include "cgranges.h"
-#include "ketopt.h"
-#include "kseq.h"
-KSTREAM_INIT(gzFile, gzread, 0x10000)
+#include "bedtk_lite.h"
 
 #define BEDTK_VERSION "1.2-r34"
 
@@ -28,7 +25,7 @@ typedef struct {
 	bed_rest1_t *a;
 } bed_rest_t;
 
-static char *parse_bed3b(char *s, int32_t *st_, int32_t *en_, char **r)
+char *parse_bed3b(char *s, int32_t *st_, int32_t *en_, char **r)
 {
 	char *p, *q, *ctg = 0;
 	int32_t i, st = -1, en = -1;
@@ -51,12 +48,12 @@ static char *parse_bed3b(char *s, int32_t *st_, int32_t *en_, char **r)
 	return i >= 3? ctg : 0;
 }
 
-static char *parse_bed3(char *s, int32_t *st_, int32_t *en_)
+char *parse_bed3(char *s, int32_t *st_, int32_t *en_)
 {
 	return parse_bed3b(s, st_, en_, 0);
 }
 
-static cgranges_t *read_bed3b(const char *fn, bed_rest_t *r, const char *fn_order)
+cgranges_t *read_bed3b(const char *fn, bed_rest_t *r, const char *fn_order)
 {
 	gzFile fp;
 	cgranges_t *cr;
@@ -121,7 +118,7 @@ static cgranges_t *read_bed3b(const char *fn, bed_rest_t *r, const char *fn_orde
 	return cr;
 }
 
-static cgranges_t *read_bed3(const char *fn)
+cgranges_t *read_bed3(const char *fn)
 {
 	return read_bed3b(fn, 0, 0);
 }

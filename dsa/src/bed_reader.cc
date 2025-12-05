@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
+# Copyright (c) 2022, 2025 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -37,72 +37,41 @@
 **/
 
 #include "bed_reader.h"
+#include "bedtk_lite.h"
 
 #define KS_SEP_LINE  2
 
+int Bed::Load(const char *bed_filename, ogzstream &gzout, const bool out2stdout) {
+  /*
+  Changed: loading the full BED file to support multiple regions; no need for the tabix index.
 
-// Load intervals from tabix BED file
-void Bed::Load(const char* bed_filename, const char* rname, int beg, int end, ogzstream & gzout, bool out2stdout ) {
-  if ( bed_filename[0] == '\0' ) { return; }
-  htsFile *fp = hts_open(bed_filename, "r");
-  if (fp == NULL) {
-    std::stringstream er;
-    er << "Error: failed to open ";
-    er << bed_filename;
-    er << std::endl;
-    throw std::runtime_error(er.str());
+  TODO:
+  - throw exceptions instead of using return codes?
+  - consider logging to stderr instead of gzout (verify expectations)
+  */
+
+  if (!bed_filename || bed_filename[0] == '\0') {
+    return 1;
   }
-  tbx_t* tbx = tbx_index_load(bed_filename);
-  if (!tbx) {
-    std::stringstream er;
-    er << "Error: failed to open .tbi index of ";
-    er << bed_filename;
-    er << std::endl;
-    throw std::runtime_error(er.str());
+  // Load the intervals
+  this->intervals = read_bed3(bed_filename);
+  if (!intervals) {
+    return 1;
   }
-  char region[65536];
-  sprintf(region, "%s:%d-%d", rname, beg, end);
-  hts_itr_t* itr = tbx_itr_querys(tbx, region);
-  if (itr) {
-    kstring_t str;
-    int32_t nfields;
-    while (tbx_itr_next(fp, tbx, itr, &str) >= 0) {
-      int32_t* fields = ksplit(&str, 0, &nfields);
-      int beg = std::stoi(&str.s[fields[1]]);
-      int end = std::stoi(&str.s[fields[2]]);
-      intervals.push_back(std::make_pair(beg, end));
-    }
-  }
-  tbx_itr_destroy(itr);
-  if ( not out2stdout ) {
+  // Index the intervals
+  cr_index(this->intervals);
+  if (!out2stdout) {
     gzout << "# ";
-    gzout << intervals.size();
+    gzout << intervals->n_r;
     gzout << " intervals added from ";
     gzout << bed_filename;
-    gzout << " ";
-    gzout << region;
     gzout << std::endl;
   }
+  return 0;
 }
 
-
 // Returns true if position intersects with BED position, otherwise false
-bool Bed::Intersects(int pos) {
-  bool ret = false;
-  while (intervals.size() > 0) {
-    std::pair<int, int> interval = intervals[0];
-    int beg = interval.first;
-    int end = interval.second;
-    if (pos < beg) {
-      ret = false;
-      break;
-    } else if (pos >= end) {
-      intervals.pop_front();
-    } else {
-      assert((pos >= beg) && (pos < end));
-      ret = true;
-      break;
-    }
-  }
-  return ret;
+bool Bed::Intersects(const char *contig, const int pos) {
+  const int64_t n_b = cr_overlap(this->intervals, contig, pos, pos, &this->b, &this->m_b);
+  return n_b != 0;
 }

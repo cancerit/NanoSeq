@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
+# Copyright (c) 2022, 2025 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -47,17 +47,18 @@
 #include "htslib/tbx.h"
 #include "htslib/kstring.h"
 #include "gzstream.h"
+#include "cgranges.h"
 
 class Bed {
- public:
-   const char* rname;
+  private:
+    // cr_overlap
+    int64_t *b;  // [re]allocated
+    int64_t m_b;
 
-   std::deque<std::pair<int, int>> intervals;
-
-   void Load(const char* bed_filename, const char* rname, int beg, int end, ogzstream & gzout, bool out2stdout);
-
-   bool Intersects(int pos);
-
+  public:
+    cgranges_t *intervals;
+    int Load(const char *bed_filename, ogzstream &gzout, const bool out2stdout);
+    bool Intersects(const char *contig, const int pos);
 };
 
 #endif  // BED_H_

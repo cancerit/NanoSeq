@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
+# Copyright (c) 2022, 2025 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -29,7 +29,6 @@
 # 2009, 2010, 2011, 2012’.
 ##########################*/
 
-
 #ifndef READ_BUNDLER_H_
 #define READ_BUNDLER_H_
 
@@ -49,6 +48,19 @@
 #include "htslib/sam.h"
 #include "options.h"
 
+// TODO: verify!
+#define BAM_NT_A 1
+#define BAM_NT_C 2
+#define BAM_NT_G 4
+#define BAM_NT_T 8
+
+#define ALLELE_DISCARDED 0
+#define ALLELE_A 1
+#define ALLELE_C 2
+#define ALLELE_G 3
+#define ALLELE_T 4
+#define ALLELE_DEL 5
+#define ALLELE_COUNT 6
 
 typedef struct {
   std::string id;
@@ -59,70 +71,52 @@ typedef struct {
   std::string rev_bc;
 } identifier;
 
-
 struct bundle {
-  std::map<int, std::map<int, float>> dplx_depth;
-  std::map<int, float> bulk_depth;
-  std::map<int, std::map<char, int>> counts;
-  std::map<int, std::vector<int>> asxs;
-  std::map<int, std::vector<int>> clip;
-  std::map<int, std::vector<int>> nmms;
-  std::map<int, std::vector<int>> ppair;
-  std::map<int, std::vector<std::pair<char, int>>> call;
-  std::map<int, std::vector<double>> consensus;
+  float dplx_depth[STRAND_COUNT][READ_TYPE_COUNT];
+  uint64_t counts[RTYPE_COUNT][ALLELE_COUNT];
+  std::vector<int> asxs[RTYPE_COUNT];
+  std::vector<int> clip[RTYPE_COUNT];
+  std::vector<int> nmms[RTYPE_COUNT];
+
+  uint64_t rtype_ppair_counts[RTYPE_COUNT];
+  uint64_t rtype_read_counts[RTYPE_COUNT];  // then divide ppair to get the averages
+
+  // TODO: replace character key with index (?)
+  std::vector<std::pair<char, int>> call[RTYPE_COUNT];
+  std::vector<double> consensus[BUNDLE_TYPES_COUNT];
   identifier idf;
   int bundle_type;
 };
 
-
+// TODO: consider a more compact duplex ID as key
 typedef std::map<std::string, bundle> bundles;
-
 typedef std::vector<const bam_pileup1_t*> pileups;
 
+static inline int read_has_flag(const bam1_t *b, const uint16_t flag) {
+  return (b->core.flag & flag) != 0;
+}
+
+static inline int read_is_in_proper_pair(const bam1_t *b) {
+  return read_has_flag(b, BAM_FPROPER_PAIR);
+}
 
 class ReadBundler {
- public:
+  public:
     int pos;
-
     int offset;
-
-    int AuxTagIsPresent(bam1_t* b, const char* tag);
-
     char* AuxTagToChar(bam1_t* b, const char* tag);
-
     int AuxTagToInt(bam1_t* b, const char* tag);
-
     int ASMinusXS(bam1_t* b);
-
     int IsFivePrimeClipped(bam1_t* b, int readstrand);
-
-    bool IsTemplate(int beg, int end);
-
-    std::string ReadOrientation(int readstrand, int readnumber);
-
-    int ReadStrand(bam1_t* b);
-
-    int ReadNumber(bam1_t* b);
-
-    std::pair<char, int> BaseAndQual(const bam_pileup1_t* p);
-
+    bool IsTemplate(const int beg, const int end);
+    std::pair<int, int> BaseAndQual(const bam_pileup1_t* p);
     bool BulkIsUsable(bam1_t *b);
-
-    int IsProperPair(bam1_t *b);
-
     identifier DplxIdentifier(const bam_pileup1_t* p);
-
-    void UpdateDplxBundle(identifier idf, bundle* bndl,
-      const bam_pileup1_t* p);
-
+    void UpdateDplxBundle(identifier idf, bundle* bndl, const bam_pileup1_t* p);
     void UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p, int min_base_quality);
-
     void DplxConsensus(bundle* bndl);
-
     bundles DplxBundles(int pos, int offset, int min_dplx_depth, pileups plps);
-
     bundle BulkBundle(pileups plps, int min_base_quality);
-
 };
 
 #endif  // READ_BUNDLER_H_

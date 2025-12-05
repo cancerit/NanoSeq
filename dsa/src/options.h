@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
+# Copyright (c) 2022, 2025 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -29,26 +29,23 @@
 # 2009, 2010, 2011, 2012’.
 ##########################*/
 
-
 #ifndef OPTIONS_H_
 #define OPTIONS_H_
 
-#include <array>
+#include "constants.h"
 
 struct Options {
-  std::array<const char*, 2> bams;
-  std::array<const char*, 2> beds;
-  const char* fasta;
-  const char* rname;
-  char* oname;
+  const char *bams[BAM_COUNT];
+  const char *beds[MASK_COUNT];
+  const char *ranges_bed;
+  const char *fasta;
+  char *oname;
   int min_base_quality;
   int min_mapQ;
   int max_plp_depth;
   int min_dplx_depth;
   int max_dplx_depth;
   int offset;
-  int beg;
-  int end;
   bool out2stdout;
   bool doTests;
 };

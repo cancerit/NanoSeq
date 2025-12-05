@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
+# Copyright (c) 2022, 2025 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -48,9 +48,7 @@
 #include "options.h"
 #include "read_bundler.h"
 #include "writeout.h"
-
-#define BUNDLE_TYPE_BULK 0
-#define BUNDLE_TYPE_DUPLEX 1
+#include "constants.h"
 
 typedef struct {
   htsFile* fp;
@@ -60,26 +58,59 @@ typedef struct {
   sam_hdr_t* head;
 } aux_t;
 
+typedef struct {
+  int32_t tid;
+  int32_t start;
+  int32_t end;
+} range_t;
+
 class Pileup {
- private:
+  private:
     Options *opts;
-    faidx_t* fai;
+    faidx_t *fai;
+
+    // BAI/CRAI indices for sample and normal
+    hts_idx_t *indices[BAM_COUNT];
+
+    Bed regions;  // Regions to process
     Bed mask;
     Bed snp;
-    int n;
-    int tid;
     aux_t **data;
     bam_mplp_t mplp;
-    int *n_plp;
-    const bam_pileup1_t **plp;
-    ogzstream  gzout;
+    ogzstream gzout;
 
- public:
+  public:
     void Initiate(Options *options);
+    void InitIterators(const range_t *r);
     std::string Header();
-    std::string PositionString(int pos);
-    char* GetTrinucleotideContext(int pos);
+    std::string PositionString(const char *contig, const int pos);
     void MultiplePileup();
 };
+
+/*
+int xy(const char *fp) {
+  gzFile f = gzopen(fp, "r");
+  if (f == NULL) {
+      fprintf(stderr, "\nFailed to open file '%s'!\n", fp);
+      return 1;
+  }
+
+  kstring_t str;
+  uint64_t total = 0;
+  kstream_t *ks = ks_init(f);
+  char *contig, *rest;
+  int32_t start, end;
+  while (ks_getuntil(ks, KS_SEP_LINE, &str, 0) >= 0) {
+    total++;
+
+    contig = parse_bed3b(str.s, &start, &end, &rest);
+    if (contig == NULL) {
+        fprintf(stderr, "\nContig not found!\n");
+        return 1;
+    }
+  }
+  return 0;
+}
+*/
 
 #endif  // PILEUP_H_
