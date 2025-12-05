@@ -282,11 +282,24 @@ void ReadBundler::DplxConsensus(bundle* bndl) {
   }
 }
 
+static inline int high_duplex_depth(const bundle *b, const int strand, const int min_dplx_depth) {
+  return static_cast<int>(
+    (b->dplx_depth[strand][READ_TYPE_INDEX_READ_1] >= min_dplx_depth) &&
+    (b->dplx_depth[strand][READ_TYPE_INDEX_READ_2] >= min_dplx_depth));
+}
+
+static inline int get_duplex_bundle_type(const bundle *b, const int min_dplx_depth) {
+  return
+    (high_duplex_depth(b, STRAND_INDEX_REVERSE, min_dplx_depth) << 1) |
+    (high_duplex_depth(b, STRAND_INDEX_FORWARD, min_dplx_depth) << 0);
+}
+
 bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth,
   pileups plps) {
   this->pos    = pos;
   this->offset = offset;
   bundles bouts;
+
   for (int i = 0; i < plps.size(); i++) {
     const bam_pileup1_t* p = plps[i];
     identifier idf = ReadBundler::DplxIdentifier(p);
@@ -294,17 +307,11 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth,
       ReadBundler::UpdateDplxBundle(idf, &bouts[idf.id], p);
     }
   }
+
   for (auto it = bouts.begin(); it != bouts.end(); ) {
     // define duplex type: 0 = no duplex, 1 = fwd, 2 = rev, 3 = fwd and rev
-    int bundle_type = 0;
-    if ((it->second.dplx_depth[STRAND_INDEX_FORWARD][READ_TYPE_INDEX_READ_1] >= min_dplx_depth) &&
-        (it->second.dplx_depth[STRAND_INDEX_FORWARD][READ_TYPE_INDEX_READ_2] >= min_dplx_depth)) {
-      bundle_type += 1;
-    }
-    if ((it->second.dplx_depth[STRAND_INDEX_REVERSE][READ_TYPE_INDEX_READ_1] >= min_dplx_depth) &&
-        (it->second.dplx_depth[STRAND_INDEX_REVERSE][READ_TYPE_INDEX_READ_2] >= min_dplx_depth)) {
-      bundle_type += 2;
-    }
+    const int bundle_type = get_duplex_bundle_type(&it->second, min_dplx_depth);
+
     // remove low depth bundles
     if (bundle_type == 0) {
       bouts.erase(it++);
