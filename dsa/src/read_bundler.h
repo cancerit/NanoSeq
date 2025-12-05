@@ -63,13 +63,12 @@
 #define ALLELE_COUNT 6
 
 typedef struct {
-  std::string id;
   int beg;
   int end;
   int strand;
   std::string fwd_bc;
   std::string rev_bc;
-} identifier;
+} duplex_tag_info;
 
 struct bundle {
   float dplx_depth[STRAND_COUNT][READ_TYPE_COUNT];
@@ -84,11 +83,12 @@ struct bundle {
   // TODO: replace character key with index (?)
   std::vector<std::pair<char, int>> call[RTYPE_COUNT];
   std::vector<double> consensus[BUNDLE_TYPES_COUNT];
-  identifier idf;
+  duplex_tag_info duplex_tag_info;
   int bundle_type;
 };
 
 // TODO: consider a more compact duplex ID as key
+// TODO: this needs clearing (still prone to slicing artifacts)
 typedef std::map<std::string, bundle> bundles;
 typedef std::vector<const bam_pileup1_t*> pileups;
 
@@ -111,8 +111,8 @@ class ReadBundler {
     bool IsTemplate(const int beg, const int end);
     std::pair<int, int> BaseAndQual(const bam_pileup1_t* p);
     bool BulkIsUsable(bam1_t *b);
-    identifier DplxIdentifier(const bam_pileup1_t* p);
-    void UpdateDplxBundle(identifier idf, bundle* bndl, const bam_pileup1_t* p);
+    std::string DplxIdentifier(const bam_pileup1_t* p);
+    void UpdateDplxBundle(bundle* bndl, const bam_pileup1_t* p);
     void UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p, int min_base_quality);
     void DplxConsensus(bundle* bndl);
     bundles DplxBundles(int pos, int offset, int min_dplx_depth, pileups plps);

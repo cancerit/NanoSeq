@@ -192,26 +192,29 @@ bool ReadBundler::BulkIsUsable(bam1_t *b) {
   return false;
 }
 
-identifier ReadBundler::DplxIdentifier(const bam_pileup1_t* p) {
-  std::string idf1 = ReadBundler::AuxTagToChar(p->b, "RB");
+static inline duplex_tag_info parse_identifier(std::string idf1) {
   std::istringstream iss(idf1);
   std::vector<std::string> tokens;
   std::string token;
+
+  // TODO: optimise!
   while (std::getline(iss, token, ',')) {
     tokens.push_back(token);
   }
-  identifier idf;
-  idf.id     = idf1;
-  idf.beg    = std::stoi(tokens[1]);
-  idf.end    = std::stoi(tokens[2]);
-  idf.fwd_bc = tokens[3];
-  idf.rev_bc = tokens[4];
+  duplex_tag_info idf = {
+    .beg = std::stoi(tokens[1]),
+    .end = std::stoi(tokens[2]),
+    .fwd_bc = tokens[3],
+    .rev_bc = tokens[4]
+  };
   return idf;
 }
 
-void ReadBundler::UpdateDplxBundle(identifier idf, bundle* bndl,
-  const bam_pileup1_t* p) {
-  bndl->idf = idf;
+std::string ReadBundler::DplxIdentifier(const bam_pileup1_t* p) {
+  return ReadBundler::AuxTagToChar(p->b, "RB");
+}
+
+void ReadBundler::UpdateDplxBundle(bundle *bndl, const bam_pileup1_t *p) {
   const int strand = get_strand_index(p->b);
   const int read = get_read_type_index(p->b);
   const int rtype = RTYPES[strand][read];
@@ -248,7 +251,7 @@ void ReadBundler::UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p,
   }
 }
 
-void ReadBundler::DplxConsensus(bundle* bndl) {
+void ReadBundler::DplxConsensus(bundle *bndl) {
   for (int i = 0; i < 2; i++) {
     // sum log10 probability of error
     std::vector<double> probs(ALPH_LEN, static_cast<double>(0));
@@ -294,33 +297,53 @@ static inline int get_duplex_bundle_type(const bundle *b, const int min_dplx_dep
     (high_duplex_depth(b, STRAND_INDEX_FORWARD, min_dplx_depth) << 0);
 }
 
-bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth,
-  pileups plps) {
+bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileups plps) {
   this->pos    = pos;
   this->offset = offset;
   bundles bouts;
+  bundle *b;
 
-  for (int i = 0; i < plps.size(); i++) {
-    const bam_pileup1_t* p = plps[i];
-    identifier idf = ReadBundler::DplxIdentifier(p);
-    if (ReadBundler::IsTemplate(idf.beg, idf.end) == 1) {
-      ReadBundler::UpdateDplxBundle(idf, &bouts[idf.id], p);
+  {
+    std::string idf;
+    const bam_pileup1_t* p;
+    duplex_tag_info info;
+    for (int i = 0; i < plps.size(); i++) {
+      p = plps[i];
+      idf = ReadBundler::DplxIdentifier(p);
+      if (!bouts.contains(idf)) {
+        info = parse_identifier(idf);
+        if (!ReadBundler::IsTemplate(info.beg, info.end)) {
+          continue;
+        }
+
+        // Initialise
+        b = &bouts[idf];
+        b->duplex_tag_info = info;
+        ReadBundler::UpdateDplxBundle(b, p);
+
+      } else if (ReadBundler::IsTemplate(bouts[idf].duplex_tag_info.beg, bouts[idf].duplex_tag_info.end)) {
+
+        // Update
+        ReadBundler::UpdateDplxBundle(b, p);
+
+      }
     }
   }
 
   for (auto it = bouts.begin(); it != bouts.end(); ) {
+    b = &it->second;
     // define duplex type: 0 = no duplex, 1 = fwd, 2 = rev, 3 = fwd and rev
-    const int bundle_type = get_duplex_bundle_type(&it->second, min_dplx_depth);
+    const int bundle_type = get_duplex_bundle_type(b, min_dplx_depth);
 
     // remove low depth bundles
     if (bundle_type == 0) {
-      bouts.erase(it++);
+      bouts.erase(it);
     } else {
       // calculate consensus base qualities
-      ReadBundler::DplxConsensus(&bouts[it->second.idf.id]);
-      bouts[it->second.idf.id].bundle_type = bundle_type;
-      it++;
+      ReadBundler::DplxConsensus(b);
+      b->bundle_type = bundle_type;
     }
+    it++;
   }
   return bouts;
 }

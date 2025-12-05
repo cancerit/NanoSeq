@@ -159,15 +159,15 @@ static void push_proper_pair_string(const bundle *bin, std::ostream &ss) {
 }
 
 static void push_identifier_string(const bundle *bin, std::ostream &ss) {
-  ss << bin->idf.beg;
+  ss << bin->duplex_tag_info.beg;
   ss << "\t";
-  ss << bin->idf.end;
+  ss << bin->duplex_tag_info.end;
   ss << "\t";
-  std::string str = bin->idf.fwd_bc;
+  std::string str = bin->duplex_tag_info.fwd_bc;
   std::transform(str.begin(), str.end(),str.begin(), ::toupper);  // uppercase
   ss << str;
   ss << "|";
-  str = bin->idf.rev_bc;
+  str = bin->duplex_tag_info.rev_bc;
   std::transform(str.begin(), str.end(),str.begin(), ::toupper);
   ss << str;
   ss << "\t";
