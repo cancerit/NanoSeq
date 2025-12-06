@@ -13,6 +13,8 @@ class PileupBatch {
 
   public:
     void Update(const int start, const int end);
+    void EvalPos(const int pos);
+    void MultiplePileup();
     std::vector<uint8_t> mask;
 };
 

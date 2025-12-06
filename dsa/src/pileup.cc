@@ -30,6 +30,7 @@
 ##########################*/
 
 #include "pileup.h"
+#include "utils.h"
 
 static int RetrieveAlignments(void *data, bam1_t *b) {
   aux_t *aux = (aux_t *)data;
@@ -111,7 +112,7 @@ Pileup::Pileup() {
   static_assert(MASK_INDEX_NOISE == 1);
   static_assert(MASK_COUNT == 2);
   for (uint8_t i = 0; i < MASK_COUNT; ++i) {
-    this->masks[i] = Mask(i);
+    this->masks[i] = MaskLoader(i);
   }
 }
 
@@ -385,7 +386,7 @@ static inline void set_trinucleotide_region(const char *contig, const int pos, c
   snprintf(region, MAX_REGION_STR_LENGTH, "%s:%d-%d", contig, pos, pos + 2);
 }
 
-std::string Pileup::PositionString(const char *contig, const int pos) {
+std::string Pileup::PositionString(const char *contig, const int pos, const uint8_t mask_values[MASK_COUNT]) {
   char *ctx;
   {
     char region[MAX_REGION_STR_LENGTH];
@@ -403,25 +404,18 @@ std::string Pileup::PositionString(const char *contig, const int pos) {
       // TODO: throw error
       break;
     default:
-      if (ctx_length < 0)
-      {
+      if (ctx_length < 0) {
         // TODO: throw error
       }
-      else
-      {
+      else {
         // TODO: consider different behaviour for this case
-        for (int i = 0; i < ctx_length; ++i)
-        {
+        for (int i = 0; i < ctx_length; ++i) {
           ctx[i] = std::toupper(ctx[i]);
         }
       }
       break;
     }
   }
-
-  // TODO: replace with combined dense combined mask lookup
-  const int is_snp = 0;  // static_cast<int>(this->snp.Intersects(contig, pos));
-  const int is_masked = 0;  // static_cast<int>(this->mask.Intersects(contig, pos));
 
   std::stringstream ss;
   ss << contig;
@@ -432,9 +426,9 @@ std::string Pileup::PositionString(const char *contig, const int pos) {
   ss << "\t";
   ss << ctx;
   ss << "\t";
-  ss << is_snp;
+  ss << mask_values[MASK_INDEX_SNP];
   ss << "\t";
-  ss << is_masked;
+  ss << mask_values[MASK_INDEX_NOISE];
   ss << "\t";
 
   // TODO: check whether this can be avoided

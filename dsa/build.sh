@@ -11,6 +11,7 @@ g++ \
     src/pileup.cc \
     src/pileup_batch.cc \
     src/mask.cc \
+    src/mask_loader.cc \
     src/writeout.cc \
     src/read_bundler.cc \
     src/dsa.cc \

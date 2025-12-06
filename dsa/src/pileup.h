@@ -45,6 +45,7 @@
 #include "htslib/faidx.h"
 #include "htslib/sam.h"
 #include "mask.h"
+#include "mask_loader.h"
 #include "options.h"
 #include "read_bundler.h"
 #include "writeout.h"
@@ -73,7 +74,7 @@ class Pileup {
     hts_idx_t *indices[BAM_COUNT];
 
     const char *regions;  // Regions to process
-    Mask masks[MASK_COUNT];
+    MaskLoader masks[MASK_COUNT];
 
     aux_t **data;
     bam_mplp_t mplp;
@@ -84,34 +85,8 @@ class Pileup {
     void Initiate(Options *options);
     void InitIterators(const range_t *r);
     std::string Header();
-    std::string PositionString(const char *contig, const int pos);
+    std::string PositionString(const char *contig, const int pos, const uint8_t mask_values[MASK_COUNT]);
     void MultiplePileup();
 };
-
-/*
-int xy(const char *fp) {
-  gzFile f = gzopen(fp, "r");
-  if (f == NULL) {
-      fprintf(stderr, "\nFailed to open file '%s'!\n", fp);
-      return 1;
-  }
-
-  kstring_t str;
-  uint64_t total = 0;
-  kstream_t *ks = ks_init(f);
-  char *contig, *rest;
-  int32_t start, end;
-  while (ks_getuntil(ks, KS_SEP_LINE, &str, 0) >= 0) {
-    total++;
-
-    contig = parse_bed3b(str.s, &start, &end, &rest);
-    if (contig == NULL) {
-        fprintf(stderr, "\nContig not found!\n");
-        return 1;
-    }
-  }
-  return 0;
-}
-*/
 
 #endif  // PILEUP_H_
