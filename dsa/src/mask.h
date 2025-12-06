@@ -14,6 +14,7 @@ class Mask {
   public:
     void Reset(const range_t range);
     void Update(const range_t range, const uint8_t flag);
+    uint8_t GetFlag(const int32_t pos);
 };
 
 #endif

@@ -24,3 +24,7 @@ void Mask::Reset(const range_t range) {
   }
   std::fill(this->mask.begin(), this->mask.end(), 0);
 }
+
+uint8_t Mask::GetFlag(const int32_t pos) {
+  return this->mask[pos - this->range.start];
+}
