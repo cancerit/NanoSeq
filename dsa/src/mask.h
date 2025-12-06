@@ -4,15 +4,16 @@
 #include "htslib/tbx.h"
 #include "htslib/kstring.h"
 #include <vector>
+#include "range.h"
 
 class Mask {
   private:
-    int32_t start, end;
+    range_t range;
     std::vector<uint8_t> mask;
 
   public:
-    void Reset(const int32_t start, const int32_t end);
-    void Update(const int32_t start, const int32_t end, const uint8_t flag);
+    void Reset(const range_t range);
+    void Update(const range_t range, const uint8_t flag);
 };
 
 #endif

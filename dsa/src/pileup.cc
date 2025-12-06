@@ -440,7 +440,7 @@ std::string Pileup::PositionString(const char *contig, const int pos, const uint
   return ss.str();
 }
 
-static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_t *r) {
+static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_t *r) {
   if (*it != NULL) {
     sam_itr_destroy(*it);
   }
@@ -454,7 +454,7 @@ static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_t *r
   }
 }
 
-void Pileup::InitIterators(const range_t *r) {
+void Pileup::InitIterators(const range_tid_t *r) {
   for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
     init_iterator(&this->data[i]->iter, this->indices[i], r);
   }

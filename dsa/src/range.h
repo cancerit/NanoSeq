@@ -1,0 +1,21 @@
+#ifndef RANGE_H_
+#define RANGE_H_
+
+#include <stdint.h>
+
+typedef struct {
+  int32_t start;
+  int32_t end;
+} range_t;
+
+static inline int32_t range_length(const range_t *r) {
+  return r->end - r->start;
+}
+
+typedef struct {
+  int32_t tid;
+  int32_t start;
+  int32_t end;
+} range_tid_t;
+
+#endif

@@ -50,6 +50,7 @@
 #include "read_bundler.h"
 #include "writeout.h"
 #include "constants.h"
+#include "range.h"
 
 typedef struct {
   htsFile* fp;
@@ -58,12 +59,6 @@ typedef struct {
   int duplex;
   sam_hdr_t* head;
 } aux_t;
-
-typedef struct {
-  int32_t tid;
-  int32_t start;
-  int32_t end;
-} range_t;
 
 class Pileup {
   private:
@@ -83,7 +78,7 @@ class Pileup {
   public:
     Pileup();
     void Initiate(Options *options);
-    void InitIterators(const range_t *r);
+    void InitIterators(const range_tid_t *r);
     std::string Header();
     std::string PositionString(const char *contig, const int pos, const uint8_t mask_values[MASK_COUNT]);
     void MultiplePileup();

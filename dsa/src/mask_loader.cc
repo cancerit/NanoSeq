@@ -28,21 +28,21 @@ void MaskLoader::Init(const char *bed_fp) {
 }
 
 void MaskLoader::LoadMask(const char *contig, const int start, const int end, Mask &mask) {
-  mask.Reset(start, end);
+  mask.Reset({start, end});
 
   char region[MAX_REGION_STR_LENGTH];
   get_region(contig, start, end, region);
   hts_itr_t *itr = tbx_itr_querys(this->tbx, region);
+  range_t r;
   if (itr) {
     kstring_t str;
     int32_t nfields;
     int32_t *fields;
-    int a, b;
     while (tbx_itr_next(this->f, this->tbx, itr, &str) >= 0) {
       fields = ksplit(&str, 0, &nfields);
-      a = std::stoi(&str.s[fields[1]]);
-      b = std::stoi(&str.s[fields[2]]);
-      mask.Update(a, b, this->flag);
+      r.start = std::stoi(&str.s[fields[1]]);
+      r.end = std::stoi(&str.s[fields[2]]);
+      mask.Update(r, this->flag);
     }
   }
   tbx_itr_destroy(itr);

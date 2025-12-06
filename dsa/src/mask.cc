@@ -2,21 +2,20 @@
 #include <assert.h>
 #include "mask.h"
 
-void Mask::Update(const int32_t start, const int32_t end, const uint8_t flag) {
-  const int32_t a = start - this->start;
-  if (end == start) {
+void Mask::Update(const range_t range, const uint8_t flag) {
+  const int32_t a = range.start - this->range.start;
+  if (range.end == range.start) {
     this->mask[a] |= flag;
   } else {
-    for (int i = a; i <= (end - start); ++i) {
+    for (int i = a; i <= range_length(&range); ++i) {
       this->mask[i] |= flag;
     }
   }
 }
 
-void Mask::Reset(const int32_t start, const int32_t end) {
-  const int32_t m = end - start;
-
-  const int32_t n = this->end - this->start;
+void Mask::Reset(const range_t range) {
+  const int32_t m = range_length(&range);
+  const int32_t n = range_length(&this->range);
   assert(this->mask.size() == n);
 
   // Expand the mask (if necessary) and reset it to zero
