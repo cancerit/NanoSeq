@@ -49,6 +49,9 @@ static int RetrieveAlignments(void *data, bam1_t *b) {
       throw std::runtime_error(er.str());
     }
 
+    // TODO: put here all read checks that would lead to a critical error (spares branches)
+    assert (read_has_flag(b, BAM_FREAD1) ^ read_has_flag(b, BAM_FREAD2));
+
     if (
       ((aux->duplex == 1) && (bam_aux_get(b, "RB") == NULL)) ||
       ((int)b->core.qual < aux->min_mapQ)
