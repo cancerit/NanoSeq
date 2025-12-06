@@ -1,15 +1,11 @@
 #ifndef MASK_H_
 #define MASK_H_
 
-#include "htslib/tbx.h"
-#include "htslib/kstring.h"
-#include <vector>
-#include "range.h"
+#include "slice.h"
 
 class Mask {
   private:
-    range_t range;
-    std::vector<uint8_t> mask;
+    Slice<uint8_t> mask;
 
   public:
     void Reset(const range_t range);

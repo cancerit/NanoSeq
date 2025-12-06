@@ -1,8 +1,6 @@
 #ifndef PILEUP_BATCH_H_
 #define PILEUP_BATCH_H_
 
-#include <vector>
-#include <assert.h>
 #include "constants.h"
 #include "mask.h"
 
