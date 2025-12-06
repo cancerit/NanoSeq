@@ -44,7 +44,7 @@
 #include "gzstream.h"
 #include "htslib/faidx.h"
 #include "htslib/sam.h"
-#include "bed_reader.h"
+#include "mask.h"
 #include "options.h"
 #include "read_bundler.h"
 #include "writeout.h"
@@ -72,14 +72,15 @@ class Pileup {
     // BAI/CRAI indices for sample and normal
     hts_idx_t *indices[BAM_COUNT];
 
-    Bed regions;  // Regions to process
-    Bed mask;
-    Bed snp;
+    const char *regions;  // Regions to process
+    Mask masks[MASK_COUNT];
+
     aux_t **data;
     bam_mplp_t mplp;
     ogzstream gzout;
 
   public:
+    Pileup();
     void Initiate(Options *options);
     void InitIterators(const range_t *r);
     std::string Header();

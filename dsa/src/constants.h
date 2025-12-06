@@ -18,6 +18,7 @@
 // Mask indices
 #define MASK_INDEX_SNP   0
 #define MASK_INDEX_NOISE 1
+#define MASK_COUNT 2
 
 // For genomic region strings (contig:start-end)
 #define MAX_REGION_STR_LENGTH 1024

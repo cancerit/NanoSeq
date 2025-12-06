@@ -105,6 +105,16 @@ bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, const int bundle_type) {
   }
 }
 
+Pileup::Pileup() {
+  // Initialise mask flags
+  static_assert(MASK_INDEX_SNP == 0);
+  static_assert(MASK_INDEX_NOISE == 1);
+  static_assert(MASK_COUNT == 2);
+  for (uint8_t i = 0; i < MASK_COUNT; ++i) {
+    this->masks[i] = Mask(i);
+  }
+}
+
 void Pileup::Initiate(Options *opts) {
   // test that we can write output file
   if (!opts->out2stdout) {
@@ -121,8 +131,11 @@ void Pileup::Initiate(Options *opts) {
     this->gzout.open(opts->oname);
   }
   this->opts = opts;
-  this->snp.Load(this->opts->beds[MASK_INDEX_SNP], this->gzout, this->opts->out2stdout);
-  this->mask.Load(this->opts->beds[MASK_INDEX_NOISE], this->gzout, this->opts->out2stdout);
+
+  // Open masks (BED files)
+  for (int i = 0; i < MASK_COUNT; ++i) {
+    this->masks[i].Init(this->opts->beds[i]);
+  }
 
   // Load FAI
   this->fai = fai_load(this->opts->fasta);
@@ -368,14 +381,6 @@ std::string Pileup::Header()
   return ss.str();
 }
 
-void f(const cgranges_t *cr) {
-  int32_t t;
-  for (int64_t i = 0; i < cr->n_r; ++i) {
-    t = cr_start(cr, i);
-    t = cr_end(cr, i);
-  }
-}
-
 static inline void set_trinucleotide_region(const char *contig, const int pos, char *region) {
   snprintf(region, MAX_REGION_STR_LENGTH, "%s:%d-%d", contig, pos, pos + 2);
 }
@@ -414,9 +419,9 @@ std::string Pileup::PositionString(const char *contig, const int pos) {
     }
   }
 
-  // TODO: replace with combined dense combined mask lookup?
-  const int is_snp = static_cast<int>(this->snp.Intersects(contig, pos));
-  const int is_masked = static_cast<int>(this->mask.Intersects(contig, pos));
+  // TODO: replace with combined dense combined mask lookup
+  const int is_snp = 0;  // static_cast<int>(this->snp.Intersects(contig, pos));
+  const int is_masked = 0;  // static_cast<int>(this->mask.Intersects(contig, pos));
 
   std::stringstream ss;
   ss << contig;
@@ -473,13 +478,8 @@ void Pileup::MultiplePileup() {
 
   // TODO: iterate over input ranges
   // TODO: convert from cgranges type
-  range_t r;
-  r.start = 0;
-  r.start = 100;
-  r.tid = 1;
-
   // Create iterators
-  InitIterators(&r);
+  // InitIterators(&r);
 
   /*
   {

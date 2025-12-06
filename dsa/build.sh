@@ -9,9 +9,8 @@ g++ \
     -I"external/gzstream" \
     -I"external/bedtk" \
     src/pileup.cc \
-    external/bedtk/cgranges.o \
-    src/bedtk_lite.cc \
-    src/bed_reader.cc \
+    src/pileup_batch.cc \
+    src/mask.cc \
     src/writeout.cc \
     src/read_bundler.cc \
     src/dsa.cc \
