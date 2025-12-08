@@ -36,6 +36,7 @@
 #define MIN_MAPQ 0
 #define MIN_BASE_QUALITY 30
 #define MIN_DEPTH_DEFAULT 2
+#define COMPRESSION_LEVEL_DEFAULT 2  // as in the current bgzip call
 
 void Usage() {
   fprintf(stderr, "\nUsage:\n");
@@ -49,6 +50,7 @@ void Usage() {
   fprintf(stderr, "\t-M\tRemove duplex reads w/ MAPQ smaller than this (default %d)\n", MIN_MAPQ);
   fprintf(stderr, "\t-d\tMinimum duplex depth (default %d)\n", MIN_DEPTH_DEFAULT);
   fprintf(stderr, "\t-O\tOutput file\n");
+  fprintf(stderr, "\t-x\tCompression level (default %d)\n", COMPRESSION_LEVEL_DEFAULT);
   fprintf(stderr, "\t-h\tHelp\n");
 }
 
@@ -62,9 +64,13 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
   opts->doTests          = true;
   opts->beds[MASK_INDEX_SNP]   = "\0";
   opts->beds[MASK_INDEX_NOISE] = "\0";
+  opts->compression_level = COMPRESSION_LEVEL_DEFAULT;
   char suffix[] = ".gz";
   int opt = 0;
   char buffer[400];
+
+  // TODO: make output file mandatory for now?
+
   while ((opt = getopt(argc, argv, "A:B:I:C:D:R:Q:M:d:O:th")) >= 0) {
     switch (opt) {
       case 'A':

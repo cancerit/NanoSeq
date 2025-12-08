@@ -34,4 +34,6 @@
 #define RTYPE_B 1
 #define RTYPE_COUNT 2
 
+#define MAX_DSA_LINE_LENGHT 4096
+
 #endif

@@ -5,7 +5,7 @@ void Mask::Update(const range_t range, const uint8_t flag) {
 }
 
 void Mask::Reset(const range_t range) {
-  this->mask.Reset(range);
+  this->mask.Reset(range, true);
 }
 
 uint8_t Mask::GetFlag(const int32_t pos) {

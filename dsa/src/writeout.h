@@ -32,19 +32,20 @@
 #ifndef WRITEOUT_H_
 #define WRITEOUT_H_
 
-#include <iostream>
-#include "gzstream.h"
 #include "read_bundler.h"
 #include "options.h"
+#include "constants.h"
+#include "compressor.h"
+#include "static_string_builder.hpp"
 
 class WriteOut {
   private:
     Options *opts;
-    std::ostream &out;  // output stream
+    GzipCompressor compressor;
 
   public:
-    WriteOut(Options *opt, ogzstream &gzout, const bool out2stdout);
-    void WriteRows(bundle bulk, bundles dplx, std::string posn);
+    WriteOut(Options *opt);
+    void WriteRows(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, bundle bulk, bundles dplx, std::string posn);
 };
 
 #endif  // WRITEOUT_H_

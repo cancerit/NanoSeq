@@ -48,6 +48,7 @@ struct Options {
   int offset;
   bool out2stdout;
   bool doTests;
+  int compression_level;
 };
 
 #endif  // OPTIONS_H_

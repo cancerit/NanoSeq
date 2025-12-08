@@ -12,6 +12,13 @@ static inline int32_t range_length(const range_t *r) {
   return r->end - r->start;
 }
 
+static inline const range_t range_grow(const range_t *r) {
+  return {
+    r->start <= 1 ? 0 : (r->start - 1),
+    r->end + 1
+  };
+}
+
 typedef struct {
   int32_t tid;
   int32_t start;

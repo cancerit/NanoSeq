@@ -31,6 +31,7 @@
 
 #include "pileup.h"
 #include "utils.h"
+#include "ref.h"
 
 static int RetrieveAlignments(void *data, bam1_t *b) {
   aux_t *aux = (aux_t *)data;
@@ -142,6 +143,7 @@ void Pileup::Initiate(Options *opts) {
   }
 
   // Load FAI
+  // TODO: remove (now in Ref)
   this->fai = fai_load(this->opts->fasta);
   if (this->fai == NULL) {
     std::stringstream er;
@@ -385,40 +387,11 @@ std::string Pileup::Header()
   return ss.str();
 }
 
-static inline void set_trinucleotide_region(const char *contig, const int pos, char *region) {
-  snprintf(region, MAX_REGION_STR_LENGTH, "%s:%d-%d", contig, pos, pos + 2);
-}
-
 std::string Pileup::PositionString(const char *contig, const int pos, const uint8_t mask_values[MASK_COUNT]) {
-  char *ctx;
-  {
-    char region[MAX_REGION_STR_LENGTH];
-    set_trinucleotide_region(contig, pos, region);
-    int ctx_length;
-    ctx = fai_fetch(this->fai, region, &ctx_length);
-    switch (ctx_length) {
-    case 3:
-      ctx[0] = std::toupper(ctx[0]);
-      ctx[1] = std::toupper(ctx[1]);
-      ctx[2] = std::toupper(ctx[2]);
-      break;
-    case -1:
-    case -2:
-      // TODO: throw error
-      break;
-    default:
-      if (ctx_length < 0) {
-        // TODO: throw error
-      }
-      else {
-        // TODO: consider different behaviour for this case
-        for (int i = 0; i < ctx_length; ++i) {
-          ctx[i] = std::toupper(ctx[i]);
-        }
-      }
-      break;
-    }
-  }
+
+  // TODO: pass as argument or store as attribute!
+  Ref ref;
+  std::string_view ctx = ref.GetTripletAround(pos);
 
   std::stringstream ss;
   ss << contig;
@@ -433,9 +406,6 @@ std::string Pileup::PositionString(const char *contig, const int pos, const uint
   ss << "\t";
   ss << mask_values[MASK_INDEX_NOISE];
   ss << "\t";
-
-  // TODO: check whether this can be avoided
-  free(ctx);
 
   return ss.str();
 }
