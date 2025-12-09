@@ -13,6 +13,7 @@ class Slice {
     T *values;
 
   public:
+    Slice() : range({0, 0}), values(nullptr) {};
     bool IsNull();
     void Update(const range_t range, const T value);
     void Set(const range_t range, T *new_values);
@@ -60,19 +61,29 @@ T *Slice<T>::From(const int32_t pos) {
 template<typename T>
 void Slice<T>::Reset(const range_t range, const bool zero) {
   const int32_t m = range_length(&range);
-  const int32_t n = range_length(&this->range);
-
-  // Expand the mask (if necessary) and reset it to zero
-  if (m > n) {
-    this->values = (T*)realloc(this->values, m);
-    if (this->values == nullptr) {
-      throw std::runtime_error("Failed to reallocate slice!");
-    }
-  }
-
+  assert(m > 0);
   this->range = range;
-  if (zero) {
-    memset(this->values, 0, m);
+
+  if (this->values == nullptr) {
+
+    this->values = (T*)calloc(m, sizeof(T));
+
+  } else {
+
+    const int32_t n = range_length(&this->range);
+
+    // Expand the mask (if necessary) and reset it to zero
+    if (m > n) {
+      this->values = (T*)realloc(this->values, m);
+      if (this->values == nullptr) {
+        throw std::runtime_error("Failed to reallocate slice!");
+      }
+    }
+
+    if (zero) {
+      memset(this->values, 0, m);
+    }
+
   }
 }
 
