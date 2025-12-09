@@ -39,13 +39,12 @@
 #include "static_string_builder.hpp"
 
 class WriteOut {
-  private:
+public:
     Options *opts;
     GzipCompressor compressor;
-
-  public:
     WriteOut(Options *opt);
     void WriteRows(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, bundle bulk, bundles dplx, std::string posn);
+    void Finalise();
 };
 
 #endif  // WRITEOUT_H_

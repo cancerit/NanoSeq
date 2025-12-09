@@ -3,18 +3,20 @@
 
 #include "constants.h"
 #include "mask.h"
+#include "mask_loader.h"
+#include "range.h"
 
 class PileupBatch {
-  private:
-    // const char region[MAX_REGION_STR_LENGTH];
-    int32_t start;
-    int32_t end;
+private:
+    const char *contig;
+    range_t range;
 
-  public:
-    void Update(const int start, const int end);
-    void EvalPos(const int pos);
-    void MultiplePileup();
+public:
     Mask mask;
+    PileupBatch() : contig(nullptr), range({0, 0}) {};
+    void Update(const char *contig, const range_t range, MaskLoader mls[2]);
+    void EvalPos(const int pos);
+    // void MultiplePileup();
 };
 
 #endif

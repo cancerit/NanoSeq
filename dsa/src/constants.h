@@ -36,4 +36,8 @@
 
 #define MAX_DSA_LINE_LENGHT 4096
 
+#define BED_INDEX_CONTIG 0
+#define BED_INDEX_START 1
+#define BED_INDEX_END 2
+
 #endif

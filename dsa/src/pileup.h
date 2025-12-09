@@ -63,6 +63,7 @@ typedef struct {
 class Pileup {
   private:
     Options *opts;
+    // WriteOut out;
     faidx_t *fai;
 
     // BAI/CRAI indices for sample and normal
@@ -74,6 +75,10 @@ class Pileup {
     aux_t **data;
     bam_mplp_t mplp;
     ogzstream gzout;
+    std::vector<range_tid_t> ranges;
+    int GetTID(const char *contig);
+    const char *GetContig(const int32_t tid);
+    void LoadRanges();
 
   public:
     Pileup();
@@ -81,6 +86,7 @@ class Pileup {
     void InitIterators(const range_tid_t *r);
     std::string Header();
     std::string PositionString(const char *contig, const int pos, const uint8_t mask_values[MASK_COUNT]);
+    void MultiplePileupInRange(const char *contig, const range_t range);
     void MultiplePileup();
 };
 

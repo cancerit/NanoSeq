@@ -60,18 +60,16 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
   opts->offset           = 1;  // ?
   opts->min_base_quality = MIN_BASE_QUALITY;
   opts->min_mapQ         = MIN_MAPQ;
-  opts->out2stdout       = true;
+  opts->out2stdout       = false;
   opts->doTests          = true;
   opts->beds[MASK_INDEX_SNP]   = "\0";
   opts->beds[MASK_INDEX_NOISE] = "\0";
   opts->compression_level = COMPRESSION_LEVEL_DEFAULT;
-  char suffix[] = ".gz";
   int opt = 0;
-  char buffer[400];
 
   // TODO: make output file mandatory for now?
 
-  while ((opt = getopt(argc, argv, "A:B:I:C:D:R:Q:M:d:O:th")) >= 0) {
+  while ((opt = getopt(argc, argv, "A:B:I:C:D:R:Q:M:d:O:x:th")) >= 0) {
     switch (opt) {
       case 'A':
         opts->bams[0] = optarg;
@@ -101,10 +99,11 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
         opts->min_dplx_depth = std::stoi(optarg);
         break;
       case 'O':
-        strcpy(buffer, optarg);
-        strcat(buffer, suffix);
-        opts->oname = buffer;
+        opts->oname = optarg;
         opts->out2stdout = false;
+        break;
+      case 'x':
+        opts->compression_level = std::stoi(optarg);
         break;
       case 't':
         opts->doTests = false;
@@ -118,10 +117,10 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
   }
 }
 
-
 int main(int argc, char **argv) {
   Options opts;
   SetupOptions(argc, argv, &opts);
+
   Pileup pileup;
   pileup.Initiate(&opts);
   pileup.MultiplePileup();

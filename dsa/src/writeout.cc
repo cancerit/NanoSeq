@@ -34,7 +34,13 @@
 #include "compressor.h"
 #include "static_string_builder.hpp"
 
-WriteOut::WriteOut(Options *opts) : opts(opts), compressor(opts->oname, opts->compression_level) {}
+WriteOut::WriteOut(Options *opts) :
+  opts(opts),
+  compressor(
+    opts->oname,
+    "dsa.bed.gz",
+    opts->compression_level
+  ) {}
 
 static inline int32_t get_asxs(const bundle *bin) {
   const float asxs0 = vector_mean(bin->asxs[0]);
@@ -137,6 +143,7 @@ void WriteOut::WriteRows(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, bundle bul
   bundle *d;
   for (auto bndls : dplx) {
     d = &bndls.second;
+
     append_identifier_string(b, d);
     b.append("{}\t{}\t{}\t",
       get_asxs(d),
@@ -145,12 +152,10 @@ void WriteOut::WriteRows(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, bundle bul
     append_counts_string(b, d);
     append_base_quals_string(b, d);
     append_proper_pair_string(b, &bulk);
-    b.append("\t");
     append_proper_pair_string(b, d);
 
-    // Skip last tab
-    b.rtrim(1);
-    b.append("\n");
+    // Override the last tab
+    b.set_last('\n');
 
     // TODO: verify only characters up to b.length are compressed!
     this->compressor.compress(b.data());
@@ -160,5 +165,8 @@ void WriteOut::WriteRows(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, bundle bul
   }
 
   this->compressor.write();
+}
+
+void WriteOut::Finalise() {
   this->compressor.finalise();
 }

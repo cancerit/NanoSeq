@@ -16,8 +16,8 @@
 
 class GzipCompressor {
 public:
-    explicit GzipCompressor(std::filesystem::path output_path, int compression_level = 6)
-        : final_path_(std::move(output_path))
+    explicit GzipCompressor(std::filesystem::path output_path, std::string fn, int compression_level = 6)
+        : final_path_(std::move(output_path.append(fn)))
         , temp_path_(final_path_.string() + ".part")
         , output_file_(temp_path_, std::ios::binary | std::ios::trunc)
         , compressor_(libdeflate_alloc_compressor(compression_level))

@@ -29,7 +29,9 @@
 # 2009, 2010, 2011, 2012’.
 ##########################*/
 
+#include <format>
 #include "pileup.h"
+#include "pileup_batch.h"
 #include "utils.h"
 #include "ref.h"
 
@@ -110,54 +112,54 @@ bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, const int bundle_type) {
   }
 }
 
-Pileup::Pileup() {
-  // Initialise mask flags
-  static_assert(MASK_INDEX_SNP == 0);
-  static_assert(MASK_INDEX_NOISE == 1);
-  static_assert(MASK_COUNT == 2);
-  for (uint8_t i = 0; i < MASK_COUNT; ++i) {
-    this->masks[i] = MaskLoader(i);
-  }
+Pileup::Pileup() : opts(nullptr), fai(nullptr) {
+}
+
+int Pileup::GetTID(const char *contig) {
+    const int bulk_tid = sam_hdr_name2tid(this->data[BULK_INDEX]->head, contig);
+    const int duplex_tid = sam_hdr_name2tid(this->data[DUPLEX_INDEX]->head, contig);
+    assert(bulk_tid == duplex_tid);
+    return bulk_tid;
+}
+
+const char *Pileup::GetContig(const int32_t tid) {
+    return sam_hdr_tid2name(this->data[BULK_INDEX]->head, tid);
 }
 
 void Pileup::Initiate(Options *opts) {
-  // test that we can write output file
-  if (!opts->out2stdout) {
-    std::ofstream test_file(opts->oname);
-    if (test_file.is_open()) {
-      test_file.close();
-    } else {
-      std::stringstream er;
-      er << "Error: cannot write output file ";
-      er << opts->oname;
-      er << std::endl;
-      throw std::runtime_error(er.str());
+    this->opts = opts;
+    // this->out.opts = opts;
+
+    // TODO: reintroduce write permission test?
+
+    // Open masks (BED files)
+    // Initialise mask flags
+    static_assert(MASK_INDEX_SNP == 0);
+    static_assert(MASK_INDEX_NOISE == 1);
+    static_assert(MASK_COUNT == 2);
+
+    for (int i = 0; i < MASK_COUNT; ++i) {
+        std::cerr << std::format("Loading mask {} from {}...\n", i, this->opts->beds[i]);
+        this->masks[i] = MaskLoader(i);
+        this->masks[i].Init(this->opts->beds[i]);
     }
-    this->gzout.open(opts->oname);
-  }
-  this->opts = opts;
 
-  // Open masks (BED files)
-  for (int i = 0; i < MASK_COUNT; ++i) {
-    this->masks[i].Init(this->opts->beds[i]);
-  }
+    // Load FAI
+    // TODO: remove (now in Ref)
+    this->fai = fai_load(this->opts->fasta);
+    if (this->fai == nullptr) {
+        std::stringstream er;
+        er << "Error: failed to open index of ";
+        er << this->opts->fasta;
+        er << std::endl;
+        throw std::runtime_error(er.str());
+    }
 
-  // Load FAI
-  // TODO: remove (now in Ref)
-  this->fai = fai_load(this->opts->fasta);
-  if (this->fai == NULL) {
-    std::stringstream er;
-    er << "Error: failed to open index of ";
-    er << this->opts->fasta;
-    er << std::endl;
-    throw std::runtime_error(er.str());
-  }
-
-  int tid = -1;
-  this->data = reinterpret_cast<aux_t **>(calloc(BUNDLE_TYPES_COUNT, sizeof(aux_t *)));
-  if (!this->data) {
-    throw std::runtime_error("Failed to allocate!");
-  }
+    int tid = -1;
+    this->data = reinterpret_cast<aux_t **>(calloc(BUNDLE_TYPES_COUNT, sizeof(aux_t *)));
+    if (!this->data) {
+        throw std::runtime_error("Failed to allocate!");
+    }
 
   for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
     this->data[i] = reinterpret_cast<aux_t *>(calloc(1, sizeof(aux_t)));
@@ -213,6 +215,8 @@ void Pileup::Initiate(Options *opts) {
     }
   }
 
+  LoadRanges();
+
   if (this->opts->doTests) {
     // Check that the headers of both BAMs match each other
     const int n_targets_bulk = sam_hdr_nref(this->data[BULK_INDEX]->head);
@@ -255,8 +259,7 @@ void Pileup::Initiate(Options *opts) {
   bam_mplp_set_maxcnt(this->mplp, this->opts->max_plp_depth);
 }
 
-std::string Pileup::Header()
-{
+std::string Pileup::Header() {
   std::stringstream ss;
   ss << "#\n";
   ss << "# DESCRIPTION OF FIELDS\n";
@@ -430,21 +433,19 @@ void Pileup::InitIterators(const range_tid_t *r) {
   }
 }
 
-void Pileup::MultiplePileup() {
-  if (!opts->out2stdout) {
-    this->gzout << Pileup::Header() << std::endl;
-  }
+void log_skip_contig_range(const char *contig, const range_t range) {
+    std::cerr << std::format(
+        "Contig '{}' not found, skipping range {}:{}-{}!\n",
+        contig, contig, range.start, range.end);
+}
 
-  //
-  /*
-  int tid = sam_hdr_name2tid(this->data[i]->head, this->opts->rname);
+void Pileup::MultiplePileupInRange(const char *contig, const range_t range) {
+  const int tid = GetTID(contig);
   if (tid < 0) {
-    throw std::runtime_error("Negative TID!");
+    log_skip_contig_range(contig, range);
+    return;
   }
-  */
 
-  // TODO: iterate over input ranges
-  // TODO: convert from cgranges type
   // Create iterators
   // InitIterators(&r);
 
@@ -470,7 +471,6 @@ void Pileup::MultiplePileup() {
         }
         bundle bulk = rb->BulkBundle(plps[BUNDLE_TYPE_BULK], this->opts->min_base_quality);
         // output
-        std::unique_ptr<WriteOut> out(new WriteOut());
         std::string posn = Pileup::PositionString(contig, pos);
         out->WriteRows(bulk, dplx, posn, this->gzout, this->opts->out2stdout);
       }
@@ -483,8 +483,37 @@ void Pileup::MultiplePileup() {
     free(plp);
   }
   */
+}
 
-  std::cout << std::flush;
+
+void Pileup::MultiplePileup() {
+    std::cerr << "OUTPUT=" << opts->oname << std::endl;
+    std::unique_ptr<WriteOut> out(new WriteOut(opts));
+
+    PileupBatch batch;
+    for (auto r : this->ranges) {
+        std::cerr << std::format("<TID:{}>:{}-{}\n", r.tid, r.start, r.end);
+        batch.Update(GetContig(r.tid), {r.start, r.end}, masks);
+        std::cerr << "MASK: " << batch.mask.GetSetByteCount() << std::endl;
+    }
+
+
+    // TODO: handle the empty output case better
+    out->Finalise();
+
+    return;
+
+  //
+  /*
+
+  */
+
+  // TODO: iterate over input ranges
+  // TODO: convert from cgranges type
+
+
+  out->Finalise();
+
   fai_destroy(this->fai);
   bam_mplp_destroy(this->mplp);
   for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
@@ -496,7 +525,37 @@ void Pileup::MultiplePileup() {
     free(this->data[i]);
   }
   free(this->data);
-  if (!opts->out2stdout) {
-    this->gzout.close();
-  }
+}
+
+void Pileup::LoadRanges() {
+
+    const char *fp = this->opts->ranges_bed;
+    htsFile *f = hts_open(fp, "r");
+    if (fp == nullptr) {
+        std::runtime_error(std::format(
+            "Failed to open {}!", fp));
+    }
+
+    range_tid_t r = {};
+    kstring_t ks = {0, 0, nullptr};
+    std:: string contig_s;
+    const char *contig;
+    while (hts_getline(f, '\n', &ks) >= 0) {
+        std::string line(ks.s, ks.l);
+        std::stringstream ss(line);
+        if (!(ss >> contig_s >> r.start >> r.end)) {
+            std::runtime_error(std::format(
+                "Failed to parse line in {}!", fp));
+        }
+        contig = contig_s.c_str();
+        r.tid = GetTID(contig);
+        if (r.tid >= 0) {
+            ranges.push_back(r);
+        } else {
+            log_skip_contig_range(contig, {r.start, r.end});
+        }
+    }
+
+    free(ks.s);
+    hts_close(f);
 }

@@ -39,7 +39,7 @@ struct Options {
   const char *beds[MASK_COUNT];
   const char *ranges_bed;
   const char *fasta;
-  char *oname;
+  const char *oname;
   int min_base_quality;
   int min_mapQ;
   int max_plp_depth;

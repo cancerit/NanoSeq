@@ -32,4 +32,12 @@ public:
     std::string to_string() {
         return std::string(buffer_, length_);
     }
+
+    inline void set(const std::size_t i, const char c) {
+        buffer_[i] = c;
+    }
+
+    inline void set_last(const char c) {
+        set(length_, c);
+    }
 };
