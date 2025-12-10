@@ -33,7 +33,6 @@
 #include "pileup.h"
 #include "pileup_batch.h"
 #include "utils.h"
-#include "ref.h"
 
 static int RetrieveAlignments(void *data, bam1_t *b) {
     aux_t *aux = (aux_t *)data;
@@ -112,7 +111,7 @@ bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, const int bundle_type) {
     }
 }
 
-Pileup::Pileup() : opts(nullptr), fai(nullptr) {
+Pileup::Pileup() : opts(nullptr) {
 }
 
 int Pileup::GetTID(const char *contig) {
@@ -145,7 +144,8 @@ void Pileup::Initiate(Options *opts) {
     }
 
     // Load FAI
-    // TODO: remove (now in Ref)
+    ref.Init(opts->fasta);
+    /*
     this->fai = fai_load(this->opts->fasta);
     if (this->fai == nullptr) {
         std::stringstream er;
@@ -154,6 +154,7 @@ void Pileup::Initiate(Options *opts) {
         er << std::endl;
         throw std::runtime_error(er.str());
     }
+    */
 
     int tid = -1;
     this->data = reinterpret_cast<aux_t **>(calloc(BUNDLE_TYPES_COUNT, sizeof(aux_t *)));
@@ -237,7 +238,7 @@ void Pileup::Initiate(Options *opts) {
         }
         // Check BAM contig names against the reference
         for (int i = 0; i < n_targets_bulk; i++) {
-            if (!faidx_has_seq(this->fai, sam_hdr_tid2name(this->data[0]->head, i))) {
+            if (!faidx_has_seq(ref.fai, sam_hdr_tid2name(this->data[0]->head, i))) {
                 std::stringstream er;
                 er << "Error: BAM file chromosome " << sam_hdr_tid2name(this->data[0]->head, i) << " doesn't match any reference chromosome";
                 er << std::endl;
@@ -245,14 +246,17 @@ void Pileup::Initiate(Options *opts) {
             }
         }
         // Check that the BAM chomosome lenghts match the reference
+        // TODO: enable
+        /*
         for (int i = 0; i < n_targets_bulk; i++) {
-            if (sam_hdr_tid2len(this->data[0]->head, i) != faidx_seq_len(this->fai, sam_hdr_tid2name(this->data[0]->head, i))) {
+            if (sam_hdr_tid2len(this->data[0]->head, i) != faidx_seq_len(ref.fai, sam_hdr_tid2name(this->data[0]->head, i))) {
                 std::stringstream er;
                 er << "Error: BAM file chromosome length for " << sam_hdr_tid2name(this->data[0]->head, i) << " doesn't match reference chromosome length";
                 er << std::endl;
                 throw std::runtime_error(er.str());
             }
         }
+        */
     }
 
     this->mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(this->data));
@@ -493,7 +497,7 @@ void Pileup::MultiplePileup() {
     PileupBatch batch;
     for (auto r : this->ranges) {
         std::cerr << std::format("<TID:{}>:{}-{}\n", r.tid, r.start, r.end);
-        batch.Update(GetContig(r.tid), {r.start, r.end}, masks);
+        batch.Update(GetContig(r.tid), {r.start, r.end}, masks, &ref);
     }
 
     // TODO: handle the empty output case better
@@ -512,7 +516,7 @@ void Pileup::MultiplePileup() {
 
     out->Finalise();
 
-    fai_destroy(this->fai);
+    // fai_destroy(this->fai);
     bam_mplp_destroy(this->mplp);
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
         sam_close(this->data[i]->fp);

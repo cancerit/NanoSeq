@@ -11,11 +11,12 @@ void Ref::Init(const char *fai_fp) {
 
 void Ref::Fetch(const char *contig, const range_t range) {
   int32_t seq_length;
+  // TODO: verify whether the partitioning step respects the BED conventions...
   this->seq.Set(range, faidx_fetch_seq(
-    this->fai, contig, range.start, range.end, &seq_length));
+    this->fai, contig, range.start, range.end - 1, &seq_length));
 
   // TODO: ensure this externally by checking the upper bound as well
-  if(range_length(&range) != seq_length) {
+  if (range_length(&range) != seq_length) {
     throw std::runtime_error(std::format(
       "Out of bound reference sequence in {}:{}-{}!",
       contig, range.start, range.end));
@@ -46,6 +47,10 @@ void Ref::Fetch(const char *contig, const range_t range) {
 
 char *Ref::From(const int32_t pos) {
   return this->seq.From(pos);
+}
+
+const std::string Ref::ToString() {
+  return seq.ToString();
 }
 
 std::string_view Ref::GetTripletAround(const int32_t pos) {

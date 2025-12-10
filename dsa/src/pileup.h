@@ -51,6 +51,7 @@
 #include "writeout.h"
 #include "constants.h"
 #include "range.h"
+#include "ref.h"
 
 typedef struct {
   htsFile* fp;
@@ -64,7 +65,8 @@ class Pileup {
   private:
     Options *opts;
     // WriteOut out;
-    faidx_t *fai;
+    // faidx_t *fai;
+    Ref ref;
 
     // BAI/CRAI indices for sample and normal
     hts_idx_t *indices[BAM_COUNT];

@@ -20,6 +20,7 @@ class Slice {
     void Update(const range_t range, const T value);
     void Set(const range_t range, T *new_values);
     void Reset(const range_t range, const bool zero);
+    const std::string ToString();
     int32_t GetLength();
     int32_t GetIndex(const int32_t pos);
     T Get(const int32_t pos);
@@ -61,6 +62,11 @@ inline void Slice<T>::Set(const range_t range, T *new_values) {
 template <typename T>
 inline int32_t Slice<T>::GetLength() {
   return range_length(&this->range);
+}
+
+template <typename T>
+const std::string Slice<T>::ToString() {
+  return std::string(values, range_length(&range));
 }
 
 template <typename T>
@@ -109,17 +115,12 @@ void Slice<T>::Reset(const range_t range, const bool zero) {
 
 template<typename T>
 void Slice<T>::Update(const range_t range, const T value) {
+  range_validate(&range);
   const int32_t a = range.start - this->range.start;
   assert(a >= 0 && a < range_length(&this->range));
-  // std::cerr << std::format("{}-{}\t[{}] = {}\n", range.start, range.end, a, value);
-  if (range.end == range.start) {
-    this->values[a] |= value;
-  } else {
-    for (int i = a; i < a + range_length(&range); ++i) {
-      this->values[i] |= value;
-    }
+  for (int i = a; i < a + range_length(&range); ++i) {
+    this->values[i] |= value;
   }
-  // assert(CountBytesSet() >= range_length(&range));
 }
 
 #endif

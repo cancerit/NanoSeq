@@ -8,6 +8,10 @@ typedef struct {
     int32_t end;
 } range_t;
 
+static inline void range_validate(const range_t *r) {
+    assert(r->end > r->start && r->end > 0);
+}
+
 static inline int32_t range_length(const range_t *r) {
     return r->end - r->start;
 }
