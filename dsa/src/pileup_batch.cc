@@ -12,7 +12,7 @@ void PileupBatch::Update(const char *contig, const range_t range, MaskLoader mls
     for (int i = 0; i < 2; ++i) {
         mls[i].LoadMask(this->contig, this->range.start, this->range.end, this->mask);
     }
-    std::cerr << std::format("Masked positions: {}\n", mask.GetSetByteCount());
+    std::cerr << std::format("Masked positions: {}\n", mask.CountBytesSet());
 }
 
 void PileupBatch::EvalPos(const int pos) {
