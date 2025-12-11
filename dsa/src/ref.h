@@ -14,7 +14,7 @@ class Ref {
     void Fetch(const char *contig, const range_t range);
     char *From(const int32_t pos);
     const std::string ToString();
-    std::string_view GetTripletAround(const int32_t pos);
+    const std::string_view GetTripletAround(const int32_t pos);
 };
 
 #endif

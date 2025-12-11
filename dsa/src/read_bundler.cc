@@ -169,7 +169,7 @@ const int nt16_allele[16] = {
 std::pair<int, int> ReadBundler::BaseAndQual(const bam_pileup1_t *p) {
   // We don't make use of indel quality scores, so gives these value -1
   if ((p->is_del) || (p->indel != 0)) {
-    return std::make_pair('i', -1);
+    return std::make_pair(ALLELE_DEL, -1);
   } else {
     uint8_t *seq = bam_get_seq(p->b);
     int base = nt16_allele[bam_seqi(seq, p->qpos)];
@@ -240,7 +240,7 @@ void ReadBundler::UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p,
   // rob's
   //if (bq.second >= min_base_quality) {
   // fa8 (disabling the filter for indels because they may have -1)
-  if (bq.first == 'i' || bq.second >= min_base_quality) {
+  if (bq.first == ALLELE_DEL || bq.second >= min_base_quality) {
     bndl->counts[strand][bq.first]++;
     bndl->call[strand].push_back(bq);
     bndl->asxs[strand].push_back(ReadBundler::ASMinusXS(p->b));
@@ -252,9 +252,10 @@ void ReadBundler::UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p,
 }
 
 void ReadBundler::DplxConsensus(bundle *bndl) {
+  std::vector<double> probs(ALPH_LEN, static_cast<double>(0));
+  assert(probs.size() == ALPH_LEN);
   for (int i = 0; i < 2; i++) {
     // sum log10 probability of error
-    std::vector<double> probs(ALPH_LEN, static_cast<double>(0));
     for (int j = 0; j < bndl->call[i].size(); j++) {
       char base = bndl->call[i][j].first;
       int qual  = bndl->call[i][j].second;
@@ -337,13 +338,13 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileup
 
     // remove low depth bundles
     if (bundle_type == 0) {
-      bouts.erase(it);
+      bouts.erase(it++);
     } else {
       // calculate consensus base qualities
       ReadBundler::DplxConsensus(b);
       b->bundle_type = bundle_type;
+      it++;
     }
-    it++;
   }
   return bouts;
 }

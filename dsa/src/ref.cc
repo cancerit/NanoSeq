@@ -53,6 +53,6 @@ const std::string Ref::ToString() {
   return seq.ToString();
 }
 
-std::string_view Ref::GetTripletAround(const int32_t pos) {
+const std::string_view Ref::GetTripletAround(const int32_t pos) {
   return std::string_view(this->From(pos - 1), 3);
 }

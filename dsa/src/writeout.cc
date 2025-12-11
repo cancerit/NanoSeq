@@ -135,7 +135,6 @@ void WriteOut::WriteRows(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, bundle bul
     get_asxs(&bulk),
     get_nmms(&bulk));
   append_counts_string(b, &bulk);
-  append_base_quals_string(b, &bulk);
   const std::size_t bulk_fields_length = b.length;
   // const std::string bulk_fields = b.to_string();
   // NOTE: do not reset [to zero], as the prefix needs to be kept for all rows

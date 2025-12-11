@@ -6,18 +6,22 @@
 #include "mask_loader.h"
 #include "range.h"
 #include "ref.h"
+#include "writeout.h"
+#include "htslib/sam.h"
+#include "static_string_builder.hpp"
 
 class PileupBatch {
 private:
     const char *contig;
     range_t range;
+    const std::string PositionString(const char *contig, const int pos, Ref *ref, const uint8_t mask_values[MASK_COUNT]);
+    StaticStringBuilder<MAX_DSA_LINE_LENGHT> ssb;
 
 public:
     Mask mask;
     PileupBatch() : contig(nullptr), range({0, 0}) {};
     void Update(const char *contig, const range_t range, MaskLoader mls[2], Ref *ref);
-    void EvalPos(const int pos);
-    // void MultiplePileup();
+    void Pileup(bam_mplp_t mplp, Ref *ref, WriteOut *out);
 };
 
 #endif

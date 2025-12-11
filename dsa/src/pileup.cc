@@ -52,7 +52,7 @@ static int RetrieveAlignments(void *data, bam1_t *b) {
         }
 
         // TODO: put here all read checks that would lead to a critical error (spares branches)
-        assert (read_has_flag(b, BAM_FREAD1) ^ read_has_flag(b, BAM_FREAD2));
+        assert(read_has_flag(b, BAM_FREAD1) ^ read_has_flag(b, BAM_FREAD2));
 
         if (
             ((aux->duplex == 1) && (bam_aux_get(b, "RB") == NULL)) ||
@@ -156,7 +156,6 @@ void Pileup::Initiate(Options *opts) {
     }
     */
 
-    int tid = -1;
     this->data = reinterpret_cast<aux_t **>(calloc(BUNDLE_TYPES_COUNT, sizeof(aux_t *)));
     if (!this->data) {
         throw std::runtime_error("Failed to allocate!");
@@ -394,29 +393,6 @@ std::string Pileup::Header() {
     return ss.str();
 }
 
-std::string Pileup::PositionString(const char *contig, const int pos, const uint8_t mask_values[MASK_COUNT]) {
-
-    // TODO: pass as argument or store as attribute!
-    Ref ref;
-    std::string_view ctx = ref.GetTripletAround(pos);
-
-    std::stringstream ss;
-    ss << contig;
-    ss << "\t";
-    ss << pos;
-    ss << "\t";
-    ss << pos + 1;
-    ss << "\t";
-    ss << ctx;
-    ss << "\t";
-    ss << mask_values[MASK_INDEX_SNP];
-    ss << "\t";
-    ss << mask_values[MASK_INDEX_NOISE];
-    ss << "\t";
-
-    return ss.str();
-}
-
 static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_t *r) {
     if (*it != NULL) {
         sam_itr_destroy(*it);
@@ -434,6 +410,12 @@ static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_
 void Pileup::InitIterators(const range_tid_t *r) {
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
         init_iterator(&this->data[i]->iter, this->indices[i], r);
+    }
+}
+
+void Pileup::DestroyIterators() {
+    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
+        hts_itr_destroy(this->data[i]->iter);
     }
 }
 
@@ -492,16 +474,23 @@ void Pileup::MultiplePileupInRange(const char *contig, const range_t range) {
 
 void Pileup::MultiplePileup() {
     std::cerr << "Output directory: " << opts->oname << std::endl;
-    std::unique_ptr<WriteOut> out(new WriteOut(opts));
+    WriteOut *wout(new WriteOut(opts));
 
     PileupBatch batch;
+    const char *contig;
     for (auto r : this->ranges) {
-        std::cerr << std::format("<TID:{}>:{}-{}\n", r.tid, r.start, r.end);
-        batch.Update(GetContig(r.tid), {r.start, r.end}, masks, &ref);
+        contig = GetContig(r.tid);
+        std::cerr << std::format("(TID={}) {}:{}-{}\n", r.tid, contig, r.start, r.end);
+
+        InitIterators(&r);
+        batch.Update(contig, {r.start, r.end}, masks, &ref);
+        batch.Pileup(mplp, &ref, wout);
     }
 
+        DestroyIterators();
+
     // TODO: handle the empty output case better
-    out->Finalise();
+    wout->Finalise();
 
     return;
 
@@ -513,16 +502,10 @@ void Pileup::MultiplePileup() {
     // TODO: iterate over input ranges
     // TODO: convert from cgranges type
 
-
-    out->Finalise();
-
     // fai_destroy(this->fai);
     bam_mplp_destroy(this->mplp);
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
         sam_close(this->data[i]->fp);
-        if (this->data[i]->iter) {
-            hts_itr_destroy(this->data[i]->iter);
-        }
         sam_hdr_destroy(this->data[i]->head);
         free(this->data[i]);
     }
