@@ -120,6 +120,11 @@ int main(int argc, char **argv) {
   Options opts;
   SetupOptions(argc, argv, &opts);
 
+  if (opts.compression_level < 1 || opts.compression_level > 12) {
+    std::cerr << "Invalid compression level (should be in [1, 12])!\n";
+    return 1;
+  }
+
   Pileup pileup;
   pileup.Initiate(&opts);
   pileup.MultiplePileup();
