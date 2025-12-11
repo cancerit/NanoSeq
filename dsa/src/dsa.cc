@@ -61,7 +61,6 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
   opts->offset           = 1;  // ?
   opts->min_base_quality = MIN_BASE_QUALITY;
   opts->min_mapQ         = MIN_MAPQ;
-  opts->out2stdout       = false;
   opts->doTests          = true;
   opts->beds[MASK_INDEX_SNP]   = "\0";
   opts->beds[MASK_INDEX_NOISE] = "\0";
@@ -101,7 +100,6 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
         break;
       case 'O':
         opts->oname = optarg;
-        opts->out2stdout = false;
         break;
       case 'x':
         opts->compression_level = std::stoi(optarg);

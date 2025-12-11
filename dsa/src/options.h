@@ -46,7 +46,6 @@ struct Options {
   int min_dplx_depth;
   int max_dplx_depth;
   int offset;
-  bool out2stdout;
   bool doTests;
   int compression_level;
 };
