@@ -41,7 +41,6 @@
 #include <map>
 #include <iostream>
 #include <string>
-#include "gzstream.h"
 #include "htslib/faidx.h"
 #include "htslib/sam.h"
 #include "mask.h"
@@ -76,7 +75,6 @@ class Pileup {
 
     aux_t **data;
     bam_mplp_t mplp;
-    ogzstream gzout;
     std::vector<range_tid_t> ranges;
     int GetTID(const char *contig);
     const char *GetContig(const int32_t tid);

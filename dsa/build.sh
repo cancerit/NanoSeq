@@ -1,3 +1,5 @@
+set -e
+
 g++ \
     -o dsa \
     -g \
@@ -6,9 +8,6 @@ g++ \
     -Wno-unused-function \
     -L"$HOME/.homebrew/lib" \
     -I"$HOME/.homebrew/include" \
-    -L"external/gzstream" \
-    -I"external/gzstream" \
-    -I"external/bedtk" \
     src/ref.cc \
     src/mask.cc \
     src/mask_loader.cc \
@@ -17,7 +16,7 @@ g++ \
     src/writeout.cc \
     src/read_bundler.cc \
     src/dsa.cc \
-    -lhts -ldeflate -lgzstream -lz -lpthread -lcurl -ldl -llzma -lbz2 -lm -lssl -lcrypto
+    -lhts -ldeflate -lz -lpthread -lcurl -ldl -llzma -lbz2 -lm -lssl -lcrypto
 
 codesign -s - -f --entitlements /dev/stdin dsa <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -29,3 +28,5 @@ codesign -s - -f --entitlements /dev/stdin dsa <<EOF
 </dict>
 </plist>
 EOF
+
+set +e

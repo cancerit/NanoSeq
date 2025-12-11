@@ -30,8 +30,9 @@
 ##########################*/
 
 
-#include "./pileup.h"
-#include "./options.h"
+#include <unistd.h>
+#include "pileup.h"
+#include "options.h"
 
 #define MIN_MAPQ 0
 #define MIN_BASE_QUALITY 30
