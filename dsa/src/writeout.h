@@ -36,14 +36,13 @@
 #include "options.h"
 #include "constants.h"
 #include "compressor.h"
-#include "static_string_builder.hpp"
 
 class WriteOut {
 public:
     Options *opts;
     GzipCompressor compressor;
     WriteOut(Options *opt);
-    void WriteRows(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, bundle bulk, bundles dplx, std::string posn);
+    void WriteRows(bundle bulk, bundles dplx, std::string posn);
     void Finalise();
 };
 

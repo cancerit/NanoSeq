@@ -29,6 +29,7 @@
 # 2009, 2010, 2011, 2012’.
 ##########################*/
 
+#include <format>
 #include "writeout.h"
 #include "utils.h"
 #include "compressor.h"
@@ -66,8 +67,8 @@ static inline int32_t get_consensus(const bundle *bin, const int32_t rtype, cons
   return custom_round(bin->consensus[rtype][allele_index]);
 }
 
-static inline void append_counts_string(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, const bundle *bin) {
-  b.append("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t",
+static inline std::string dsa_counts_string(const bundle *bin) {
+  return std::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t",
     bin->counts[RTYPE_A][ALLELE_A],
     bin->counts[RTYPE_A][ALLELE_C],
     bin->counts[RTYPE_A][ALLELE_G],
@@ -81,8 +82,8 @@ static inline void append_counts_string(StaticStringBuilder<MAX_DSA_LINE_LENGHT>
     bin->counts[RTYPE_B][ALLELE_DEL]);
 }
 
-static inline void append_base_quals_string(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, const bundle *bin) {
-  b.append("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t",
+static inline std::string dsa_base_quals_string(const bundle *bin) {
+  return std::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t",
     custom_round(bin->consensus[RTYPE_A][0]),
     custom_round(bin->consensus[RTYPE_A][1]),
     custom_round(bin->consensus[RTYPE_A][2]),
@@ -101,68 +102,66 @@ static inline float get_ppair_mean(const bundle *bin, const int rtype) {
 }
 
 // TODO: pass the same stream to each of these functions?
-static void append_proper_pair_string(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, const bundle *bin) {
+static std::string dsa_proper_pair_string(const bundle *bin) {
   const float ppair = custom_round(
     std::min(
       get_ppair_mean(bin, RTYPE_A),
       get_ppair_mean(bin, RTYPE_B)));
-  b.append("{}\t", ppair);
+  return std::format("{}\t", ppair);
 }
 
 static inline void upper(std::string &str) {
   std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 }
 
-static void append_identifier_string(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, const bundle *bin) {
+static std::string dsa_identifier_string(const bundle *bin) {
   std::string fwd_bc = bin->duplex_tag_info.fwd_bc;
   std::string rev_bc = bin->duplex_tag_info.rev_bc;
   upper(fwd_bc);
   upper(rev_bc);
 
-  b.append("{}\t{}\t{}|{}\t{}\t",
+  return std::format("{}\t{}\t{}|{}\t{}\t",
     bin->duplex_tag_info.beg,
     bin->duplex_tag_info.end,
     fwd_bc, rev_bc,
     bin->bundle_type);
 }
 
-void WriteOut::WriteRows(StaticStringBuilder<MAX_DSA_LINE_LENGHT> &b, bundle bulk, bundles dplx, std::string posn) {
-  b.reset();
+void WriteOut::WriteRows(bundle bulk, bundles dplx, std::string posn) {
+  // TODO: retry implementing formatting on static buffer (format_to et sim.)
 
-  // TODO: format posn here (?)
-  b.append("{}\t{}\t{}\t",
+  const std::string prefix = std::format("{}\t{}\t{}\t{}",
     posn,
     get_asxs(&bulk),
-    get_nmms(&bulk));
-  append_counts_string(b, &bulk);
-  const std::size_t bulk_fields_length = b.length;
-  // const std::string bulk_fields = b.to_string();
-  // NOTE: do not reset [to zero], as the prefix needs to be kept for all rows
+    get_nmms(&bulk),
+    dsa_counts_string(&bulk));
 
+  std::stringstream b;
   bundle *d;
   for (auto bndls : dplx) {
     d = &bndls.second;
 
-    append_identifier_string(b, d);
-    b.append("{}\t{}\t{}\t",
+    b
+    << prefix
+    << dsa_identifier_string(d)
+    << std::format("{}\t{}\t{}\t",
       get_asxs(d),
       get_clip(d),
-      get_nmms(d));
-    append_counts_string(b, d);
-    append_base_quals_string(b, d);
-    append_proper_pair_string(b, &bulk);
-    append_proper_pair_string(b, d);
+      get_nmms(d))
+    << dsa_counts_string(d)
+    << dsa_base_quals_string(d)
+    << dsa_proper_pair_string(&bulk)
+    << dsa_proper_pair_string(d);
 
     // Override the last tab
-    b.set_last('\n');
+    // b.seekp(-1, std::ios_base::end);
+    // b << '\n';
+    // y = b.str().c_str();
+    b << '\n';
 
-    // TODO: verify only characters up to b.length are compressed!
-    this->compressor.compress(b.data());
-
-    // Go back to the end of the bulk fields (so those are never overridden)
-    b.reset(bulk_fields_length);
   }
 
+  this->compressor.compress(b.str());
   this->compressor.write();
 }
 

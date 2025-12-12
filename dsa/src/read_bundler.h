@@ -71,20 +71,20 @@ typedef struct {
 } duplex_tag_info;
 
 struct bundle {
-  float dplx_depth[STRAND_COUNT][READ_TYPE_COUNT];
-  uint64_t counts[RTYPE_COUNT][ALLELE_COUNT];
-  std::vector<int> asxs[RTYPE_COUNT];
-  std::vector<int> clip[RTYPE_COUNT];
-  std::vector<int> nmms[RTYPE_COUNT];
+  float dplx_depth[STRAND_COUNT][READ_TYPE_COUNT] = {};
+  uint64_t counts[RTYPE_COUNT][ALLELE_COUNT] = {};
+  std::vector<int> asxs[RTYPE_COUNT] = {};
+  std::vector<int> clip[RTYPE_COUNT] = {};
+  std::vector<int> nmms[RTYPE_COUNT] = {};
 
-  uint64_t rtype_ppair_counts[RTYPE_COUNT];
-  uint64_t rtype_read_counts[RTYPE_COUNT];  // then divide ppair to get the averages
+  uint64_t rtype_ppair_counts[RTYPE_COUNT] = {};
+  uint64_t rtype_read_counts[RTYPE_COUNT] = {};  // then divide ppair to get the averages
 
   // TODO: replace character key with index (?)
-  std::vector<std::pair<char, int>> call[RTYPE_COUNT];
-  std::vector<double> consensus[BUNDLE_TYPES_COUNT];
-  duplex_tag_info duplex_tag_info;
-  int bundle_type;
+  std::vector<std::pair<char, int>> call[RTYPE_COUNT] = {};
+  std::vector<double> consensus[BUNDLE_TYPES_COUNT] = {};
+  duplex_tag_info duplex_tag_info = {};
+  int bundle_type = INT32_MIN;
 };
 
 // TODO: consider a more compact duplex ID as key

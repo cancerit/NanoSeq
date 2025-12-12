@@ -178,18 +178,12 @@ std::pair<int, int> ReadBundler::BaseAndQual(const bam_pileup1_t *p) {
   }
 }
 
+#define BULK_UNUSABLE (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FSUPPLEMENTARY | BAM_FDUP)
+
 // No pre-processing is performed on bulk bam
 // Keep non-properly-paired reads
 bool ReadBundler::BulkIsUsable(bam1_t *b) {
-  int unmapped  = (b->core.flag & BAM_FUNMAP)? 1 : 0;
-  int secondary = (b->core.flag & BAM_FSECONDARY)? 1 : 0;
-  int qcfail    = (b->core.flag & BAM_FQCFAIL)? 1 : 0;
-  int suppl     = (b->core.flag & BAM_FSUPPLEMENTARY)? 1 : 0;
-  int duplicate = (b->core.flag & BAM_FDUP)? 1 : 0;
-  if ((unmapped + secondary + qcfail + suppl + duplicate) == 0) {
-    return true;
-  }
-  return false;
+  return !read_has_flag(b, BULK_UNUSABLE);
 }
 
 static inline duplex_tag_info parse_identifier(std::string idf1) {
@@ -308,10 +302,12 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileup
     std::string idf;
     const bam_pileup1_t* p;
     duplex_tag_info info;
+    bundles::iterator it;
     for (int i = 0; i < plps.size(); i++) {
       p = plps[i];
       idf = ReadBundler::DplxIdentifier(p);
-      if (!bouts.contains(idf)) {
+      it = bouts.find(idf);
+      if (it == bouts.end()) {
         info = parse_identifier(idf);
         if (!ReadBundler::IsTemplate(info.beg, info.end)) {
           continue;
@@ -325,6 +321,7 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileup
       } else if (ReadBundler::IsTemplate(bouts[idf].duplex_tag_info.beg, bouts[idf].duplex_tag_info.end)) {
 
         // Update
+        b = &it->second;
         ReadBundler::UpdateDplxBundle(b, p);
 
       }
@@ -350,9 +347,9 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileup
 }
 
 bundle ReadBundler::BulkBundle(pileups plps, int min_base_quality) {
-  bundle bndl;
+  bundle bndl = {};
   for (int i =0; i < plps.size(); i++) {
-    const bam_pileup1_t* p = plps[i];
+    const bam_pileup1_t *p = plps[i];
     if (ReadBundler::BulkIsUsable(p->b)) {
       ReadBundler::UpdateBulkBundle(&bndl, p, min_base_quality);
     }

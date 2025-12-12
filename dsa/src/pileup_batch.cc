@@ -43,10 +43,9 @@ const std::string PileupBatch::PositionString(const char *contig, const int pos,
     ss << "\t";
     ss << ctx;
     ss << "\t";
-    ss << mask_values[MASK_INDEX_SNP];
+    ss << static_cast<int>(mask_values[MASK_INDEX_SNP]);
     ss << "\t";
-    ss << mask_values[MASK_INDEX_NOISE];
-    ss << "\t";
+    ss << static_cast<int>(mask_values[MASK_INDEX_NOISE]);
 
     return ss.str();
 }
@@ -64,7 +63,7 @@ void PileupBatch::Pileup(bam_mplp_t mplp, Ref *ref, WriteOut *out) {
     uint8_t mask_values[MASK_COUNT] = {0, 0};
     std::string posn;
     while (bam_mplp_auto(mplp, &tid, &pos, n_plp, plp) > 0) {
-        std::cerr << std::format("> POS {}\n", pos);
+        // std::cerr << std::format("> POS {}\n", pos);
 
         // TODO: verify end inclusiveness convention!
         //  Originally: ((pos >= opts->beg) && (pos <= opts->end))
@@ -97,7 +96,7 @@ void PileupBatch::Pileup(bam_mplp_t mplp, Ref *ref, WriteOut *out) {
         posn = PositionString(contig, pos, ref, mask_values);
 
         // Push DSA table rows to compressor
-        out->WriteRows(ssb, bulk, dplx, posn);
+        out->WriteRows(bulk, dplx, posn);
 
         plps[BUNDLE_TYPE_BULK].clear();
         plps[BUNDLE_TYPE_DUPLEX].clear();
