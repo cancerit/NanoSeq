@@ -34,7 +34,7 @@
 
 
 const int ALPH_LEN     = 4;
-const char ALPH[4]     = {'A', 'C', 'G', 'T'};
+// const char ALPH[4]     = {'A', 'C', 'G', 'T'};
 const double ALT_BASES = static_cast<double>(ALPH_LEN - 1);
 const double POWER     = static_cast<double>(10);
 
@@ -245,20 +245,22 @@ void ReadBundler::UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p,
   }
 }
 
+// TODO: optimise calculation!
 void ReadBundler::DplxConsensus(bundle *bndl) {
   std::vector<double> probs(ALPH_LEN, static_cast<double>(0));
   assert(probs.size() == ALPH_LEN);
   for (int i = 0; i < 2; i++) {
     // sum log10 probability of error
     for (int j = 0; j < bndl->call[i].size(); j++) {
-      char base = bndl->call[i][j].first;
+      int base = bndl->call[i][j].first;
       int qual  = bndl->call[i][j].second;
       // base is canonical
-      if (memchr(ALPH, base, sizeof(ALPH))) {
+      if (base != ALLELE_DISCARDED) {
+        int base_index = base - 1;
         double perror   = std::pow(POWER, (-qual/POWER));
-        double pcorrect = (static_cast<double>(1) - perror)/ALT_BASES;
+        double pcorrect = (static_cast<double>(1) - perror) / ALT_BASES;
         for (int k = 0; k < ALPH_LEN; k++) {
-          if (base == ALPH[k]) {
+          if (base_index == k) {
             probs[k] += std::log10(perror);
           } else {
             probs[k] += std::log10(pcorrect);
