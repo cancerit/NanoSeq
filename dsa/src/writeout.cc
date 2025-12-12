@@ -43,12 +43,14 @@ WriteOut::WriteOut(Options *opts) :
     opts->compression_level
   ) {}
 
+/*
 static inline int32_t get_asxs(const bundle *bin) {
   const float asxs0 = vector_mean(bin->asxs[0]);
   const float asxs1 = vector_mean(bin->asxs[1]);
   const int asxs    = custom_round(std::min(asxs0, asxs1));
   return asxs;
 }
+*/
 
 static inline int32_t get_clip(const bundle *bin) {
   const float clip1 = vector_pair_mean(bin->clip[0], bin->clip[1]);
@@ -56,11 +58,50 @@ static inline int32_t get_clip(const bundle *bin) {
   return clip;
 }
 
+/*
 static float get_nmms(const bundle *bin) {
   const float nmms0 = vector_mean(bin->nmms[0]);
   const float nmms1 = vector_mean(bin->nmms[1]);
   const float nmms  = 0.1 * custom_round(std::max(nmms0, nmms1) * 10.0);
   return nmms;
+}
+*/
+
+static inline int32_t get_asxs(const bundle *bin) {
+  const bool has_a = !bin->asxs[RTYPE_A].empty();
+  const bool has_b = !bin->asxs[RTYPE_B].empty();
+
+  if (has_a && has_b) {
+    return custom_round(std::min(
+      vector_mean(bin->asxs[RTYPE_A]),
+      vector_mean(bin->asxs[RTYPE_B])));
+  } else if (has_a) {
+    return custom_round(vector_mean(bin->asxs[RTYPE_A]));
+  } else if (has_b) {
+    return custom_round(vector_mean(bin->asxs[RTYPE_B]));
+  } else {
+    return 0;
+  }
+}
+
+static inline float get_nmms(const bundle *bin) {
+  const bool has_a = !bin->nmms[RTYPE_A].empty();
+  const bool has_b = !bin->nmms[RTYPE_B].empty();
+
+  float nmms_max;
+  if (has_a && has_b) {
+    nmms_max = std::max(
+      vector_mean(bin->nmms[RTYPE_A]),
+      vector_mean(bin->nmms[RTYPE_B]));
+  } else if (has_a) {
+    nmms_max = vector_mean(bin->nmms[RTYPE_A]);
+  } else if (has_b) {
+    nmms_max = vector_mean(bin->nmms[RTYPE_B]);
+  } else {
+    return 0.0f;
+  }
+
+  return 0.1f * custom_round(nmms_max * 10.0f);
 }
 
 static inline int32_t get_consensus(const bundle *bin, const int32_t rtype, const int32_t allele_index) {
@@ -103,10 +144,27 @@ static inline float get_ppair_mean(const bundle *bin, const int rtype) {
 
 // TODO: pass the same stream to each of these functions?
 static inline const float dsa_proper_pair(const bundle *bin) {
+  const bool has_a = bin->rtype_read_counts[RTYPE_A] > 0;
+  const bool has_b = bin->rtype_read_counts[RTYPE_B] > 0;
+
+  if (has_a && has_b) {
+    return custom_round(std::min(
+      get_ppair_mean(bin, RTYPE_A),
+      get_ppair_mean(bin, RTYPE_B)));
+  } else if (has_a) {
+    return custom_round(get_ppair_mean(bin, RTYPE_A));
+  } else if (has_b) {
+    return custom_round(get_ppair_mean(bin, RTYPE_B));
+  } else {
+    return 0;
+  }
+
+  /*
   return custom_round(
     std::min(
       get_ppair_mean(bin, RTYPE_A),
       get_ppair_mean(bin, RTYPE_B)));
+  */
 }
 
 static inline void upper(std::string &str) {
