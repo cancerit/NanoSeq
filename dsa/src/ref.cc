@@ -1,4 +1,5 @@
 #include <format>
+#include <string.h>  // memchr
 #include "ref.h"
 
 void Ref::Init(const char *fai_fp) {
@@ -12,8 +13,19 @@ void Ref::Init(const char *fai_fp) {
 void Ref::Fetch(const char *contig, const range_t range) {
   int32_t seq_length;
   // TODO: verify whether the partitioning step respects the BED conventions...
+
   this->seq.Set(range, faidx_fetch_seq(
     this->fai, contig, range.start, range.end - 1, &seq_length));
+
+  // Validate reference sequence
+  {
+    const char *ref_seq = this->seq.Data();
+    if (memchr(ref_seq, '\n', seq_length) != nullptr) {
+      throw std::runtime_error(
+        "New line characters in reference sequence! "
+        "Check for FASTA vs. FAI mismatch!");
+    }
+  }
 
   // TODO: ensure this externally by checking the upper bound as well
   if (range_length(&range) != seq_length) {

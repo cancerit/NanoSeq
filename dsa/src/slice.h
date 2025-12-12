@@ -25,6 +25,7 @@ class Slice {
     int32_t GetIndex(const int32_t pos);
     T Get(const int32_t pos);
     T *From(const int32_t pos);
+    T *Data();
 };
 
 template <typename T>
@@ -82,6 +83,11 @@ inline T Slice<T>::Get(const int32_t pos) {
 template<typename T>
 T *Slice<T>::From(const int32_t pos) {
   return &this->values[this->GetIndex(pos)];
+}
+
+template<typename T>
+inline T *Slice<T>::Data() {
+  return this->values;
 }
 
 template<typename T>
