@@ -102,12 +102,11 @@ static inline float get_ppair_mean(const bundle *bin, const int rtype) {
 }
 
 // TODO: pass the same stream to each of these functions?
-static std::string dsa_proper_pair_string(const bundle *bin) {
-  const float ppair = custom_round(
+static inline const float dsa_proper_pair(const bundle *bin) {
+  return custom_round(
     std::min(
       get_ppair_mean(bin, RTYPE_A),
       get_ppair_mean(bin, RTYPE_B)));
-  return std::format("{}\t", ppair);
 }
 
 static inline void upper(std::string &str) {
@@ -150,14 +149,8 @@ void WriteOut::WriteRows(bundle bulk, bundles dplx, std::string posn) {
       get_nmms(d))
     << dsa_counts_string(d)
     << dsa_base_quals_string(d)
-    << dsa_proper_pair_string(&bulk)
-    << dsa_proper_pair_string(d);
-
-    // Override the last tab
-    // b.seekp(-1, std::ios_base::end);
-    // b << '\n';
-    // y = b.str().c_str();
-    b << '\n';
+    << dsa_proper_pair(&bulk) << '\t'
+    << dsa_proper_pair(d)     << '\n';
 
   }
 
