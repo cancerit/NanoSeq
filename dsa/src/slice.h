@@ -6,6 +6,7 @@
 #include <assert.h>
 #include "range.h"
 #include <iostream>
+#include <cstring>  // memset
 
 template<typename T>
 class Slice {

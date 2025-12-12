@@ -1,5 +1,6 @@
 #include <format>
 #include <string.h>  // memchr
+#include <cstring>  // memchr
 #include "ref.h"
 
 void Ref::Init(const char *fai_fp) {
