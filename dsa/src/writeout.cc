@@ -105,18 +105,23 @@ static inline float get_nmms(const bundle *bin) {
 }
 
 static inline float get_bulk_nmms(const bundle *bin) {
-  // TODO: verify min arguments (kept for ease of comparison)
-  float nmms;
-  float nmms0 = vector_sum(bin->nmms[RTYPE_A]);
-  float nmms1 = vector_sum(bin->nmms[RTYPE_B]);
-  if(bin->nmms[RTYPE_A].size() == 0 && bin->nmms[RTYPE_B].size() != 0) {
-  	nmms = custom_round(nmms1);
-  } else if(bin->nmms[RTYPE_A].size() != 0 && bin->nmms[RTYPE_B].size() == 0) {
-  	nmms = custom_round(nmms0);
+  const bool has_a = !bin->nmms[RTYPE_A].empty();
+  const bool has_b = !bin->nmms[RTYPE_B].empty();
+
+  float nmms_max;
+  if (has_a && has_b) {
+    // TODO: should this be max(a, b) instead (same as duplex NM)?
+    nmms_max = vector_mean(bin->nmms[RTYPE_A]);
+  } else if (has_a) {
+    nmms_max = vector_mean(bin->nmms[RTYPE_A]);
+  } else if (has_b) {
+    nmms_max = vector_mean(bin->nmms[RTYPE_B]);
   } else {
-    nmms = custom_round(std::min(nmms0, nmms0));
+    return 0.0f;
   }
-  return nmms;
+
+  // TODO: should this be rounded in the same way as duplex NM?
+  return custom_round(nmms_max);
 }
 
 static inline int32_t get_consensus(const bundle *bin, const int32_t rtype, const int32_t allele_index) {
