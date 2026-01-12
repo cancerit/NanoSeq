@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022, 2025 Genome Research Ltd
+# Copyright (c) 2022, 2025, 2026 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -247,9 +247,9 @@ void ReadBundler::UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p,
 
 // TODO: optimise calculation!
 void ReadBundler::DplxConsensus(bundle *bndl) {
-  std::vector<double> probs(ALPH_LEN, static_cast<double>(0));
-  assert(probs.size() == ALPH_LEN);
   for (int i = 0; i < 2; i++) {
+    std::vector<double> probs(ALPH_LEN, static_cast<double>(0));
+    assert(probs.size() == ALPH_LEN);
     // sum log10 probability of error
     for (int j = 0; j < bndl->call[i].size(); j++) {
       int base = bndl->call[i][j].first;
@@ -318,6 +318,8 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileup
         // Initialise
         b = &bouts[idf];
         b->duplex_tag_info = info;
+        // b->counts[0][0] = 0;
+        // memset(b->counts, 0, 2 * 6 * sizeof(uint64_t));
         ReadBundler::UpdateDplxBundle(b, p);
 
       } else if (ReadBundler::IsTemplate(bouts[idf].duplex_tag_info.beg, bouts[idf].duplex_tag_info.end)) {

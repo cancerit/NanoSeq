@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022, 2025 Genome Research Ltd
+# Copyright (c) 2022, 2025, 2026 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -104,6 +104,21 @@ static inline float get_nmms(const bundle *bin) {
   return 0.1f * custom_round(nmms_max * 10.0f);
 }
 
+static inline float get_bulk_nmms(const bundle *bin) {
+  // TODO: verify min arguments (kept for ease of comparison)
+  float nmms;
+  float nmms0 = vector_sum(bin->nmms[RTYPE_A]);
+  float nmms1 = vector_sum(bin->nmms[RTYPE_B]);
+  if(bin->nmms[RTYPE_A].size() == 0 && bin->nmms[RTYPE_B].size() != 0) {
+  	nmms = custom_round(nmms1);
+  } else if(bin->nmms[RTYPE_A].size() != 0 && bin->nmms[RTYPE_B].size() == 0) {
+  	nmms = custom_round(nmms0);
+  } else {
+    nmms = custom_round(std::min(nmms0, nmms0));
+  }
+  return nmms;
+}
+
 static inline int32_t get_consensus(const bundle *bin, const int32_t rtype, const int32_t allele_index) {
   return custom_round(bin->consensus[rtype][allele_index]);
 }
@@ -190,7 +205,7 @@ void WriteOut::WriteRows(bundle bulk, bundles dplx, std::string posn) {
   const std::string prefix = std::format("{}\t{}\t{}\t{}",
     posn,
     get_asxs(&bulk),
-    get_nmms(&bulk),
+    get_bulk_nmms(&bulk),
     dsa_counts_string(&bulk));
 
   std::stringstream b;
