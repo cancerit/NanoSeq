@@ -90,6 +90,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libbz2-1.0 \
     liblzma5 \
     libssl3 \
+    strace \
     && apt-get purge -y wget gnupg \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
@@ -103,5 +104,4 @@ COPY --from=builder /workspace/dsa ./dsa
 # Switch to non-root user
 USER ubuntu
 
-# Default command
-CMD ["/workspace/dsa"]
+ENTRYPOINT ["/workspace/dsa"]
