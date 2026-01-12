@@ -22,8 +22,10 @@ void PileupBatch::Update(const char *contig, const range_t range, MaskLoader mls
     std::cerr << std::format("SLICE: {}:{}-{}\n", contig, range.start, range.end);
     std::cerr << std::format("REF: {}:{}-{}\n", contig, ref_range.start, ref_range.end);
     ref->Fetch(contig, ref_range);
-    /*
+
+    // DEBUG ONLY!
     std::cerr << "[" << ref->ToString() << "]" << std::endl;
+    /*
     std::cerr << "<" << ref->GetTripletAround(range.start) << ">" << std::endl;
     std::cerr << "<" << ref->GetTripletAround(range.start + 1) << ">" << std::endl;
     std::cerr << "<" << ref->GetTripletAround(range.end) << ">" << std::endl;
@@ -51,19 +53,19 @@ const std::string PileupBatch::PositionString(const char *contig, const int pos,
 }
 
 void PileupBatch::Pileup(bam_mplp_t mplp, Ref *ref, WriteOut *out) {
-    // NOTE: Have separate structures (and maybe pre-cached TSV slices) for the three sets of columns: duplex info, duplex stats, bulk stats
-
     int pos, tid;
     const Options *opts = out->opts;
     int n_plp[BUNDLE_TYPES_COUNT];
     std::vector<const bam_pileup1_t *> plps[BUNDLE_TYPES_COUNT];
-    // const bam_pileup1_t **plp;
     const bam_pileup1_t *plp[BUNDLE_TYPES_COUNT];
     uint8_t mask_flag = 0;
     uint8_t mask_values[MASK_COUNT] = {0, 0};
     std::string posn;
+    ReadBundler rb;
+
     while (bam_mplp_auto(mplp, &tid, &pos, n_plp, plp) > 0) {
-        // std::cerr << std::format("> POS {}\n", pos);
+        plps[BUNDLE_TYPE_BULK].clear();
+        plps[BUNDLE_TYPE_DUPLEX].clear();
 
         // TODO: verify end inclusiveness convention!
         //  Originally: ((pos >= opts->beg) && (pos <= opts->end))
@@ -81,12 +83,11 @@ void PileupBatch::Pileup(bam_mplp_t mplp, Ref *ref, WriteOut *out) {
         }
 
         // Bundle reads
-        std::unique_ptr<ReadBundler> rb(new ReadBundler());
-        bundles dplx = rb->DplxBundles(pos, opts->offset, opts->min_dplx_depth, plps[BUNDLE_TYPE_DUPLEX]);
+        bundles dplx = rb.DplxBundles(pos, opts->offset, opts->min_dplx_depth, plps[BUNDLE_TYPE_DUPLEX]);
         if (dplx.size() == 0) {
             continue;
         }
-        bundle bulk = rb->BulkBundle(plps[BUNDLE_TYPE_BULK], opts->min_base_quality);
+        bundle bulk = rb.BulkBundle(plps[BUNDLE_TYPE_BULK], opts->min_base_quality);
 
         // Generate DSA table row prefix
         mask_flag = this->mask.GetFlag(pos);
@@ -97,8 +98,5 @@ void PileupBatch::Pileup(bam_mplp_t mplp, Ref *ref, WriteOut *out) {
 
         // Push DSA table rows to compressor
         out->WriteRows(bulk, dplx, posn);
-
-        plps[BUNDLE_TYPE_BULK].clear();
-        plps[BUNDLE_TYPE_DUPLEX].clear();
     }
 }
