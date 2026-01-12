@@ -110,7 +110,15 @@ static inline int get_strand_index(const bam1_t *b) {
   // ASSUMPTION: proper pair and strand have already been verified
   static_assert(STRAND_INDEX_FORWARD == 0);
   static_assert(STRAND_INDEX_REVERSE == 1);
-  return read_has_flag(b, BAM_FREVERSE);
+
+  // TODO: optimise
+  if (read_has_flag(b, BAM_FMREVERSE)) {
+    return STRAND_INDEX_FORWARD;
+  } else if (read_has_flag(b, BAM_FREVERSE)) {
+    return STRAND_INDEX_REVERSE;
+  } else {
+    return STRAND_INDEX_IGNORE;
+  }
 }
 
 static inline int get_read_type_index(const bam1_t *b) {
@@ -213,7 +221,9 @@ void ReadBundler::UpdateDplxBundle(bundle *bndl, const bam_pileup1_t *p) {
   const int read = get_read_type_index(p->b);
   const int rtype = RTYPES[strand][read];
   std::pair<int, int> bq = ReadBundler::BaseAndQual(p);
-  bndl->dplx_depth[strand][read]++;
+  if (strand != STRAND_INDEX_IGNORE) {
+    bndl->dplx_depth[strand][read]++;
+  }
   bndl->counts[rtype][bq.first]++;
   bndl->call[rtype].push_back(bq);
   bndl->asxs[rtype].push_back(ReadBundler::ASMinusXS(p->b));

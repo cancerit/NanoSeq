@@ -28,6 +28,7 @@
 
 #define STRAND_INDEX_FORWARD 0
 #define STRAND_INDEX_REVERSE 1
+#define STRAND_INDEX_IGNORE -1
 
 // RTYPE is just the strand index for bulk
 #define RTYPE_A 0
