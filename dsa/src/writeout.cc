@@ -101,7 +101,7 @@ static inline float get_nmms(const bundle *bin) {
     return 0.0f;
   }
 
-  return 0.1f * custom_round(nmms_max * 10.0f);
+  return 0.1 * custom_round(nmms_max * 10.0f);
 }
 
 static inline float get_bulk_nmms(const bundle *bin) {
@@ -124,9 +124,11 @@ static inline float get_bulk_nmms(const bundle *bin) {
   return custom_round(nmms_max);
 }
 
+/*
 static inline int32_t get_consensus(const bundle *bin, const int32_t rtype, const int32_t allele_index) {
   return custom_round(bin->consensus[rtype][allele_index]);
 }
+*/
 
 static inline std::string dsa_counts_string(const bundle *bin) {
   return std::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t",
@@ -143,7 +145,7 @@ static inline std::string dsa_counts_string(const bundle *bin) {
     bin->counts[RTYPE_B][ALLELE_DEL]);
 }
 
-static inline std::string dsa_base_quals_string(const bundle *bin) {
+static inline std::string dsa_base_quals_string(bundle *bin) {
   return std::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t",
     custom_round(bin->consensus[RTYPE_A][0]),
     custom_round(bin->consensus[RTYPE_A][1]),

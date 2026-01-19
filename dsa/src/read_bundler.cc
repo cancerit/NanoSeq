@@ -219,15 +219,22 @@ std::string ReadBundler::DplxIdentifier(const bam_pileup1_t* p) {
 void ReadBundler::UpdateDplxBundle(bundle *bndl, const bam_pileup1_t *p) {
   const int strand = get_strand_index(p->b);
   const int read = get_read_type_index(p->b);
-  const int rtype = RTYPES[strand][read];
+  int rtype;
   std::pair<int, int> bq = ReadBundler::BaseAndQual(p);
   if (strand != STRAND_INDEX_IGNORE) {
     bndl->dplx_depth[strand][read]++;
+    rtype = RTYPES[strand][read];
+  } else {
+    // NOTE: should replicate missing key (strand) in the original implementation
+    rtype = 0;
   }
   bndl->counts[rtype][bq.first]++;
   bndl->call[rtype].push_back(bq);
   bndl->asxs[rtype].push_back(ReadBundler::ASMinusXS(p->b));
+
+  // TODO: verify STRAND_INDEX_IGNORE is supported correctly
   bndl->clip[rtype].push_back(ReadBundler::IsFivePrimeClipped(p->b, strand));
+
   bndl->nmms[rtype].push_back(ReadBundler::AuxTagToInt(p->b, "NM"));
   // bndl->ppair[rtype].push_back(read_is_in_proper_pair(p->b));
   bndl->rtype_ppair_counts[rtype] += read_is_in_proper_pair(p->b);
@@ -265,7 +272,7 @@ void ReadBundler::DplxConsensus(bundle *bndl) {
       int base = bndl->call[i][j].first;
       int qual  = bndl->call[i][j].second;
       // base is canonical
-      if (base != ALLELE_DISCARDED) {
+      if (base != ALLELE_DISCARDED && base != ALLELE_DEL) {
         int base_index = base - 1;
         double perror   = std::pow(POWER, (-qual/POWER));
         double pcorrect = (static_cast<double>(1) - perror) / ALT_BASES;
@@ -304,6 +311,47 @@ static inline int get_duplex_bundle_type(const bundle *b, const int min_dplx_dep
     (high_duplex_depth(b, STRAND_INDEX_FORWARD, min_dplx_depth) << 0);
 }
 
+bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileups plps) {
+  this->pos    = pos;
+  this->offset = offset;
+  bundle *b;
+  bundles bouts;
+  for (int i = 0; i < plps.size(); i++) {
+    const bam_pileup1_t *p = plps[i];
+    std::string id = ReadBundler::DplxIdentifier(p);
+    duplex_tag_info idf = parse_identifier(id);
+    if (ReadBundler::IsTemplate(idf.beg, idf.end) == 1) {
+      b = &bouts[id];
+      b->duplex_tag_info = idf;
+      ReadBundler::UpdateDplxBundle(b, p);
+    }
+  }
+  for (auto it = bouts.begin(); it != bouts.end(); ) {
+    // define duplex type: 0 = no duplex, 1 = fwd, 2 = rev, 3 = fwd and rev
+    int bundle_type = 0;
+    if ((it->second.dplx_depth[0][0] >= min_dplx_depth) &&
+        (it->second.dplx_depth[0][1] >= min_dplx_depth)) {
+      bundle_type += 1;
+    }
+    if ((it->second.dplx_depth[1][0] >= min_dplx_depth) &&
+        (it->second.dplx_depth[1][1] >= min_dplx_depth)) {
+      bundle_type += 2;
+    }
+    // remove low depth bundles
+    if (bundle_type == 0) {
+      bouts.erase(it++);
+    } else {
+      // calculate consensus base qualities
+      b = &it->second;
+      ReadBundler::DplxConsensus(b);
+      b->bundle_type = bundle_type;
+      it++;
+    }
+  }
+  return bouts;
+}
+
+/*
 bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileups plps) {
   this->pos    = pos;
   this->offset = offset;
@@ -359,6 +407,7 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileup
   }
   return bouts;
 }
+*/
 
 bundle ReadBundler::BulkBundle(pileups plps, int min_base_quality) {
   bundle bndl = {};

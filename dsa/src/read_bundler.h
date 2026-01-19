@@ -82,7 +82,7 @@ struct bundle {
 
   // TODO: replace character key with index (?)
   std::vector<std::pair<int, int>> call[RTYPE_COUNT] = {};
-  std::vector<double> consensus[BUNDLE_TYPES_COUNT] = {};
+  std::map<int, std::vector<double>> consensus = {};
   duplex_tag_info duplex_tag_info = {};
   int bundle_type = INT32_MIN;
 };
