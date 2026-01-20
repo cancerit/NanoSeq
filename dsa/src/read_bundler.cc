@@ -241,8 +241,8 @@ void ReadBundler::UpdateDplxBundle(bundle *bndl, const bam_pileup1_t *p) {
   bndl->rtype_read_counts[rtype]++;
 }
 
-void ReadBundler::UpdateBulkBundle(bundle* bndl, const bam_pileup1_t* p,
-  int min_base_quality) {
+void ReadBundler::UpdateBulkBundle(bundle *bndl, const bam_pileup1_t *p, int min_base_quality) {
+  // TODO: verify behaviour on invalid strand!
   const int strand = get_strand_index(p->b);
   std::pair<int, int> bq = ReadBundler::BaseAndQual(p);
   // only use bulk bundles where base quality is >= threshold
