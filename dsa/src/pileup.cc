@@ -36,9 +36,15 @@
 
 static int RetrieveAlignments(void *data, bam1_t *b) {
     aux_t *aux = (aux_t *)data;
+
+    if (!aux->iter) {
+        return -1;
+    }
+
     int ret;
     while (1) {
-        ret = aux->iter ? sam_itr_next(aux->fp, aux->iter, b) : sam_read1(aux->fp, aux->head, b);
+        ret = sam_itr_next(aux->fp, aux->iter, b);
+        // ret = aux->iter ? sam_itr_next(aux->fp, aux->iter, b) : sam_read1(aux->fp, aux->head, b);
 
         if (ret == -1) {
             break;
@@ -114,15 +120,31 @@ bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, const int bundle_type) {
 Pileup::Pileup() : opts(nullptr) {
 }
 
+sam_hdr_t *Pileup::GetHeader(const int i) {
+    return this->data[i].head;
+}
+
+sam_hdr_t *Pileup::GetBulkHeader() {
+    return GetHeader(BULK_INDEX);
+}
+
+sam_hdr_t *Pileup::GetDuplexHeader() {
+    return GetHeader(DUPLEX_INDEX);
+}
+
+
 int Pileup::GetTID(const char *contig) {
-    const int bulk_tid = sam_hdr_name2tid(this->data[BULK_INDEX]->head, contig);
-    const int duplex_tid = sam_hdr_name2tid(this->data[DUPLEX_INDEX]->head, contig);
+    sam_hdr_t *bulk_hdr = GetBulkHeader();
+    sam_hdr_t *duplex_hdr = GetDuplexHeader();
+    const int bulk_tid = sam_hdr_name2tid(bulk_hdr, contig);
+    const int duplex_tid = sam_hdr_name2tid(duplex_hdr, contig);
     assert(bulk_tid == duplex_tid);
     return bulk_tid;
 }
 
 const char *Pileup::GetContig(const int32_t tid) {
-    return sam_hdr_tid2name(this->data[BULK_INDEX]->head, tid);
+    sam_hdr_t *bulk_hdr = GetBulkHeader();
+    return sam_hdr_tid2name(bulk_hdr, tid);
 }
 
 void Pileup::Initiate(Options *opts) {
@@ -156,36 +178,26 @@ void Pileup::Initiate(Options *opts) {
     }
     */
 
-    this->data = reinterpret_cast<aux_t **>(calloc(BUNDLE_TYPES_COUNT, sizeof(aux_t *)));
-    if (!this->data) {
-        throw std::runtime_error("Failed to allocate!");
-    }
-
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        this->data[i] = reinterpret_cast<aux_t *>(calloc(1, sizeof(aux_t)));
-        if (!this->data[i]) {
-            throw std::runtime_error("Failed to allocate!");
-        }
-
-        this->data[i]->fp = hts_open(this->opts->bams[i], "r");
+        this->data[i].fp = hts_open(this->opts->bams[i], "r");
         if (i == BUNDLE_TYPE_DUPLEX) {
-            this->data[i]->min_mapQ = this->opts->min_mapQ;
-            this->data[i]->duplex = 1;
+            this->data[i].min_mapQ = this->opts->min_mapQ;
+            this->data[i].duplex = 1;
         } else {
-            this->data[i]->min_mapQ = 0;
-            this->data[i]->duplex = 0;
+            this->data[i].min_mapQ = 0;
+            this->data[i].duplex = 0;
         }
 
-        if (this->data[i]->fp == NULL) {
+        if (this->data[i].fp == NULL) {
             std::stringstream er;
             er << "Error: failed to open ";
             er << this->opts->bams[i];
             er << std::endl;
             throw std::runtime_error(er.str());
         }
-        this->data[i]->head = NULL;
-        this->data[i]->head = sam_hdr_read(this->data[i]->fp);
-        if (this->data[i]->head == NULL) {
+        this->data[i].head = NULL;
+        this->data[i].head = sam_hdr_read(this->data[i].fp);
+        if (this->data[i].head == NULL) {
             std::stringstream er;
             er << "Error: failed to read the header of ";
             er << this->opts->bams[i];
@@ -195,7 +207,7 @@ void Pileup::Initiate(Options *opts) {
 
         // allow to skip tests
         if (this->opts->doTests) {
-            if (!BamIsCorrectlyPreprocessed(this->data[i]->head, i)) {
+            if (!BamIsCorrectlyPreprocessed(this->data[i].head, i)) {
                 std::stringstream er;
                 er << "Error : bam ";
                 er << this->opts->bams[i];
@@ -205,7 +217,7 @@ void Pileup::Initiate(Options *opts) {
             }
         }
 
-        this->indices[i] = sam_index_load(this->data[i]->fp, this->opts->bams[i]);
+        this->indices[i] = sam_index_load(this->data[i].fp, this->opts->bams[i]);
         if (this->indices[i] == NULL) {
             std::stringstream er;
             er << "Error: failed to load the index of ";
@@ -219,8 +231,8 @@ void Pileup::Initiate(Options *opts) {
 
     if (this->opts->doTests) {
         // Check that the headers of both BAMs match each other
-        const int n_targets_bulk = sam_hdr_nref(this->data[BULK_INDEX]->head);
-        const int n_targets_duplex = sam_hdr_nref(this->data[DUPLEX_INDEX]->head);
+        const int n_targets_bulk = sam_hdr_nref(this->data[BULK_INDEX].head);
+        const int n_targets_duplex = sam_hdr_nref(this->data[DUPLEX_INDEX].head);
         if (n_targets_bulk != n_targets_duplex) {
             std::stringstream er;
             er << "Error : number of chromosomes in bulk and duplex don't match (" << n_targets_bulk << ":" << n_targets_duplex << ")";
@@ -228,7 +240,7 @@ void Pileup::Initiate(Options *opts) {
             throw std::runtime_error(er.str());
         }
         for (int i = 0; i < n_targets_bulk; i++) {
-            if (strcmp(sam_hdr_tid2name(this->data[0]->head, i), sam_hdr_tid2name(this->data[1]->head, i))) {
+            if (strcmp(sam_hdr_tid2name(this->data[0].head, i), sam_hdr_tid2name(this->data[1].head, i))) {
                 std::stringstream er;
                 er << "Error : order of chromosomes in bulk and duplex BAMs don't match";
                 er << std::endl;
@@ -237,9 +249,9 @@ void Pileup::Initiate(Options *opts) {
         }
         // Check BAM contig names against the reference
         for (int i = 0; i < n_targets_bulk; i++) {
-            if (!faidx_has_seq(ref.fai, sam_hdr_tid2name(this->data[0]->head, i))) {
+            if (!faidx_has_seq(ref.fai, sam_hdr_tid2name(this->data[0].head, i))) {
                 std::stringstream er;
-                er << "Error: BAM file chromosome " << sam_hdr_tid2name(this->data[0]->head, i) << " doesn't match any reference chromosome";
+                er << "Error: BAM file chromosome " << sam_hdr_tid2name(this->data[0].head, i) << " doesn't match any reference chromosome";
                 er << std::endl;
                 throw std::runtime_error(er.str());
             }
@@ -257,9 +269,6 @@ void Pileup::Initiate(Options *opts) {
         }
         */
     }
-
-    this->mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(this->data));
-    bam_mplp_set_maxcnt(this->mplp, this->opts->max_plp_depth);
 }
 
 std::string Pileup::Header() {
@@ -393,10 +402,15 @@ std::string Pileup::Header() {
     return ss.str();
 }
 
-static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_t *r) {
+static void destroy_iterator(hts_itr_t **it) {
     if (*it != NULL) {
         sam_itr_destroy(*it);
+        *it = NULL;
     }
+}
+
+static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_t *r) {
+    // destroy_iterator(it);
 
     *it = sam_itr_queryi(idx, r->tid, r->start, r->end + 1);
     if (*it == NULL) {
@@ -404,18 +418,24 @@ static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_
         er << "Error: failed to parse region";
         er << std::endl;
         throw std::runtime_error(er.str());
+    } else if ((*it)->n_off == 0 || (*it)->off == NULL) {
+        std::cerr << std::format(
+            "Warning: no reads in region tid={} {}:{}\n",
+            r->tid, r->start, r->end + 1);
+
+        // destroy_iterator(it);
     }
 }
 
 void Pileup::InitIterators(const range_tid_t *r) {
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        init_iterator(&this->data[i]->iter, this->indices[i], r);
+        init_iterator(&this->data[i].iter, this->indices[i], r);
     }
 }
 
 void Pileup::DestroyIterators() {
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        hts_itr_destroy(this->data[i]->iter);
+        destroy_iterator(&this->data[i].iter);
     }
 }
 
@@ -471,10 +491,14 @@ void Pileup::MultiplePileupInRange(const char *contig, const range_t range) {
     */
 }
 
-
 void Pileup::MultiplePileup() {
     std::cerr << "Output directory: " << opts->oname << std::endl;
     WriteOut *wout(new WriteOut(opts));
+
+    aux_t *data_ptrs[BUNDLE_TYPES_COUNT];
+    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
+        data_ptrs[i] = &this->data[i];
+    }
 
     PileupBatch batch;
     const char *contig;
@@ -482,12 +506,25 @@ void Pileup::MultiplePileup() {
         contig = GetContig(r.tid);
         std::cerr << std::format("(TID={}) {}:{}-{}\n", r.tid, contig, r.start, r.end);
 
-        InitIterators(&r);
+        // InitIterators(&r);
+        for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
+            init_iterator(&data_ptrs[i]->iter, this->indices[i], &r);
+        }
+
+        bam_mplp_t mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(data_ptrs));
+        bam_mplp_set_maxcnt(mplp, this->opts->max_plp_depth);
+
         batch.Update(contig, {r.start, r.end}, masks, &ref);
         batch.Pileup(mplp, &ref, wout);
-    }
 
-        DestroyIterators();
+        bam_mplp_destroy(mplp);
+        // DestroyIterators();
+        for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
+            destroy_iterator(&data_ptrs[i]->iter);
+        }
+
+        std::cerr << std::endl;
+    }
 
     // TODO: handle the empty output case better
     wout->Finalise();
@@ -503,11 +540,9 @@ void Pileup::MultiplePileup() {
     // TODO: convert from cgranges type
 
     // fai_destroy(this->fai);
-    bam_mplp_destroy(this->mplp);
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        sam_close(this->data[i]->fp);
-        sam_hdr_destroy(this->data[i]->head);
-        free(this->data[i]);
+        sam_close(this->data[i].fp);
+        sam_hdr_destroy(this->data[i].head);
     }
     free(this->data);
 }
@@ -548,4 +583,6 @@ void Pileup::LoadRanges() {
 
     free(ks.s);
     hts_close(f);
+
+    std::cerr << std::format("Loaded {} valid intervals.\n", this->ranges.size());
 }

@@ -73,12 +73,15 @@ class Pileup {
     const char *regions;  // Regions to process
     MaskLoader masks[MASK_COUNT];
 
-    aux_t **data;
-    bam_mplp_t mplp;
+    aux_t data[BUNDLE_TYPES_COUNT];
     std::vector<range_tid_t> ranges;
     int GetTID(const char *contig);
     const char *GetContig(const int32_t tid);
     void LoadRanges();
+
+    sam_hdr_t *GetHeader(const int i);
+    sam_hdr_t *GetBulkHeader();
+    sam_hdr_t *GetDuplexHeader();
 
   public:
     Pileup();
@@ -86,7 +89,6 @@ class Pileup {
     void Initiate(Options *options);
     void InitIterators(const range_tid_t *r);
     std::string Header();
-    std::string PositionString(const char *contig, const int pos, const uint8_t mask_values[MASK_COUNT]);
     void MultiplePileupInRange(const char *contig, const range_t range);
     void MultiplePileup();
 };

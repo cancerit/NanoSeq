@@ -14,8 +14,9 @@ class PileupBatch {
 private:
     const char *contig;
     range_t range;
-    const std::string PositionString(const char *contig, const int pos, Ref *ref, const uint8_t mask_values[MASK_COUNT]);
     StaticStringBuilder<MAX_DSA_LINE_LENGHT> ssb;
+
+    const std::string PositionString(const char *contig, const int pos, Ref *ref, const uint8_t mask_values[MASK_COUNT]);
 
 public:
     Mask mask;
