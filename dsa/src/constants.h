@@ -20,6 +20,9 @@
 #define MASK_INDEX_NOISE 1
 #define MASK_COUNT 2
 
+#define MASK_FLAG_SNP   (1 << MASK_INDEX_SNP)
+#define MASK_FLAG_NOISE (1 << MASK_INDEX_NOISE)
+
 // For genomic region strings (contig:start-end)
 #define MAX_REGION_STR_LENGTH 1024
 

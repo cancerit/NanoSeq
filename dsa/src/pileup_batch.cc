@@ -91,8 +91,9 @@ void PileupBatch::Pileup(bam_mplp_t mplp, Ref *ref, WriteOut *out) {
 
         // Generate DSA table row prefix
         mask_flag = this->mask.GetFlag(pos);
-        mask_values[MASK_INDEX_SNP] = flag_is_set(mask_flag, MASK_INDEX_SNP);
-        mask_values[MASK_INDEX_NOISE] = flag_is_set(mask_flag, MASK_INDEX_NOISE);
+        mask_values[MASK_INDEX_SNP] = flag_is_set(mask_flag, MASK_FLAG_SNP);
+        mask_values[MASK_INDEX_NOISE] = flag_is_set(mask_flag, MASK_FLAG_NOISE);
+
         // TODO: avoid string reallocation!
         posn = PositionString(contig, pos, ref, mask_values);
 
