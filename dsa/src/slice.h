@@ -38,7 +38,7 @@ template <typename T>
 inline uint64_t Slice<T>::CountBytesSet() {
   const uint64_t length = GetLength();
   uint64_t count = 0;
-  for (int i = 0; i < length; ++i) {
+  for (uint64_t i = 0; i < length; ++i) {
     count += (values[i] == 0);
     /*
     if (values[i]) {
@@ -93,6 +93,7 @@ inline T *Slice<T>::Data() {
 
 template<typename T>
 void Slice<T>::Reset(const range_t range, const bool zero) {
+  const int32_t n = range_length(&this->range);
   const int32_t m = range_length(&range);
   assert(m > 0);
   this->range = range;
@@ -102,8 +103,6 @@ void Slice<T>::Reset(const range_t range, const bool zero) {
     this->values = (T*)calloc(m, sizeof(T));
 
   } else {
-
-    const int32_t n = range_length(&this->range);
 
     // Expand the mask (if necessary) and reset it to zero
     if (m > n) {
