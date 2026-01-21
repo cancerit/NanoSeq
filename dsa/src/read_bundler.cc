@@ -29,14 +29,8 @@
 # 2009, 2010, 2011, 2012’.
 ##########################*/
 
-
 #include "read_bundler.h"
 
-
-const int ALPH_LEN     = 4;
-// const char ALPH[4]     = {'A', 'C', 'G', 'T'};
-const double ALT_BASES = static_cast<double>(ALPH_LEN - 1);
-const double POWER     = static_cast<double>(10);
 
 /*
 std::map<int, std::map<int, int>> RTYPES =

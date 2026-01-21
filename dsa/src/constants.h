@@ -1,6 +1,28 @@
 #ifndef CONSTANTS_H_
 #define CONSTANTS_H_
 
+// DNA alphabet length
+#define ALPH_LEN 4
+
+// TODO: verify!
+#define BAM_NT_A 1
+#define BAM_NT_C 2
+#define BAM_NT_G 4
+#define BAM_NT_T 8
+
+#define ALLELE_DISCARDED 0
+#define ALLELE_A 1
+#define ALLELE_C 2
+#define ALLELE_G 3
+#define ALLELE_T 4
+#define ALLELE_DEL 5
+#define ALLELE_COUNT 6
+
+#define ALLELE_INDEX_A 0
+#define ALLELE_INDEX_C 1
+#define ALLELE_INDEX_G 2
+#define ALLELE_INDEX_T 3
+
 #define STRAND_COUNT 2
 #define READ_TYPE_COUNT 2
 

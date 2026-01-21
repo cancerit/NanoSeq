@@ -47,20 +47,7 @@
 
 #include "htslib/sam.h"
 #include "options.h"
-
-// TODO: verify!
-#define BAM_NT_A 1
-#define BAM_NT_C 2
-#define BAM_NT_G 4
-#define BAM_NT_T 8
-
-#define ALLELE_DISCARDED 0
-#define ALLELE_A 1
-#define ALLELE_C 2
-#define ALLELE_G 3
-#define ALLELE_T 4
-#define ALLELE_DEL 5
-#define ALLELE_COUNT 6
+#include "constants.h"
 
 typedef struct {
   int beg;
