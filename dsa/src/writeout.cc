@@ -165,7 +165,7 @@ static inline float get_ppair_mean(const bundle *bin, const int rtype) {
 }
 
 // TODO: pass the same stream to each of these functions?
-static inline const float dsa_proper_pair(const bundle *bin) {
+static inline float dsa_proper_pair(const bundle *bin) {
   const bool has_a = bin->rtype_read_counts[RTYPE_A] > 0;
   const bool has_b = bin->rtype_read_counts[RTYPE_B] > 0;
 

@@ -24,13 +24,12 @@ void PileupBatch::Update(const char *contig, const range_t range, MaskLoader mls
     ref->Fetch(contig, ref_range);
 
     // DEBUG ONLY!
-    std::cerr << "[" << ref->ToString() << "]" << std::endl;
     /*
+    std::cerr << "[" << ref->ToString() << "]" << std::endl;
     std::cerr << "<" << ref->GetTripletAround(range.start) << ">" << std::endl;
     std::cerr << "<" << ref->GetTripletAround(range.start + 1) << ">" << std::endl;
     std::cerr << "<" << ref->GetTripletAround(range.end) << ">" << std::endl;
     */
-    //
 }
 
 const std::string PileupBatch::PositionString(const char *contig, const int pos, Ref *ref, const uint8_t mask_values[MASK_COUNT]) {
