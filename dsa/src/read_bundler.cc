@@ -310,7 +310,7 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileup
   this->offset = offset;
   bundle *b;
   bundles bouts;
-  for (int i = 0; i < plps.size(); i++) {
+  for (size_t i = 0; i < plps.size(); i++) {
     const bam_pileup1_t *p = plps[i];
     std::string id = ReadBundler::DplxIdentifier(p);
     duplex_tag_info idf = parse_identifier(id);
@@ -405,7 +405,7 @@ bundles ReadBundler::DplxBundles(int pos, int offset, int min_dplx_depth, pileup
 
 bundle ReadBundler::BulkBundle(pileups plps, int min_base_quality) {
   bundle bndl = {};
-  for (int i =0; i < plps.size(); i++) {
+  for (size_t i = 0; i < plps.size(); i++) {
     const bam_pileup1_t *p = plps[i];
     if (ReadBundler::BulkIsUsable(p->b)) {
       ReadBundler::UpdateBulkBundle(&bndl, p, min_base_quality);

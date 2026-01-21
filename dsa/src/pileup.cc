@@ -93,10 +93,10 @@ bool BamIsCorrectlyPreprocessed(bam_hdr_t *head, const int bundle_type) {
     bool op3 = false;
     bool op4 = false;
     std::vector<std::string> tokens = tokenize(head->text, '\n');
-    for (int j = 0; j < tokens.size(); j++) {
+    for (size_t j = 0; j < tokens.size(); j++) {
         if (tokens[j].rfind("@PG", 0) == 0) {
             std::vector<std::string> subtokens = tokenize(tokens[j], '\t');
-            for (int k = 0; k < subtokens.size(); k++) {
+            for (size_t k = 0; k < subtokens.size(); k++) {
                 if (subtokens[k].rfind("ID", 0) == 0) {
                     // account for suffixes on program identifiers
                     op1 |= find_pg_id(subtokens[k], "ID:bamsormadup");
