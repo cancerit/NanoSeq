@@ -168,9 +168,14 @@ const int nt16_allele[16] = {
   [15] = ALLELE_DISCARDED,
 };
 
+void ReadBundler::Init() {
+  probs_init(&this->probs);
+}
+
 std::pair<int, int> ReadBundler::BaseAndQual(const bam_pileup1_t *p) {
   // We don't make use of indel quality scores, so gives these value -1
   if ((p->is_del) || (p->indel != 0)) {
+    // NOTE: the zero quality ensures it is also a valid index for [no-op] lookups
     return std::make_pair(ALLELE_DEL, -1);
   } else {
     uint8_t *seq = bam_get_seq(p->b);
@@ -238,6 +243,11 @@ void ReadBundler::UpdateDplxBundle(bundle *bndl, const bam_pileup1_t *p) {
 void ReadBundler::UpdateBulkBundle(bundle *bndl, const bam_pileup1_t *p, int min_base_quality) {
   // TODO: verify behaviour on invalid strand!
   const int strand = get_strand_index(p->b);
+
+  if (strand == STRAND_INDEX_IGNORE) {
+    return;
+  }
+
   std::pair<int, int> bq = ReadBundler::BaseAndQual(p);
   // only use bulk bundles where base quality is >= threshold
   // fa8:
@@ -255,6 +265,14 @@ void ReadBundler::UpdateBulkBundle(bundle *bndl, const bam_pileup1_t *p, int min
     bndl->rtype_read_counts[strand]++;
   }
 }
+
+/*
+void ReadBundler::DplxConsensus(bundle *bndl) {
+  for (int i = 0; i < RTYPE_COUNT; ++i) {
+    get_duplex_consensus_quality(&this->probs, bndl->call[i], bndl->consensus[i]);
+  }
+}
+*/
 
 // TODO: optimise calculation!
 void ReadBundler::DplxConsensus(bundle *bndl) {

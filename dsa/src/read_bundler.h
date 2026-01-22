@@ -48,6 +48,7 @@
 #include "htslib/sam.h"
 #include "options.h"
 #include "constants.h"
+#include "probs.h"
 
 typedef struct {
   int beg;
@@ -70,6 +71,7 @@ struct bundle {
   // TODO: replace character key with index (?)
   std::vector<std::pair<int, int>> call[RTYPE_COUNT] = {};
   std::map<int, std::vector<double>> consensus = {};
+  // double consensus[RTYPE_COUNT][ALPH_LEN] = {};
   duplex_tag_info duplex_tag_info = {};
   int bundle_type = INT32_MIN;
 };
@@ -88,9 +90,13 @@ static inline int read_is_in_proper_pair(const bam1_t *b) {
 }
 
 class ReadBundler {
+  private:
+    probs_t probs;
+
   public:
     int pos;
     int offset;
+    void Init();
     char* AuxTagToChar(bam1_t* b, const char* tag);
     int AuxTagToInt(bam1_t* b, const char* tag);
     int ASMinusXS(bam1_t* b);

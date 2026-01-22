@@ -60,7 +60,8 @@ void PileupBatch::Pileup(bam_mplp_t mplp, Ref *ref, WriteOut *out) {
     uint8_t mask_flag = 0;
     uint8_t mask_values[MASK_COUNT] = {0, 0};
     std::string posn;
-    ReadBundler rb;
+    ReadBundler rb = {};
+    rb.Init();
 
     while (bam_mplp_auto(mplp, &tid, &pos, n_plp, plp) > 0) {
         plps[BUNDLE_TYPE_BULK].clear();

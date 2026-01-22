@@ -37,14 +37,14 @@
 static int RetrieveAlignments(void *data, bam1_t *b) {
     aux_t *aux = (aux_t *)data;
 
-    if (!aux->iter) {
+    /*if (!aux->iter) {
         return -1;
-    }
+    }*/
 
     int ret;
     while (1) {
-        ret = sam_itr_next(aux->fp, aux->iter, b);
-        // ret = aux->iter ? sam_itr_next(aux->fp, aux->iter, b) : sam_read1(aux->fp, aux->head, b);
+        // ret = sam_itr_next(aux->fp, aux->iter, b);
+        ret = aux->iter ? sam_itr_next(aux->fp, aux->iter, b) : sam_read1(aux->fp, aux->head, b);
 
         if (ret == -1) {
             break;
@@ -410,8 +410,6 @@ static void destroy_iterator(hts_itr_t **it) {
 }
 
 static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_t *r) {
-    // destroy_iterator(it);
-
     *it = sam_itr_queryi(idx, r->tid, r->start, r->end + 1);
     if (*it == NULL) {
         std::stringstream er;
@@ -423,7 +421,7 @@ static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_
             "Warning: no reads in region tid={} {}:{}\n",
             r->tid, r->start, r->end + 1);
 
-        // destroy_iterator(it);
+        destroy_iterator(it);
     }
 }
 
@@ -497,11 +495,15 @@ void Pileup::MultiplePileup() {
 
     aux_t *data_ptrs[BUNDLE_TYPES_COUNT];
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
+        this->data[i].iter = NULL;
         data_ptrs[i] = &this->data[i];
     }
 
     PileupBatch batch;
     const char *contig;
+
+    bam_mplp_t mplp = NULL;
+
     for (auto r : this->ranges) {
         contig = GetContig(r.tid);
         std::cerr << std::format("(TID={}) {}:{}-{}\n", r.tid, contig, r.start, r.end);
@@ -511,13 +513,22 @@ void Pileup::MultiplePileup() {
             init_iterator(&data_ptrs[i]->iter, this->indices[i], &r);
         }
 
+        if (mplp == NULL) {
+            mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(data_ptrs));
+            bam_mplp_set_maxcnt(mplp, this->opts->max_plp_depth);
+        } else {
+            bam_mplp_reset(mplp);
+        }
+
+        /*
         bam_mplp_t mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(data_ptrs));
         bam_mplp_set_maxcnt(mplp, this->opts->max_plp_depth);
+        */
 
         batch.Update(contig, {r.start, r.end}, masks, &ref);
         batch.Pileup(mplp, &ref, wout);
 
-        bam_mplp_destroy(mplp);
+        // bam_mplp_destroy(mplp);
         // DestroyIterators();
         for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
             destroy_iterator(&data_ptrs[i]->iter);
