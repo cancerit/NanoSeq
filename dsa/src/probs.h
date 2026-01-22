@@ -61,7 +61,7 @@ static void get_duplex_consensus_quality(const probs_t *p, std::vector<std::pair
     int base, qual;
     for (size_t i = 0; i < n; ++i) {
         base = call[i].first;
-        qual  = call[i].second;
+        qual = call[i].second;
         probs_add_p_error(p, qual, base, probs);
     }
 
