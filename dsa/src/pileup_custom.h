@@ -14,7 +14,8 @@ typedef struct base_array_t {
 static inline int base_info_array_reset(base_array_t *a, const uint64_t capacity) {
     a->count = 0;
     if (capacity > a->capacity) {
-        a->bases = (base_t*)realloc(a->bases, capacity);
+        a->bases = (base_t*)realloc(a->bases, capacity * sizeof(base_t));
+        a->capacity = capacity;
     }
     return a->bases == NULL;
 }
