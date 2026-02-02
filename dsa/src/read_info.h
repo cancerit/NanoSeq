@@ -41,7 +41,8 @@ static inline int get_strand_index(const bam1_t *b) {
 static inline const uint8_t *get_tag(const bam1_t *read, const char *tag) {
     const uint8_t *t = bam_aux_get(read, tag);
     if (t == NULL) {
-        throw std::runtime_error("Missing RB tag!");
+        throw std::runtime_error(std::format(
+            "Missing {} tag!", tag));
     }
     return t;
 }
