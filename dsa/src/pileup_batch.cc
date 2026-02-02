@@ -255,7 +255,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
     // bundle_closed_t *duplex_bundle;
     uint8_t bundle_type;
     std::string pos_prefix;
-    std::string dsa_row;
+    std::stringstream s;
     for (auto pos_bundles_kvp : pos_bundles) {
         pos = pos_bundles_kvp.first;
 
@@ -263,7 +263,9 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         mask_flag = this->mask.GetFlag(pos);
         mask_values[MASK_INDEX_SNP] = flag_is_set(mask_flag, MASK_FLAG_SNP);
         mask_values[MASK_INDEX_NOISE] = flag_is_set(mask_flag, MASK_FLAG_NOISE);
-        pos_prefix = PositionString(contig, pos, ref, mask_values);
+        pos_prefix = PositionString(this->contig, pos, ref, mask_values);
+
+        s.clear();
 
         for (auto bundle_index_probs_kvp : pos_bundles_kvp.second) {
             const uint64_t bundle_index = bundle_index_probs_kvp.first;
@@ -271,22 +273,18 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
             dbx = &bundle_index_probs_kvp.second;
             // BEWARE: the argument gets modified!
             duplex_base_finalise(dbx);
-            // bundle_closed_to_dsa_row(closed_bundles[bundle_index], pos, dbx);
 
             bp = &closed_bundles[bundle_index];
-            // duplex_bundle = &bp->bundles[DUPLEX_INDEX];
 
             bundle_type = duplex_base_get_bundle_type(dbx, min_dplx_depth);
             if (bundle_type != 0) {
-                // bulk_bundle = &bp->bundles[BULK_INDEX];
-                dsa_row = bundle_closed_pair_to_dsa_row(bp, pos_prefix, dbx, bundle_type);
-
+                s << bundle_closed_pair_to_dsa_row(bp, pos_prefix, dbx, bundle_type);
             }
 
         }
 
         // Dump every position
-        compressor->compress(dsa_row);
+        compressor->compress(s.str());
         compressor->write();
 
     }
