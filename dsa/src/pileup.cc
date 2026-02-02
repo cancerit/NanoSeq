@@ -130,71 +130,8 @@ void Pileup::Initiate(Options *opts) {
 
     // Load FAI
     ref.Init(opts->fasta);
-    /*
-    this->fai = fai_load(this->opts->fasta);
-    if (this->fai == nullptr) {
-        std::stringstream er;
-        er << "Error: failed to open index of ";
-        er << this->opts->fasta;
-        er << std::endl;
-        throw std::runtime_error(er.str());
-    }
-    */
-
     aux_bulk_init(&this->data[BULK_INDEX], this->opts->bams[BULK_INDEX]);
     aux_duplex_init(&this->data[DUPLEX_INDEX], this->opts->bams[DUPLEX_INDEX], this->opts->min_mapQ);
-
-    /*
-
-    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        this->data[i].fp = hts_open(this->opts->bams[i], "r");
-        if (i == BUNDLE_TYPE_DUPLEX) {
-            this->data[i].min_mapQ = this->opts->min_mapQ;
-            this->data[i].duplex = 1;
-        } else {
-            this->data[i].min_mapQ = 0;
-            this->data[i].duplex = 0;
-        }
-
-        if (this->data[i].fp == NULL) {
-            std::stringstream er;
-            er << "Error: failed to open ";
-            er << this->opts->bams[i];
-            er << std::endl;
-            throw std::runtime_error(er.str());
-        }
-        this->data[i].head = NULL;
-        this->data[i].head = sam_hdr_read(this->data[i].fp);
-        if (this->data[i].head == NULL) {
-            std::stringstream er;
-            er << "Error: failed to read the header of ";
-            er << this->opts->bams[i];
-            er << std::endl;
-            throw std::runtime_error(er.str());
-        }
-
-        // allow to skip tests
-        if (this->opts->doTests) {
-            if (!BamIsCorrectlyPreprocessed(this->data[i].head, i)) {
-                std::stringstream er;
-                er << "Error : bam ";
-                er << this->opts->bams[i];
-                er << " is not properly preprocessed.";
-                er << std::endl;
-                throw std::runtime_error(er.str());
-            }
-        }
-
-        this->indices[i] = sam_index_load(this->data[i].h.fp, this->opts->bams[i]);
-        if (this->indices[i] == NULL) {
-            std::stringstream er;
-            er << "Error: failed to load the index of ";
-            er << this->opts->bams[i];
-            er << std::endl;
-            throw std::runtime_error(er.str());
-        }
-    }
-    */
 
     LoadRanges();
 
@@ -469,28 +406,8 @@ void Pileup::MultiplePileup() {
         contig = GetContig(r.tid);
         std::cerr << std::format("(TID={}) {}:{}-{}\n", r.tid, contig, r.start, r.end);
 
-        // InitIterators(&r);
-        /*
-        for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-            init_iterator(&data_ptrs[i]->iter, this->indices[i], &r);
-        }
-        */
-
-        /*
-        bam_mplp_t mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(data_ptrs));
-        bam_mplp_set_maxcnt(mplp, this->opts->max_plp_depth);
-        */
-
         batch.Update(contig, r, masks, &ref);
         batch.Pileup(data_ptrs, &ref, this->opts, &compressor);
-
-        // bam_mplp_destroy(mplp);
-        // DestroyIterators();
-        /*
-        for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-            destroy_iterator(&data_ptrs[i]->iter);
-        }
-        */
 
         std::cerr << std::endl;
     }
@@ -499,14 +416,6 @@ void Pileup::MultiplePileup() {
     compressor.finalise();
 
     return;
-
-    //
-    /*
-
-    */
-
-    // TODO: iterate over input ranges
-    // TODO: convert from cgranges type
 
     // fai_destroy(this->fai);
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {

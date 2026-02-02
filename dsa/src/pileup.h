@@ -46,7 +46,6 @@
 #include "mask.h"
 #include "mask_loader.h"
 #include "options.h"
-// #include "writeout.h"
 #include "constants.h"
 #include "range.h"
 #include "ref.h"
@@ -55,8 +54,6 @@
 class Pileup {
   private:
     Options *opts;
-    // WriteOut out;
-    // faidx_t *fai;
     Ref ref;
 
     // BAI/CRAI indices for sample and normal

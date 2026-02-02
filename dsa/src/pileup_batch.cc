@@ -181,36 +181,6 @@ const std::string PileupBatch::PositionString(const char *contig, const int pos,
     return ss.str();
 }
 
-// void ReadBundler::UpdateBulkBundle(bundle *bndl, const bam_pileup1_t *p, int min_base_quality) {
-/*
-void bundle_bulk_update(bundle *bndl, const ReadStats *rs, const BaseInfoArray *ba) {
-  // TODO: verify behaviour on invalid strand!
-  const int strand = rs->strand;
-
-  if (strand == STRAND_INDEX_IGNORE) {
-    return;
-  }
-
-  BaseInfo *bi = NULL;
-  for (uint64_t i = 0; i < ba->count; ++i) {
-    bi = &ba->bases[i];
-
-    bndl->counts[strand][bi->base]++;
-    bndl->call[strand].push_back({bi->base, bi->qual});
-    bndl->asxs[strand].push_back(ReadBundler::ASMinusXS(p->b));
-    bndl->nmms[strand].push_back(ReadBundler::AuxTagToInt(p->b, "NM"));
-    // bndl->ppair[strand].push_back(read_is_in_proper_pair(p->b));
-    bndl->rtype_ppair_counts[strand] += read_is_in_proper_pair(p->b);
-    bndl->rtype_read_counts[strand]++;
-  }
-
-  std::pair<int, int> bq = ReadBundler::BaseAndQual(p);
-
-  }
-}
-*/
-
-// void PileupBatch::Pileup(aux_t **data, Ref *ref, WriteOut *out) {
 void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompressor *compressor) {
     // const Options *opts = out->opts;
     // int n_plp[BUNDLE_TYPES_COUNT];
@@ -424,74 +394,5 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         compressor->write();
 
     }
-
-    // std::map<int32_t, std::map<uint64_t, duplex_base_t>> pos_bundles = {};
-    /*
-    int32_t pos;
-    bundle_open_t *bundle_open;
-    for (auto pos_bundles_kvp : pos_bundles) {
-        pos = pos_bundles_kvp.first;
-        for (auto bundle_index_probs_kvp : pos_bundles_kvp.second) {
-            bundle_index = pos_bundles_kvp.first;
-            bundle_open = &pos_bundles_kvp.second;
-        }
-    }
-    */
-
-    /*
-    bam_plp_t bulk_plp = bam_plp_init(get_bulk_read, data[BULK_INDEX]);
-    bam_plp_set_maxcnt(bulk_plp, opts->max_plp_depth);
-    bam_plp_t duplex_plp = bam_plp_init(get_duplex_read, data[DUPLEX_INDEX]);
-    bam_plp_set_maxcnt(duplex_plp, opts->max_plp_depth);
-
-    // while (bam_mplp_auto(mplp, &tid, &pos, n_plp, plp) > 0) {
-    while (1) {
-        plp[DUPLEX_INDEX] = bam_plp_auto(duplex_plp, &tid, &pos, &n_plp[DUPLEX_INDEX]);
-        plp[BULK_INDEX] = bam_plp_auto(bulk_plp, &tid, &pos, &n_plp[BULK_INDEX]);
-
-        plps[BUNDLE_TYPE_BULK].clear();
-        plps[BUNDLE_TYPE_DUPLEX].clear();
-
-        // TODO: verify end inclusiveness convention!
-        //  Originally: ((pos >= opts->beg) && (pos <= opts->end))
-        if (pos < this->range.start) {
-            continue;
-        } else if (pos >= this->range.end) {
-            break;
-        }
-
-        // Pileup
-        for (int i = 0; i < BUNDLE_TYPES_COUNT; i++) {
-            for (int j = 0; j < n_plp[i]; ++j) {
-                plps[i].push_back(plp[i] + j);
-            }
-        }
-
-        // Bundle reads
-        bundles dplx = rb.DplxBundles(pos, opts->offset, opts->min_dplx_depth, plps[BUNDLE_TYPE_DUPLEX]);
-        // fprintf(stderr, "%d duplex bundles.\n", dplx.size());
-        if (dplx.size() == 0) {
-            continue;
-        }
-        bundle bulk = rb.BulkBundle(plps[BUNDLE_TYPE_BULK], opts->min_base_quality);
-        // fprintf(stderr, "%d bulk calls.\n", bulk.call->size());
-
-
-        // Generate DSA table row prefix
-        mask_flag = this->mask.GetFlag(pos);
-        mask_values[MASK_INDEX_SNP] = flag_is_set(mask_flag, MASK_FLAG_SNP);
-        mask_values[MASK_INDEX_NOISE] = flag_is_set(mask_flag, MASK_FLAG_NOISE);
-
-        // TODO: avoid string reallocation!
-        posn = PositionString(contig, pos, ref, mask_values);
-
-        // Push DSA table rows to compressor
-        out->WriteRows(bulk, dplx, posn);
-    }
-
-    bam_plp_destroy(bulk_plp);
-    bam_plp_destroy(duplex_plp);
-    // bam_mplp_destroy(mplp);
-    */
 
 }

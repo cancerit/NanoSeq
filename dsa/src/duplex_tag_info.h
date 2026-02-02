@@ -29,18 +29,4 @@ static duplex_tag_info duplex_tag_info_parse(std::string idf1) {
     return idf;
 }
 
-typedef struct duplex_info_t {
-    // std::string id;
-    uint64_t index;  // use as key
-    uint8_t type = 0;  // filter out on zero
-} duplex_info_t;
-
-/*
-std::map<std::string, duplex_info_t> duplex_id_infos;
-std::unsorted_map<uint64_t, duplex_info_t> decoder;
-foreach k, v:
-    if type != 0:
-        decoder[v.index] = v
-*/
-
 #endif

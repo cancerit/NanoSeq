@@ -6,7 +6,6 @@
 #include "mask_loader.h"
 #include "range.h"
 #include "ref.h"
-// #include "writeout.h"
 #include "htslib/sam.h"
 #include "static_string_builder.hpp"
 #include "aux.h"
@@ -27,8 +26,6 @@ public:
     PileupBatch() : contig(nullptr), tid(-1), range({0, 0}) {};
     void Update(const char *contig, const range_tid_t range, MaskLoader mls[2], Ref *ref);
     void Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompressor *compressor);
-    // void Pileup(aux_t **data, Ref *ref, WriteOut *out);
-    // void Pileup(bam_mplp_t mplp, Ref *ref, WriteOut *out);
 };
 
 #endif
