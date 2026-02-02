@@ -220,7 +220,6 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
     std::vector<std::string> bundle_id_decoder = {};
 
     std::string bundle_id;
-    uint64_t bundle_index;
     bundle_closed_pair_t *bp;
     duplex_base_t *dbx;
 
@@ -254,6 +253,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                         continue;
                     }
 
+                    uint64_t bundle_index;
                     bundle_id = get_duplex_id(read);
                     if (bundle_id_encoder.contains(bundle_id)) {
                         bundle_index = bundle_id_encoder[bundle_id];
@@ -272,9 +272,9 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     }
 
                     // Update allele counts
-                    dbx = &pos_bundles[bi->aln_pos][bundle_index];
                     for (uint64_t i = 0; i < base_buffer.count; ++i) {
                         bi = &base_buffer.bases[i];
+                        dbx = &pos_bundles[bi->aln_pos][bundle_index];
                         if (range_tid_contains(&r, bi->aln_pos)) {
                             dbx->counts[BUNDLE_TYPE_BULK][strand][bi->base]++;
                         }
@@ -298,6 +298,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                 }
 
                 {
+                    uint64_t bundle_index;
                     bundle_id = get_duplex_id(read);
                     if (bundle_id_encoder.contains(bundle_id)) {
                         bundle_index = bundle_id_encoder[bundle_id];
@@ -319,9 +320,9 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     const int read_index = get_read_type_index(read);
 
                     // Update allele counts
-                    dbx = &pos_bundles[bi->aln_pos][bundle_index];
                     for (uint64_t i = 0; i < base_buffer.count; ++i) {
                         bi = &base_buffer.bases[i];
+                        dbx = &pos_bundles[bi->aln_pos][bundle_index];
                         if (range_tid_contains(&r, bi->aln_pos)) {
                             dbx->counts[DUPLEX_INDEX][r_type][bi->base]++;
 
@@ -343,6 +344,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
 
         // D. Close bundles
         for (auto kvp : open_bundles) {
+            const uint64_t bundle_index = kvp.first;
             bp = &closed_bundles[bundle_index];
 
             bundle_id = bundle_id_decoder[bundle_index];
@@ -370,7 +372,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         pos_prefix = PositionString(contig, pos, ref, mask_values);
 
         for (auto bundle_index_probs_kvp : pos_bundles_kvp.second) {
-            bundle_index = pos_bundles_kvp.first;
+            const uint64_t bundle_index = bundle_index_probs_kvp.first;
 
             dbx = &bundle_index_probs_kvp.second;
             // BEWARE: the argument gets modified!
