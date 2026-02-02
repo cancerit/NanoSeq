@@ -18,6 +18,25 @@
 #define ALLELE_DEL 5
 #define ALLELE_COUNT 6
 
+static const int nt16_allele[16] = {
+  [0] = ALLELE_DISCARDED,
+  [BAM_NT_A] = ALLELE_A,
+  [BAM_NT_C] = ALLELE_C,
+  [3] = ALLELE_DISCARDED,
+  [BAM_NT_G] = ALLELE_G,
+  [5] = ALLELE_DISCARDED,
+  [6] = ALLELE_DISCARDED,
+  [7] = ALLELE_DISCARDED,
+  [BAM_NT_T] = ALLELE_T,
+  [9] = ALLELE_DISCARDED,
+  [10] = ALLELE_DISCARDED,
+  [11] = ALLELE_DISCARDED,
+  [12] = ALLELE_DISCARDED,
+  [13] = ALLELE_DISCARDED,
+  [14] = ALLELE_DISCARDED,
+  [15] = ALLELE_DISCARDED,
+};
+
 #define ALLELE_INDEX_A 0
 #define ALLELE_INDEX_C 1
 #define ALLELE_INDEX_G 2
@@ -25,6 +44,11 @@
 
 #define STRAND_COUNT 2
 #define READ_TYPE_COUNT 2
+
+static const int RTYPES[STRAND_COUNT][READ_TYPE_COUNT] = {
+  {0, 1},
+  {1, 0}
+};
 
 #define BAM_COUNT 2
 #define MASK_COUNT 2

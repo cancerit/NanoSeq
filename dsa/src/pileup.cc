@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022, 2025 Genome Research Ltd
+# Copyright (c) 2022, 2025, 2026 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -30,47 +30,10 @@
 ##########################*/
 
 #include <format>
+#include <sstream>
 #include "pileup.h"
 #include "pileup_batch.h"
 #include "utils.h"
-
-static int RetrieveAlignments(void *data, bam1_t *b) {
-    aux_t *aux = (aux_t *)data;
-
-    /*if (!aux->iter) {
-        return -1;
-    }*/
-
-    int ret;
-    while (1) {
-        // ret = sam_itr_next(aux->fp, aux->iter, b);
-        ret = aux->iter ? sam_itr_next(aux->fp, aux->iter, b) : sam_read1(aux->fp, aux->head, b);
-
-        if (ret == -1) {
-            break;
-        }
-
-        if (ret < -1) {
-            std::stringstream er;
-            er << "Error: failure while reading input BAM";
-            er << std::endl;
-            throw std::runtime_error(er.str());
-        }
-
-        // TODO: put here all read checks that would lead to a critical error (spares branches)
-        assert(read_has_flag(b, BAM_FREAD1) ^ read_has_flag(b, BAM_FREAD2));
-
-        if (
-            ((aux->duplex == 1) && (bam_aux_get(b, "RB") == NULL)) ||
-            ((int)b->core.qual < aux->min_mapQ)
-        ) {
-            continue;
-        }
-
-        break;
-    }
-    return ret;
-}
 
 std::vector<std::string> tokenize(std::string str, char delimiter) {
     std::istringstream iss(str);
@@ -178,6 +141,11 @@ void Pileup::Initiate(Options *opts) {
     }
     */
 
+    aux_bulk_init(&this->data[BULK_INDEX], this->opts->bams[BULK_INDEX]);
+    aux_duplex_init(&this->data[DUPLEX_INDEX], this->opts->bams[DUPLEX_INDEX], this->opts->min_mapQ);
+
+    /*
+
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
         this->data[i].fp = hts_open(this->opts->bams[i], "r");
         if (i == BUNDLE_TYPE_DUPLEX) {
@@ -217,7 +185,7 @@ void Pileup::Initiate(Options *opts) {
             }
         }
 
-        this->indices[i] = sam_index_load(this->data[i].fp, this->opts->bams[i]);
+        this->indices[i] = sam_index_load(this->data[i].h.fp, this->opts->bams[i]);
         if (this->indices[i] == NULL) {
             std::stringstream er;
             er << "Error: failed to load the index of ";
@@ -226,6 +194,7 @@ void Pileup::Initiate(Options *opts) {
             throw std::runtime_error(er.str());
         }
     }
+    */
 
     LoadRanges();
 
@@ -416,7 +385,7 @@ static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_
         er << "Error: failed to parse region";
         er << std::endl;
         throw std::runtime_error(er.str());
-    } else if ((*it)->n_off == 0 || (*it)->off == NULL) {
+    } else if ((*it)->finished) {
         std::cerr << std::format(
             "Warning: no reads in region tid={} {}:{}\n",
             r->tid, r->start, r->end + 1);
@@ -441,121 +410,6 @@ void log_skip_contig_range(const char *contig, const range_t range) {
     std::cerr << std::format(
         "Contig '{}' not found, skipping range {}:{}-{}!\n",
         contig, contig, range.start, range.end);
-}
-
-void Pileup::MultiplePileupInRange(const char *contig, const range_t range) {
-    const int tid = GetTID(contig);
-    if (tid < 0) {
-        log_skip_contig_range(contig, range);
-        return;
-    }
-
-    // Create iterators
-    // InitIterators(&r);
-
-    /*
-    {
-        int pos;
-        int n_plp[BUNDLE_TYPES_COUNT];
-        std::vector<const bam_pileup1_t *> plps[BUNDLE_TYPES_COUNT];
-        const bam_pileup1_t **plp;
-        while (bam_mplp_auto(this->mplp, &tid, &pos, n_plp, plp) > 0) {
-            if ((pos >= opts->beg) && (pos <= opts->end)) {
-                // pileup
-                for (int i = 0; i < BUNDLE_TYPES_COUNT; i++) {
-                    for (int j = 0; j < n_plp[i]; ++j) {
-                        plps[i].push_back(this->plp[i] + j);
-                    }
-                }
-                // bundle reads
-                std::unique_ptr<ReadBundler> rb(new ReadBundler());
-                bundles dplx = rb->DplxBundles(pos, this->opts->offset, this->opts->min_dplx_depth, plps[BUNDLE_TYPE_DUPLEX]);
-                if (dplx.size() == 0) {
-                    continue;
-                }
-                bundle bulk = rb->BulkBundle(plps[BUNDLE_TYPE_BULK], this->opts->min_base_quality);
-                // output
-                std::string posn = Pileup::PositionString(contig, pos);
-                out->WriteRows(bulk, dplx, posn, this->gzout, this->opts->out2stdout);
-            }
-            if (pos > opts->end) {
-                break;
-            }
-            plps[BUNDLE_TYPE_BULK].clear();
-            plps[BUNDLE_TYPE_DUPLEX].clear();
-        }
-        free(plp);
-    }
-    */
-}
-
-void Pileup::MultiplePileup() {
-    std::cerr << "Output directory: " << opts->oname << std::endl;
-    WriteOut *wout(new WriteOut(opts));
-
-    aux_t *data_ptrs[BUNDLE_TYPES_COUNT];
-    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        this->data[i].iter = NULL;
-        data_ptrs[i] = &this->data[i];
-    }
-
-    PileupBatch batch;
-    const char *contig;
-
-    bam_mplp_t mplp = NULL;
-
-    for (auto r : this->ranges) {
-        contig = GetContig(r.tid);
-        std::cerr << std::format("(TID={}) {}:{}-{}\n", r.tid, contig, r.start, r.end);
-
-        // InitIterators(&r);
-        for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-            init_iterator(&data_ptrs[i]->iter, this->indices[i], &r);
-        }
-
-        if (mplp == NULL) {
-            mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(data_ptrs));
-            bam_mplp_set_maxcnt(mplp, this->opts->max_plp_depth);
-        } else {
-            bam_mplp_reset(mplp);
-        }
-
-        /*
-        bam_mplp_t mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(data_ptrs));
-        bam_mplp_set_maxcnt(mplp, this->opts->max_plp_depth);
-        */
-
-        batch.Update(contig, {r.start, r.end}, masks, &ref);
-        batch.Pileup(mplp, &ref, wout);
-
-        // bam_mplp_destroy(mplp);
-        // DestroyIterators();
-        for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-            destroy_iterator(&data_ptrs[i]->iter);
-        }
-
-        std::cerr << std::endl;
-    }
-
-    // TODO: handle the empty output case better
-    wout->Finalise();
-
-    return;
-
-    //
-    /*
-
-    */
-
-    // TODO: iterate over input ranges
-    // TODO: convert from cgranges type
-
-    // fai_destroy(this->fai);
-    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        sam_close(this->data[i].fp);
-        sam_hdr_destroy(this->data[i].head);
-    }
-    free(this->data);
 }
 
 void Pileup::LoadRanges() {
@@ -596,4 +450,68 @@ void Pileup::LoadRanges() {
     hts_close(f);
 
     std::cerr << std::format("Loaded {} valid intervals.\n", this->ranges.size());
+}
+
+void Pileup::MultiplePileup() {
+    std::cerr << "Output directory: " << opts->oname << std::endl;
+    GzipCompressor compressor(opts->oname, "dsa.bed.gz", opts->compression_level);
+
+    aux_t *data_ptrs[BUNDLE_TYPES_COUNT];
+    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
+        this->data[i].iter = NULL;
+        data_ptrs[i] = &this->data[i];
+    }
+
+    PileupBatch batch;
+    const char *contig;
+
+    for (auto r : this->ranges) {
+        contig = GetContig(r.tid);
+        std::cerr << std::format("(TID={}) {}:{}-{}\n", r.tid, contig, r.start, r.end);
+
+        // InitIterators(&r);
+        /*
+        for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
+            init_iterator(&data_ptrs[i]->iter, this->indices[i], &r);
+        }
+        */
+
+        /*
+        bam_mplp_t mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(data_ptrs));
+        bam_mplp_set_maxcnt(mplp, this->opts->max_plp_depth);
+        */
+
+        batch.Update(contig, r, masks, &ref);
+        batch.Pileup(data_ptrs, &ref, this->opts, &compressor);
+
+        // bam_mplp_destroy(mplp);
+        // DestroyIterators();
+        /*
+        for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
+            destroy_iterator(&data_ptrs[i]->iter);
+        }
+        */
+
+        std::cerr << std::endl;
+    }
+
+    // TODO: handle the empty output case better
+    compressor.finalise();
+
+    return;
+
+    //
+    /*
+
+    */
+
+    // TODO: iterate over input ranges
+    // TODO: convert from cgranges type
+
+    // fai_destroy(this->fai);
+    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
+        sam_close(this->data[i].fp);
+        sam_hdr_destroy(this->data[i].head);
+    }
+    free(this->data);
 }

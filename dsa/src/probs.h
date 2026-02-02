@@ -86,4 +86,25 @@ static void get_duplex_consensus_quality(const probs_t *p, std::vector<std::pair
     }
 }
 
+static inline void finalise_consensus_quality_scores(double probs[ALPH_LEN]) {
+    // log10 sum exp
+    double maxp = probs[0];
+    for (size_t i = 1; i < ALPH_LEN; ++i) {
+        if (probs[i] > maxp) {
+            maxp = probs[i];
+        }
+    }
+
+    double sumexp = 0.0;
+    for (size_t i = 0; i < ALPH_LEN; ++i) {
+        sumexp += std::pow(POWER, probs[i] - maxp);
+    }
+
+    const double logsumexp = std::log10(sumexp) + maxp;
+    // normalize sum log10 probs and convert to Phred based quality score
+    for (size_t i = 0; i < ALPH_LEN; ++i) {
+        probs[i] = (probs[i] - logsumexp) * -POWER;
+    }
+}
+
 #endif

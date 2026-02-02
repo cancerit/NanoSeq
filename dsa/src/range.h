@@ -46,7 +46,15 @@ typedef struct {
     int32_t start;
     int32_t end;
     int32_t tid;
-    int32_t __padding;
 } range_tid_t;
+
+static range_t range_tid_to_range(const range_tid_t *r) {
+    return {r->start, r->end};
+}
+
+static inline bool range_tid_contains(const range_tid_t *r, const int32_t pos) {
+    // NOTE: check uniformity of convention when calling!
+    return pos >= r->start && pos <= r->end;
+}
 
 #endif

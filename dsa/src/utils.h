@@ -8,6 +8,10 @@
 
 #define flag_is_set(a,b) (((a) & (b)) != 0)
 
+static inline void upper(std::string &str) {
+  std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+}
+
 static inline void get_region(const char *contig, const int start, const int end, char region[MAX_REGION_STR_LENGTH]) {
   snprintf(region, MAX_REGION_STR_LENGTH, "%s:%d-%d", contig, start, end);
 }

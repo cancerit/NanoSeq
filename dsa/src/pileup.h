@@ -46,19 +46,11 @@
 #include "mask.h"
 #include "mask_loader.h"
 #include "options.h"
-#include "read_bundler.h"
-#include "writeout.h"
+// #include "writeout.h"
 #include "constants.h"
 #include "range.h"
 #include "ref.h"
-
-typedef struct {
-  htsFile *fp;
-  hts_itr_t *iter;
-  int min_mapQ;
-  int duplex;
-  sam_hdr_t *head;
-} aux_t;
+#include "aux.h"
 
 class Pileup {
   private:
@@ -89,7 +81,6 @@ class Pileup {
     void Initiate(Options *options);
     void InitIterators(const range_tid_t *r);
     std::string Header();
-    void MultiplePileupInRange(const char *contig, const range_t range);
     void MultiplePileup();
 };
 

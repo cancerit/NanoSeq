@@ -3,19 +3,23 @@ set -e
 clang++ \
     -o dsa \
     -g \
-    -std=c++23 -Wall \
+    -O3 \
+    -std=c++23 \
+    ${CXXFLAGS:-} \
+    -Wall -Wextra -Wpedantic -Wnull-dereference -Warray-bounds -Wformat=2 \
     -Wno-unused-private-field \
     -Wno-unused-function \
     -L"$HOME/.homebrew/lib" \
     -I"$HOME/.homebrew/include" \
     src/ref.cc \
     src/mask.cc \
+    src/bundle.cc \
     src/mask_loader.cc \
+    src/pileup_custom.cc \
     src/pileup.cc \
     src/pileup_batch.cc \
-    src/writeout.cc \
-    src/read_bundler.cc \
     src/dsa.cc \
-    -lhts -ldeflate -lz -lpthread -lcurl -ldl -llzma -lbz2 -lm -lssl -lcrypto
+    -lhts -ldeflate -lz -lpthread -lcurl -ldl -llzma -lbz2 -lm -lssl -lcrypto \
+    ${LDFLAGS:-}
 
 set +e

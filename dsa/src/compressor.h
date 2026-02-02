@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <utility>
 
 class GzipCompressor {
 public:
