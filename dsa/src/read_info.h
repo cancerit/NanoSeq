@@ -23,6 +23,10 @@ static inline int read_has_flag(const bam1_t *b, const uint16_t flag) {
     return (b->core.flag & flag) != 0;
 }
 
+static inline bool read_has_tag(const bam1_t *read, const char *tag) {
+    return bam_aux_get(read, tag) != NULL;
+}
+
 static inline int get_strand_index(const bam1_t *b) {
   // ASSUMPTION: proper pair and strand have already been verified
   static_assert(STRAND_INDEX_FORWARD == 0);
@@ -92,25 +96,6 @@ static inline int get_is_5p_clipped(const bam1_t *b, const int32_t strand) {
 
 static inline int get_is_proper_pair(const bam1_t *b) {
     return read_has_flag(b, BAM_FPROPER_PAIR);
-}
-
-typedef struct ReadInfo {
-    int32_t strand;
-    int64_t as_xs;
-    int64_t nm;
-    uint8_t is_clipped;
-    uint8_t is_proper_pair;
-    std::string id;
-    // duplex_tag_info idf;
-} ReadInfo;
-
-static void read_info_init(ReadInfo *ri, const bam1_t *read) {
-    ri->id = get_duplex_id(read);
-    ri->strand = get_strand_index(read);
-    ri->as_xs = get_as_minus_xs(read);
-    ri->nm = get_nm(read);
-    ri->is_clipped = get_is_5p_clipped(read, ri->strand);
-    ri->is_proper_pair = get_is_proper_pair(read);
 }
 
 #endif

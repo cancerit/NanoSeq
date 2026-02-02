@@ -6,7 +6,6 @@
 #include <assert.h>
 #include <set>
 #include "pileup_custom.h"
-#include "read_info.h"
 #include "options.h"
 #include "bundle.h"
 
@@ -16,121 +15,16 @@ static inline bool is_valid_read(const bam1_t *b) {
     return (read_has_flag(b, BAM_FREAD1) ^ read_has_flag(b, BAM_FREAD2));
 }
 
-static inline bool is_valid_bulk_read(const aux_t *aux, const bam1_t *b) {
-    return ((int)b->core.qual >= aux->min_mapQ) && !read_has_flag(b, BULK_UNUSABLE);
+static inline bool is_usable_read(const aux_t *aux, const bam1_t *b) {
+    return ((int)b->core.qual >= aux->min_mapQ);
 }
 
-static int RetrieveAlignments(void *data, bam1_t *b) {
-    aux_t *aux = (aux_t *)data;
-
-    if (!aux->iter) {
-        return -1;
-    }
-
-    int ret;
-    while (1) {
-        // ret = sam_itr_next(aux->fp, aux->iter, b);
-        // ret = aux->iter ? sam_itr_next(aux->fp, aux->iter, b) : sam_read1(aux->fp, aux->head, b);
-        ret = aux_iter(aux, b);
-
-        if (ret < 0) {
-            if (ret == -1) {
-                fprintf(stderr, "TYPE=%d (%d:%d-%d) EOF after %llu iterations!\n", aux->duplex, aux->range.tid, aux->range.start, aux->range.end, aux->iterations);
-                break;
-            } else {
-                std::stringstream er;
-                er << "Error: failure while reading input BAM";
-                er << std::endl;
-                throw std::runtime_error(er.str());
-            }
-        }
-
-        // TODO: put here all read checks that would lead to a critical error (spares branches)
-        assert(read_has_flag(b, BAM_FREAD1) ^ read_has_flag(b, BAM_FREAD2));
-
-        if (
-            ((aux->duplex == 1) && (bam_aux_get(b, "RB") == NULL)) ||
-            ((int)b->core.qual < aux->min_mapQ)
-        ) {
-            continue;
-        }
-
-        break;
-    }
-    return ret;
+static inline bool is_usable_bulk_read(const aux_t *aux, const bam1_t *b) {
+    return is_usable_read(aux, b) && !read_has_flag(b, BULK_UNUSABLE);
 }
 
-static int get_duplex_read(void *data, bam1_t *b) {
-    aux_t *aux = (aux_t *)data;
-
-    if (!aux->iter) {
-        return -1;
-    }
-
-    int ret;
-    while (1) {
-        ret = aux_iter(aux, b);
-
-        if (ret < 0) {
-            if (ret == -1) {
-                fprintf(stderr, "DUPLEX (%d:%d-%d) EOF after %llu iterations!\n", aux->range.tid, aux->range.start, aux->range.end, aux->iterations);
-                break;
-            } else {
-                std::stringstream er;
-                er << "Error: failure while reading input BAM";
-                er << std::endl;
-                throw std::runtime_error(er.str());
-            }
-        }
-
-        // TODO: put here all read checks that would lead to a critical error (spares branches)
-        assert(read_has_flag(b, BAM_FREAD1) ^ read_has_flag(b, BAM_FREAD2));
-
-        if (
-            ((aux->duplex == 1) && (bam_aux_get(b, "RB") == NULL)) ||
-            ((int)b->core.qual < aux->min_mapQ)
-        ) {
-            continue;
-        }
-
-        break;
-    }
-    return ret;
-}
-
-static int get_bulk_read(void *data, bam1_t *b) {
-    aux_t *aux = (aux_t *)data;
-
-    if (!aux->iter) {
-        return -1;
-    }
-
-    int ret;
-    while (1) {
-        ret = aux_iter(aux, b);
-
-        if (ret < 0) {
-            if (ret == -1) {
-                fprintf(stderr, "BULK (%d:%d-%d) EOF after %llu iterations!\n", aux->range.tid, aux->range.start, aux->range.end, aux->iterations);
-                break;
-            } else {
-                std::stringstream er;
-                er << "Error: failure while reading input BAM";
-                er << std::endl;
-                throw std::runtime_error(er.str());
-            }
-        }
-
-        // TODO: put here all read checks that would lead to a critical error (spares branches)
-        assert(read_has_flag(b, BAM_FREAD1) ^ read_has_flag(b, BAM_FREAD2));
-
-        if ((int)b->core.qual < aux->min_mapQ) {
-            continue;
-        }
-
-        break;
-    }
-    return ret;
+static inline bool is_usable_duplex_read(const aux_t *aux, const bam1_t *b) {
+    return is_usable_read(aux, b) && read_has_tag(b, "RB");
 }
 
 void PileupBatch::Update(const char *contig, const range_tid_t range, MaskLoader mls[2], Ref *ref) {
@@ -199,9 +93,6 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         throw std::runtime_error("Failed to allocate base info array!");
     }
 
-    // bam_mplp_t mplp = bam_mplp_init(BAM_COUNT, RetrieveAlignments, reinterpret_cast<void **>(data));
-    // bam_mplp_set_maxcnt(mplp, opts->max_plp_depth);
-
     range_tid_t r = {this->range.start, this->range.end, this->tid};
     aux_t *bulk_aux = data[BULK_INDEX];
     aux_t *duplex_aux = data[DUPLEX_INDEX];
@@ -232,6 +123,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
             std::unordered_map<std::string, uint64_t> bundle_id_encoder = {};
 
             // A. Aggregate bulk
+            std::cerr << "Aggregating bulk reads..." << std::endl;
             while (1) {
                 rc = aux_iter(bulk_aux, read);
                 if (rc < 0) {
@@ -246,7 +138,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     throw std::runtime_error("Invalid read in bulk file!");
                 }
 
-                if (is_valid_bulk_read(bulk_aux, read)) {
+                if (is_usable_bulk_read(bulk_aux, read)) {
                     int strand = get_strand_index(read);
                     if (strand == STRAND_INDEX_IGNORE) {
                         // TODO: verify this recapitulates the original behaviour!
@@ -283,6 +175,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
             }
 
             // B. Aggregate duplex
+            std::cerr << "Aggregating duplex reads..." << std::endl;
             while (1) {
                 rc = aux_iter(duplex_aux, read);
                 if (rc < 0) {
@@ -297,7 +190,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     throw std::runtime_error("Invalid read in duplex file!");
                 }
 
-                {
+                if (is_usable_duplex_read(duplex_aux, read)) {
                     uint64_t bundle_index;
                     bundle_id = get_duplex_id(read);
                     if (bundle_id_encoder.contains(bundle_id)) {
@@ -343,6 +236,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         }
 
         // D. Close bundles
+        std::cerr << "Finalising bundle stats..." << std::endl;
         for (auto kvp : open_bundles) {
             const uint64_t bundle_index = kvp.first;
             bp = &closed_bundles[bundle_index];
