@@ -284,7 +284,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
 
             // B. Aggregate duplex
             while (1) {
-                rc = aux_iter(bulk_aux, read);
+                rc = aux_iter(duplex_aux, read);
                 if (rc < 0) {
                     if (rc == -1) {
                         break;
