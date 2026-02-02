@@ -181,6 +181,7 @@ std::string bundle_closed_pair_to_dsa_row(const bundle_closed_pair_t *bp, const 
 
     std::stringstream s;
     s
+    << prefix
     << bundle_closed_dsa_id_chunk(info, bundle_type)
     << std::format("{}\t{}\t{}\t",
         custom_round(duplex->asxs),
