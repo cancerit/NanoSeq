@@ -156,7 +156,7 @@ std::string bundle_closed_pair_to_dsa_row(const bundle_closed_pair_t *bp, const 
     << std::format("{}\t{}\t{}\t",
         custom_round(duplex->asxs),
         custom_round(duplex->clip),
-        0.1 * custom_round(duplex->nm * 10.0))
+        static_cast<float>(0.1 * custom_round(duplex->nm * 10.0)))
     << dsa_duplex_base_counts(base, DUPLEX_INDEX)
     << dsa_duplex_base_consensus_qualities(base)
     << custom_round(bulk->proper_pairs) << '\t'
