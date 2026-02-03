@@ -5,11 +5,17 @@
 #include <string>
 
 typedef struct duplex_tag_info {
-    int beg;
-    int end;
+    int32_t beg;
+    int32_t end;
     std::string fwd_bc;
     std::string rev_bc;
 } duplex_tag_info;
+
+static bool duplex_tag_info_is_pos_in_template(const duplex_tag_info *info, const int32_t pos) {
+    // ASSUMPTION: offset correction (based on the convention used for the position)
+    //  has been applied to the input position.
+    return (pos >= info->beg) && (pos <= info->end);
+}
 
 static duplex_tag_info duplex_tag_info_parse(std::string idf1) {
     std::istringstream iss(idf1);

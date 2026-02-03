@@ -15,6 +15,8 @@
 /* DUPLEX STATS */
 
 typedef struct bundle_open_t {
+    duplex_tag_info duplex_tag_info = {};
+
     int64_t asxs_accum[RTYPE_COUNT] = {0, 0};
     int64_t clip_accum[RTYPE_COUNT] = {0, 0};
     int64_t nmms_accum[RTYPE_COUNT] = {0, 0};
@@ -51,7 +53,7 @@ static inline int bundle_open_duplex_update(bundle_open_t *bundle, const bam1_t 
 }
 
 typedef struct bundle_closed_t {
-    duplex_tag_info duplex_tag_info;
+    duplex_tag_info duplex_tag_info = {};
     double asxs = 0.0;
     double nm = 0.0;
     double clip = 0.0;
@@ -59,12 +61,12 @@ typedef struct bundle_closed_t {
 } bundle_closed_t;
 
 // void bundle_closed_bulk_init(bundle_closed_t *s, const bundle_open_t *b);
-void bundle_closed_duplex_init(bundle_closed_t *s, const bundle_open_t *b, const std::string bundle_id);
+void bundle_closed_duplex_init(bundle_closed_t *s, const bundle_open_t *b);
 
 typedef struct duplex_base_t {
-    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT];
+    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT] = {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
     uint64_t duplex_depth[STRAND_COUNT][READ_TYPE_COUNT] = {{0, 0}, {0, 0}};
-    double duplex_consensus_quality_accum[RTYPE_COUNT][ALPH_LEN];
+    double duplex_consensus_quality_accum[RTYPE_COUNT][ALPH_LEN] = {{0, 0, 0, 0}, {0, 0, 0, 0}};
 } duplex_base_t;
 
 static inline int high_duplex_depth(const duplex_base_t *b, const int strand, const uint64_t min_dplx_depth) {
@@ -82,8 +84,14 @@ static inline int duplex_base_get_bundle_type(const duplex_base_t *b, const uint
 
 // Calculate the duplex consensus quality scores (overrides accumulator)
 static inline void duplex_base_finalise(duplex_base_t *base) {
+    uint64_t total;
     for (int i = 0; i < RTYPE_COUNT; ++i) {
-        if (base->counts[DUPLEX_INDEX][i] != 0) {
+        total = 0;
+        // NOTE: skipping the first allele, which is a placeholder for discarded alleles
+        for (int j = 1; j < ALLELE_COUNT; ++j) {
+            total += base->counts[i][j];
+        }
+        if (total != 0) {
             finalise_consensus_quality_scores(base->duplex_consensus_quality_accum[i]);
         }
     }
@@ -92,17 +100,17 @@ static inline void duplex_base_finalise(duplex_base_t *base) {
 /* BULK STATS */
 
 typedef struct bulk_base_open_t {
-    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT];
+    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT] = {{0, 0}, {0, 0}};
 
-    int64_t asxs_accum[RTYPE_COUNT];
-    int64_t nm_accum[RTYPE_COUNT];
-    int64_t ppair_accum[RTYPE_COUNT];
+    int64_t asxs_accum[RTYPE_COUNT] = {0, 0};
+    int64_t nm_accum[RTYPE_COUNT] = {0, 0};
+    int64_t ppair_accum[RTYPE_COUNT] = {0, 0};
 
-    uint64_t read_counts[RTYPE_COUNT];
+    uint64_t read_counts[RTYPE_COUNT] = {0, 0};
 } bulk_base_open_t;
 
 typedef struct bulk_base_closed_t {
-    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT];
+    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT] = {{0, 0}, {0, 0}};
     double asxs = 0.0;
     double nm = 0.0;
     double clip = 0.0;
@@ -112,9 +120,9 @@ typedef struct bulk_base_closed_t {
 void bulk_base_closed_init(bulk_base_closed_t *c, const bulk_base_open_t *o);
 
 typedef struct bulk_read_info_t {
-    int64_t asxs;
-    int64_t nm;
-    int64_t proper_pair;
+    int64_t asxs = 0;
+    int64_t nm = 0;
+    int64_t proper_pair = 0;
 } bulk_read_info_t;
 
 static inline void bulk_read_info_init(bulk_read_info_t *r, const bam1_t *read) {
@@ -137,8 +145,8 @@ std::string bulk_base_get_dsa_chunk(bulk_base_closed_t *bulk, const std::string 
 /* GENOMIC POSITION STATS */
 
 typedef struct pos_stats_t {
-    bulk_base_open_t bulk_base;
-    std::map<uint64_t, duplex_base_t> duplex_bases;
+    bulk_base_open_t bulk_base = {};
+    std::map<uint64_t, duplex_base_t> duplex_bases = {};
 } pos_stats_t;
 
 void dsa_push_row(

@@ -58,7 +58,7 @@ void Usage() {
 static void SetupOptions(int argc, char **argv, Options *opts) {
   opts->max_plp_depth    = 20000000;
   opts->min_dplx_depth   = MIN_DEPTH_DEFAULT;
-  opts->offset           = 1;  // ?
+  opts->offset           = 1;  // Used to correct genomic positions when comparing to duplex boundaries
   opts->min_base_quality = MIN_BASE_QUALITY;
   opts->min_mapQ         = MIN_MAPQ;
   opts->doTests          = true;

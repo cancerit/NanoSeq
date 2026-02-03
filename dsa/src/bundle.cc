@@ -37,11 +37,11 @@ static inline void bundle_closed_set_common(bundle_closed_t *s, const bundle_ope
     }
 }
 
-void bundle_closed_duplex_init(bundle_closed_t *s, const bundle_open_t *b, const std::string bundle_id) {
+void bundle_closed_duplex_init(bundle_closed_t *s, const bundle_open_t *b) {
     const bool has_a = b->rtype_read_counts[RTYPE_A] != 0;
     const bool has_b = b->rtype_read_counts[RTYPE_B] != 0;
     bundle_closed_set_common(s, b);
-    s->duplex_tag_info = duplex_tag_info_parse(bundle_id);
+    s->duplex_tag_info = b->duplex_tag_info;
 
     // NM
     if (has_a && has_b) {
@@ -68,6 +68,8 @@ void bundle_closed_duplex_init(bundle_closed_t *s, const bundle_open_t *b, const
 }
 
 void bulk_base_closed_init(bulk_base_closed_t *s, const bulk_base_open_t *b) {
+    std::memcpy(s->counts, b->counts, sizeof(s->counts));
+
     const bool has_a = b->ppair_accum[RTYPE_A] != 0;
     const bool has_b = b->ppair_accum[RTYPE_B] != 0;
 

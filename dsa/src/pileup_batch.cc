@@ -152,6 +152,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
 
             // B. Aggregate duplex
             std::cerr << "Aggregating duplex reads..." << std::endl;
+            bundle_open_t *duplex_bundle;
             while (1) {
                 const int rc = aux_iter(duplex_aux, read);
                 if (rc < 0) {
@@ -172,13 +173,15 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     if (bundle_id_encoder.contains(bundle_id)) {
                         bundle_index = bundle_id_encoder[bundle_id];
                     } else {
+                        // Initialise and assign a the next duplex index
                         bundle_index = bundle_id_encoder.size();
                         bundle_id_encoder[bundle_id] = bundle_index;
+                        open_bundles[bundle_index].duplex_tag_info = duplex_tag_info_parse(bundle_id);
                     }
 
                     // Update bundle
-                    bundle_open_t *bundle = &open_bundles[bundle_index];
-                    const int r_type = bundle_open_duplex_update(bundle, read);
+                    duplex_bundle = &open_bundles[bundle_index];
+                    const int r_type = bundle_open_duplex_update(duplex_bundle, read);
 
                     // NOTE: do not filter by quality for duplex bundles (?)!
                     if (base_array_update(&base_buffer, read, 0)) {
@@ -194,7 +197,12 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     for (uint64_t i = 0; i < base_buffer.count; ++i) {
                         bi = &base_buffer.bases[i];
                         dbx = &pos_bundles[bi->aln_pos].duplex_bases[bundle_index];
-                        if (range_tid_contains(&r, bi->aln_pos)) {
+                        if (
+                            range_tid_contains(&r, bi->aln_pos) &&
+                            duplex_tag_info_is_pos_in_template(
+                                &duplex_bundle->duplex_tag_info,
+                                bi->aln_pos + opts->offset)
+                        ) {
                             dbx->counts[r_type][bi->base]++;
 
                             // Duplex-specific
@@ -226,7 +234,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
             duplex_bundle = &duplex_bundles[bundle_index];
             bundle_id = bundle_id_decoder[bundle_index];
 
-            bundle_closed_duplex_init(duplex_bundle, duplex_bundle_open, bundle_id);
+            bundle_closed_duplex_init(duplex_bundle, duplex_bundle_open);
         }
     }
 
@@ -243,6 +251,8 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
     duplex_base_t *duplex_base;
     bulk_base_closed_t bulk_base = {};
     pos_stats_t *pos_stats;
+
+    uint64_t dsa_row_count = 0;
     for (auto pos_bundles_kvp : pos_bundles) {
         pos = pos_bundles_kvp.first;
         pos_stats = &pos_bundles_kvp.second;
@@ -271,6 +281,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                 dsa_push_row(s, duplex_bundle, duplex_base, &bulk_base, pos_prefix, bundle_type);
             }
 
+            dsa_row_count++;
         }
 
         // Dump every position
@@ -278,5 +289,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         compressor->write();
 
     }
+
+    std::cerr << std::format("Generated {} rows", dsa_row_count) << std::endl;
 
 }
