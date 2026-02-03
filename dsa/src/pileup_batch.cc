@@ -46,14 +46,6 @@ void PileupBatch::Update(const char *contig, const range_tid_t range, MaskLoader
     std::cerr << std::format("SLICE: {}:{}-{}\n", contig, range.start, range.end);
     std::cerr << std::format("REF: {}:{}-{}\n", contig, ref_range.start, ref_range.end);
     ref->Fetch(contig, ref_range);
-
-    // DEBUG ONLY!
-    /*
-    std::cerr << "[" << ref->ToString() << "]" << std::endl;
-    std::cerr << "<" << ref->GetTripletAround(range.start) << ">" << std::endl;
-    std::cerr << "<" << ref->GetTripletAround(range.start + 1) << ">" << std::endl;
-    std::cerr << "<" << ref->GetTripletAround(range.end) << ">" << std::endl;
-    */
 }
 
 const std::string PileupBatch::PositionString(const char *contig, const int pos, Ref *ref, const uint8_t mask_values[MASK_COUNT]) {
