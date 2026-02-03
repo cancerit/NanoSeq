@@ -246,7 +246,6 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
     // bundle_closed_t *duplex_bundle;
     uint8_t bundle_type;
     std::string pos_prefix;
-    std::stringstream s;
     bundle_closed_t *duplex_bundle;
     duplex_base_t *duplex_base;
     bulk_base_closed_t bulk_base = {};
@@ -262,7 +261,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         mask_values[MASK_INDEX_SNP] = flag_is_set(mask_flag, MASK_FLAG_SNP);
         mask_values[MASK_INDEX_NOISE] = flag_is_set(mask_flag, MASK_FLAG_NOISE);
 
-        s.clear();
+        std::stringstream s;
 
         bulk_base_closed_init(&bulk_base, &pos_stats->bulk_base);
         pos_prefix = bulk_base_get_dsa_chunk(&bulk_base, PositionString(this->contig, pos, ref, mask_values));
