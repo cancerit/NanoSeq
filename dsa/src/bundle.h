@@ -12,51 +12,13 @@
 #include "probs.h"
 #include "read_info.h"
 
-/*
-struct bundle {
-
-  // TODO: can be integer, probably
-  float dplx_depth[STRAND_COUNT][READ_TYPE_COUNT] = {};
-  uint64_t counts[RTYPE_COUNT][ALLELE_COUNT] = {};
-
-  // Replace vectors with totals to be divided by counts to get averages
-  std::vector<int> asxs[RTYPE_COUNT] = {};
-  std::vector<int> clip[RTYPE_COUNT] = {};
-  std::vector<int> nmms[RTYPE_COUNT] = {};
-
-  uint64_t rtype_ppair_counts[RTYPE_COUNT] = {};
-  uint64_t rtype_read_counts[RTYPE_COUNT] = {};  // then divide ppair to get the averages
-
-  // TODO: replace character key with index (?)
-  std::vector<std::pair<int, int>> call[RTYPE_COUNT] = {};
-  std::map<int, std::vector<double>> consensus = {};
-  // double consensus[RTYPE_COUNT][ALPH_LEN] = {};
-  duplex_tag_info duplex_tag_info = {};
-
-  // TODO: use a separate struct instead?
-  int bundle_type = INT32_MIN;
-};
-*/
-
-/*
-1. Accumulate stats in id -> open bundle map
-2. Filter out open bundles
-3. Convert open bundles into closed bundles and per-position consensi
-4. For each alignment position, for each bundle, generate a DSA line
-*/
-
 typedef struct bundle_open_t {
-    // int64_t dplx_depth[STRAND_COUNT][READ_TYPE_COUNT] = {{0, 0}, {0, 0}};
-    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT] = {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
-
     int64_t asxs_accum[RTYPE_COUNT] = {0, 0};
     int64_t clip_accum[RTYPE_COUNT] = {0, 0};
     int64_t nmms_accum[RTYPE_COUNT] = {0, 0};
 
     int64_t rtype_ppair_counts[RTYPE_COUNT] = {0, 0};
     uint64_t rtype_read_counts[RTYPE_COUNT] = {0, 0};  // then divide ppair to get the averages
-
-    // std::map<int32_t, double[RTYPE_COUNT][ALPH_LEN]> call_prob_accum = {};
 } bundle_open_t;
 
 static inline bool bundle_open_is_empty(const bundle_open_t *b) {
@@ -146,39 +108,5 @@ typedef struct bundle_closed_pair_t {
 } bundle_closed_pair_t;
 
 std::string bundle_closed_pair_to_dsa_row(const bundle_closed_pair_t *bp, const std::string pos_prefix, const duplex_base_t *base, const uint8_t bundle_type);
-
-/*
-// TODO: consider a more compact duplex ID as key
-// TODO: this needs clearing (still prone to slicing artifacts)
-typedef std::map<std::string, bundle> bundles;
-
-typedef struct bundle_pos_t {
-	std::string id;  // to retrieve whole bundle information
-	double probs[RTYPE_COUNT][ALPH_LEN];
-} bundle_pos_t;
-
-/// Statistics by genomic position for all duplex bundles
-// NOTE: discard invalid bundles first?
-typedef struct pos_stats_t {
-	// ASSUMPTION: no bundle can be pushed more than once
-	//  Alterative to having a map, that duplicates duplex ID's.
-	std::vector<bundle_t> bundles;
-} pos_stats_t;
-
-static void f(std::map<std::string, bundle_t> bundles, std::map<int32_t, pos_stats_t> pos_stats) {
-	bundle_t *b = NULL;
-	std::string id;
-	for (auto ib : bundles) {
-		id = ib.first;
-		b = &ib.second;
-		// TODO: filter bundle
-		if (true) {
-			for (base_qual_t bq : b->base_calls[0]) {
-				pos_stats[bq.aln_pos].bundles.push_back((bundle_pos_t){id, {0.0}});
-			}
-		}
-	}
-}
-*/
 
 #endif

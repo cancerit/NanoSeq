@@ -22,31 +22,4 @@ static inline int custom_round(const double d) {
   return (n == -0) ? 0 : n;
 }
 
-static inline int64_t vector_sum(std::vector<int> v) {
-  return std::reduce(v.begin(), v.end(), int64_t{0});
-}
-
-static inline float vector_mean(std::vector<int> v) {
-  const size_t n = v.size();
-  if (n == 0) {
-    // TODO: reconsider
-    return 0.0f;
-  }
-  return static_cast<float>(
-    static_cast<double>(vector_sum(v)) /
-    static_cast<double>(n));
-}
-
-static float vector_pair_mean(std::vector<int> v1, std::vector<int> v2) {
-  const size_t n = v1.size() + v2.size();
-  if (n == 0) {
-    // TODO: reconsider
-    return 0.0f;
-  }
-  const int64_t total = vector_sum(v1) + vector_sum(v2);
-  return static_cast<float>(
-    static_cast<double>(total) /
-    static_cast<double>(n));
-}
-
 #endif

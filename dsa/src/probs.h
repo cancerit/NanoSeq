@@ -45,47 +45,6 @@ static void probs_add_p_error(const probs_t *p, const int qual, int base_code, d
     }
 }
 
-static void get_duplex_consensus_quality(const probs_t *p, std::vector<std::pair<int, int>> call, double consensus[4]) {
-    const size_t n = call.size();
-
-    if (n == 0) {
-        for (int i = 0; i < ALPH_LEN; ++i) {
-            consensus[i] = 0.0;
-        }
-        return;
-    }
-
-    double probs[ALPH_LEN] = {0.0, 0.0, 0.0, 0.0};
-
-    // sum log10 probability of error
-    int base, qual;
-    for (size_t i = 0; i < n; ++i) {
-        base = call[i].first;
-        qual = call[i].second;
-        probs_add_p_error(p, qual, base, probs);
-    }
-
-    // log10 sum exp
-    double maxp = probs[0];
-    for (size_t i = 1; i < ALPH_LEN; ++i) {
-        if (probs[i] > maxp) {
-            maxp = probs[i];
-        }
-    }
-
-    double sumexp = 0.0;
-    for (size_t i = 0; i < ALPH_LEN; ++i) {
-        sumexp += std::pow(POWER, probs[i] - maxp);
-    }
-
-    const double logsumexp = std::log10(sumexp) + maxp;
-    // normalize sum log10 probs and convert to Phred based quality score
-    for (size_t i = 0; i < ALPH_LEN; ++i) {
-        // consensus.push_back((probs[i] - logsumexp) * -POWER);
-        consensus[i] = (probs[i] - logsumexp) * -POWER;
-    }
-}
-
 static inline void finalise_consensus_quality_scores(double probs[ALPH_LEN]) {
     // log10 sum exp
     double maxp = probs[0];

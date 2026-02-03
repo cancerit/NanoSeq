@@ -4,53 +4,23 @@
 
 // #define POWER 10.0
 
-static inline double mean(const double a, const double b) {
-    return b != 0.0 ? a / b : 0.0;
-}
-
 static inline double bundle_mean(const bundle_open_t *b, const uint64_t r_type, const int64_t x[2]) {
     return static_cast<double>(x[r_type]) / static_cast<double>(b->rtype_read_counts[r_type]);
 }
 
-static inline double bundle_mean_or_zero(const bundle_open_t *b, const uint64_t r_type, const int64_t x[2]) {
-    return b->rtype_read_counts[r_type] == 0 ? 0.0 : bundle_mean(b, r_type, x);
+/*
+static inline double mean(const double a, const double b) {
+    return b != 0.0 ? a / b : 0.0;
 }
 
-/*
-static void bundle_get_consensus(const bundle_open_t *b, const uint64_t r_type, const int32_t pos, double consensus[ALPH_LEN]) {
-    const double *probs = b->call_prob_accum[pos][r_type];
-
-    // log10 sum exp
-    double maxp = probs[0];
-    for (size_t i = 1; i < ALPH_LEN; ++i) {
-        if (probs[i] > maxp) {
-            maxp = probs[i];
-        }
-    }
-
-    double sumexp = 0.0;
-    for (size_t i = 0; i < ALPH_LEN; ++i) {
-        sumexp += std::pow(POWER, probs[i] - maxp);
-    }
-
-    const double logsumexp = std::log10(sumexp) + maxp;
-    // normalize sum log10 probs and convert to Phred based quality score
-    for (size_t i = 0; i < ALPH_LEN; ++i) {
-        consensus[i] = (probs[i] - logsumexp) * -POWER;
-    }
+static inline double bundle_mean_or_zero(const bundle_open_t *b, const uint64_t r_type, const int64_t x[2]) {
+    return b->rtype_read_counts[r_type] == 0 ? 0.0 : bundle_mean(b, r_type, x);
 }
 */
 
 static inline void bundle_closed_set_common(bundle_closed_t *s, const bundle_open_t *b) {
     const bool has_a = b->rtype_ppair_counts[RTYPE_A] != 0;
     const bool has_b = b->rtype_ppair_counts[RTYPE_B] != 0;
-
-    // Unpack duplex tag info
-    // s->duplex_tag_info = duplex_tag_info_parse(id);
-
-    // Consensus base qualities
-	// bundle_get_consensus(b, RTYPE_A, s->consensus_qualities[RTYPE_A]);
-	// bundle_get_consensus(b, RTYPE_B, s->consensus_qualities[RTYPE_B]);
 
     // Mean AS - XS and proper pair counts
     if (has_a && has_b) {
