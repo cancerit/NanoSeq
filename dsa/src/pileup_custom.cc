@@ -26,8 +26,19 @@ static const uint8_t cigar_maps_to_ref[16] = {
     [BAM_CDIFF] = 1
 };
 
-static inline base_t *base_info_array_get_next(const base_array_t *a) {
-    return &a->bases[a->count];
+static inline void patch_anchor_base(const base_array_t *a) {
+    /*
+    Mark the anchor base of an indel as a deletion, matching the original behaviour:
+
+    if ((p->is_del) || (p->indel != 0)) {
+        return std::make_pair('i', -1);
+    }
+    */
+    base_t *b = base_info_get_last(a);
+    if (b != NULL && b->base != ALLELE_DEL) {
+        b->base = ALLELE_DEL;
+        b->qual = 0;
+    }
 }
 
 int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
@@ -80,6 +91,10 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
                 ref_offset++;
             }
         } else if (op == BAM_CDEL) {
+
+            // ANCHOR BASE PATCH (ONLY TO MATCH CURRENT OUTPUT!)
+            patch_anchor_base(ba);
+
             // Consider that in samtools pileup skips are marked as deletions (bug)!
             ref_offset_end = ref_offset + len;
             for (; ref_offset < ref_offset_end; ++ref_offset) {
@@ -93,6 +108,11 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
                 ba->count++;
 
             }
+        } else if (op == BAM_CINS) {
+
+            // ANCHOR BASE PATCH (ONLY TO MATCH CURRENT OUTPUT!)
+            patch_anchor_base(ba);
+
         } else {
             // TODO: consider behaviour with soft-clipped bases!
             query_pos  += (int32_t)cigar_consumes_query[op] * len;
