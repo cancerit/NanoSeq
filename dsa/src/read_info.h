@@ -65,8 +65,8 @@ static inline int64_t get_as_minus_xs(const bam1_t *read) {
     return as - xs;
 }
 
-static inline int read_is_in_proper_pair(const bam1_t *b) {
-  return read_has_flag(b, BAM_FPROPER_PAIR);
+static inline int64_t read_is_in_proper_pair(const bam1_t *b) {
+  return static_cast<int64_t>(read_has_flag(b, BAM_FPROPER_PAIR));
 }
 
 static inline int get_read_type_index(const bam1_t *b) {

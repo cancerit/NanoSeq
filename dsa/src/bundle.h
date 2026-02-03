@@ -12,6 +12,8 @@
 #include "probs.h"
 #include "read_info.h"
 
+/* DUPLEX STATS */
+
 typedef struct bundle_open_t {
     int64_t asxs_accum[RTYPE_COUNT] = {0, 0};
     int64_t clip_accum[RTYPE_COUNT] = {0, 0};
@@ -23,14 +25,6 @@ typedef struct bundle_open_t {
 
 static inline bool bundle_open_is_empty(const bundle_open_t *b) {
     return b->rtype_read_counts[RTYPE_A] == 0 && b->rtype_read_counts[RTYPE_B] == 0;
-}
-
-static inline void bundle_open_bulk_update(bundle_open_t *bundle, const bam1_t *read, const int32_t strand) {
-    // ASSUMPTION: strand has been sanitised already
-    bundle->asxs_accum[strand] += get_as_minus_xs(read);
-    bundle->nmms_accum[strand] += get_nm(read);
-    bundle->rtype_ppair_counts[strand] += read_is_in_proper_pair(read);
-    bundle->rtype_read_counts[strand]++;
 }
 
 static inline int bundle_open_duplex_update(bundle_open_t *bundle, const bam1_t *read) {
@@ -57,25 +51,20 @@ static inline int bundle_open_duplex_update(bundle_open_t *bundle, const bam1_t 
 }
 
 typedef struct bundle_closed_t {
-    // duplex_tag_info duplex_tag_info = {};
-	// double consensus_qualities[RTYPE_COUNT][ALPH_LEN] = {};
+    duplex_tag_info duplex_tag_info;
     double asxs = 0.0;
     double nm = 0.0;
     double clip = 0.0;
     double proper_pairs = 0.0;
 } bundle_closed_t;
 
-void bundle_closed_bulk_init(bundle_closed_t *s, const bundle_open_t *b);
-void bundle_closed_duplex_init(bundle_closed_t *s, const bundle_open_t *b);
-
-/* PER-BASE DUPLEX STATS */
+// void bundle_closed_bulk_init(bundle_closed_t *s, const bundle_open_t *b);
+void bundle_closed_duplex_init(bundle_closed_t *s, const bundle_open_t *b, const std::string bundle_id);
 
 typedef struct duplex_base_t {
-    // Duplex-only
-    double duplex_consensus_quality_accum[RTYPE_COUNT][ALPH_LEN];
+    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT];
     uint64_t duplex_depth[STRAND_COUNT][READ_TYPE_COUNT] = {{0, 0}, {0, 0}};
-    // Duplex and bulk
-    uint64_t counts[BUNDLE_TYPES_COUNT][RTYPE_COUNT][ALLELE_COUNT];
+    double duplex_consensus_quality_accum[RTYPE_COUNT][ALPH_LEN];
 } duplex_base_t;
 
 static inline int high_duplex_depth(const duplex_base_t *b, const int strand, const uint64_t min_dplx_depth) {
@@ -100,13 +89,65 @@ static inline void duplex_base_finalise(duplex_base_t *base) {
     }
 }
 
-/* BUNDLE PAIR */
+/* BULK STATS */
 
-typedef struct bundle_closed_pair_t {
-    duplex_tag_info duplex_tag_info;
-    bundle_closed_t bundles[BUNDLE_TYPES_COUNT];
-} bundle_closed_pair_t;
+typedef struct bulk_base_open_t {
+    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT];
 
-std::string bundle_closed_pair_to_dsa_row(const bundle_closed_pair_t *bp, const std::string pos_prefix, const duplex_base_t *base, const uint8_t bundle_type);
+    int64_t asxs_accum[RTYPE_COUNT];
+    int64_t nm_accum[RTYPE_COUNT];
+    int64_t ppair_accum[RTYPE_COUNT];
+
+    uint64_t read_counts[RTYPE_COUNT];
+} bulk_base_open_t;
+
+typedef struct bulk_base_closed_t {
+    uint64_t counts[RTYPE_COUNT][ALLELE_COUNT];
+    double asxs = 0.0;
+    double nm = 0.0;
+    double clip = 0.0;
+    double proper_pairs = 0.0;
+} bulk_base_closed_t;
+
+void bulk_base_closed_init(bulk_base_closed_t *c, const bulk_base_open_t *o);
+
+typedef struct bulk_read_info_t {
+    int64_t asxs;
+    int64_t nm;
+    int64_t proper_pair;
+} bulk_read_info_t;
+
+static inline void bulk_read_info_init(bulk_read_info_t *r, const bam1_t *read) {
+    r->asxs = get_as_minus_xs(read);
+    r->nm = get_nm(read);
+    r->proper_pair = read_is_in_proper_pair(read);
+}
+
+static inline void bulk_base_update(bulk_base_open_t *b, const bulk_read_info_t *read_info, const base_t *bi, const int32_t strand) {
+    // ASSUMPTION: strand has been sanitised already
+    b->asxs_accum[strand] += read_info->asxs;
+    b->nm_accum[strand] += read_info->nm;
+    b->ppair_accum[strand] += read_info->proper_pair;
+    b->read_counts[strand]++;
+    b->counts[strand][bi->base]++;
+}
+
+std::string bulk_base_get_dsa_chunk(bulk_base_closed_t *bulk, const std::string pos_prefix);
+
+/* GENOMIC POSITION STATS */
+
+typedef struct pos_stats_t {
+    bulk_base_open_t bulk_base;
+    std::map<uint64_t, duplex_base_t> duplex_bases;
+} pos_stats_t;
+
+void dsa_push_row(
+    std::stringstream &s,
+    const bundle_closed_t *duplex_bundle,
+    const duplex_base_t *duplex_base,
+    const bulk_base_closed_t *bulk_base,
+    const std::string pos_prefix,
+    const uint8_t bundle_type
+);
 
 #endif

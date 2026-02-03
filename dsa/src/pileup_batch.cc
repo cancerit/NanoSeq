@@ -76,17 +76,9 @@ const std::string PileupBatch::PositionString(const char *contig, const int pos,
 }
 
 void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompressor *compressor) {
-    // const Options *opts = out->opts;
-    // int n_plp[BUNDLE_TYPES_COUNT];
-    std::vector<const bam_pileup1_t *> plps[BUNDLE_TYPES_COUNT];
-    // const bam_pileup1_t *plp[BUNDLE_TYPES_COUNT];
     uint8_t mask_flag = 0;
     uint8_t mask_values[MASK_COUNT] = {0, 0};
     std::string posn;
-    // ReadBundler rb = {};
-    // rb.Init();
-
-    // std::map<int32_t, std::map<std::string, bundle>> ppp = {};
 
     base_array_t base_buffer = {};
     if (base_info_array_reset(&base_buffer, 256)) {
@@ -101,18 +93,14 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
     aux_set_iterator(duplex_aux, r);
 
     // Bulk pileup
-    int rc;
     bam1_t *read = bam_init1();
-    base_t *bi = NULL;
 
     // Genomic position -> bundle indices
-    std::map<int32_t, std::map<uint64_t, duplex_base_t>> pos_bundles = {};
-    std::unordered_map<uint64_t, bundle_closed_pair_t> closed_bundles = {};
+    std::map<int32_t, pos_stats_t> pos_bundles = {};
+    std::unordered_map<uint64_t, bundle_closed_t> duplex_bundles = {};
     std::vector<std::string> bundle_id_decoder = {};
 
     std::string bundle_id;
-    bundle_closed_pair_t *bp;
-    duplex_base_t *dbx;
 
     const uint64_t min_dplx_depth = static_cast<uint64_t>(opts->min_dplx_depth);
 
@@ -123,15 +111,16 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
     // TODO: add processed read counters
 
     {
-        std::unordered_map<uint64_t, bundle_open_t[BUNDLE_TYPES_COUNT]> open_bundles = {};
+        std::unordered_map<uint64_t, bundle_open_t> open_bundles = {};
 
         {
             std::unordered_map<std::string, uint64_t> bundle_id_encoder = {};
 
             // A. Aggregate bulk
             std::cerr << "Aggregating bulk reads..." << std::endl;
+            bulk_read_info_t bulk_read_info = {};
             while (1) {
-                rc = aux_iter(bulk_aux, read);
+                const int rc = aux_iter(bulk_aux, read);
                 if (rc < 0) {
                     if (rc == -1) {
                         break;
@@ -151,30 +140,19 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                         continue;
                     }
 
-                    uint64_t bundle_index;
-                    bundle_id = get_duplex_id(read);
-                    if (bundle_id_encoder.contains(bundle_id)) {
-                        bundle_index = bundle_id_encoder[bundle_id];
-                    } else {
-                        bundle_index = bundle_id_encoder.size();
-                        bundle_id_encoder[bundle_id] = bundle_index;
-                    }
-
-                    // Update bundle
-                    bundle_open_t *bundle = &open_bundles[bundle_index][BUNDLE_TYPE_BULK];
-                    bundle_open_bulk_update(bundle, read, strand);
-
-                    // NOTE: do not filter by quality for duplex bundles (?)!
                     if (base_array_update(&base_buffer, read, opts->min_base_quality)) {
                         throw std::runtime_error("Failed to perform pileup on bulk read!");
                     }
 
                     // Update allele counts
+                    base_t *bi;
+                    bulk_base_open_t *bbx;
+                    bulk_read_info_init(&bulk_read_info, read);
                     for (uint64_t i = 0; i < base_buffer.count; ++i) {
                         bi = &base_buffer.bases[i];
-                        dbx = &pos_bundles[bi->aln_pos][bundle_index];
+                        bbx = &pos_bundles[bi->aln_pos].bulk_base;
                         if (range_tid_contains(&r, bi->aln_pos)) {
-                            dbx->counts[BUNDLE_TYPE_BULK][strand][bi->base]++;
+                            bulk_base_update(bbx, &bulk_read_info, bi, strand);
                         }
                     }
                 }
@@ -183,7 +161,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
             // B. Aggregate duplex
             std::cerr << "Aggregating duplex reads..." << std::endl;
             while (1) {
-                rc = aux_iter(duplex_aux, read);
+                const int rc = aux_iter(duplex_aux, read);
                 if (rc < 0) {
                     if (rc == -1) {
                         break;
@@ -207,7 +185,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     }
 
                     // Update bundle
-                    bundle_open_t *bundle = &open_bundles[bundle_index][DUPLEX_INDEX];
+                    bundle_open_t *bundle = &open_bundles[bundle_index];
                     const int r_type = bundle_open_duplex_update(bundle, read);
 
                     // NOTE: do not filter by quality for duplex bundles (?)!
@@ -219,11 +197,13 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     const int read_index = get_read_type_index(read);
 
                     // Update allele counts
+                    base_t *bi;
+                    duplex_base_t *dbx;
                     for (uint64_t i = 0; i < base_buffer.count; ++i) {
                         bi = &base_buffer.bases[i];
-                        dbx = &pos_bundles[bi->aln_pos][bundle_index];
+                        dbx = &pos_bundles[bi->aln_pos].duplex_bases[bundle_index];
                         if (range_tid_contains(&r, bi->aln_pos)) {
-                            dbx->counts[DUPLEX_INDEX][r_type][bi->base]++;
+                            dbx->counts[r_type][bi->base]++;
 
                             // Duplex-specific
                             if (strand != STRAND_INDEX_IGNORE) {
@@ -246,48 +226,57 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
 
         // D. Close bundles
         std::cerr << "Finalising bundle stats..." << std::endl;
+        bundle_open_t *duplex_bundle_open;
+        bundle_closed_t *duplex_bundle;
         for (auto kvp : open_bundles) {
             const uint64_t bundle_index = kvp.first;
-            bp = &closed_bundles[bundle_index];
-
+            duplex_bundle_open = &kvp.second;
+            duplex_bundle = &duplex_bundles[bundle_index];
             bundle_id = bundle_id_decoder[bundle_index];
-            bp->duplex_tag_info = duplex_tag_info_parse(bundle_id);
 
-            bundle_closed_bulk_init(&bp->bundles[BULK_INDEX], &kvp.second[BULK_INDEX]);
-            bundle_closed_duplex_init(&bp->bundles[DUPLEX_INDEX], &kvp.second[DUPLEX_INDEX]);
+            bundle_closed_duplex_init(duplex_bundle, duplex_bundle_open, bundle_id);
         }
     }
 
     // E. Process bundle stats by position
+
+    std::cerr << "Generating DSA table..." << std::endl;
     int32_t pos;
     // bundle_closed_t *bulk_bundle;
     // bundle_closed_t *duplex_bundle;
     uint8_t bundle_type;
     std::string pos_prefix;
     std::stringstream s;
+    bundle_closed_t *duplex_bundle;
+    duplex_base_t *duplex_base;
+    bulk_base_closed_t bulk_base = {};
+    pos_stats_t *pos_stats;
     for (auto pos_bundles_kvp : pos_bundles) {
         pos = pos_bundles_kvp.first;
+        pos_stats = &pos_bundles_kvp.second;
 
         // Generate DSA table row prefix
         mask_flag = this->mask.GetFlag(pos);
         mask_values[MASK_INDEX_SNP] = flag_is_set(mask_flag, MASK_FLAG_SNP);
         mask_values[MASK_INDEX_NOISE] = flag_is_set(mask_flag, MASK_FLAG_NOISE);
-        pos_prefix = PositionString(this->contig, pos, ref, mask_values);
 
         s.clear();
 
-        for (auto bundle_index_probs_kvp : pos_bundles_kvp.second) {
+        bulk_base_closed_init(&bulk_base, &pos_stats->bulk_base);
+        pos_prefix = bulk_base_get_dsa_chunk(&bulk_base, PositionString(this->contig, pos, ref, mask_values));
+
+        for (auto bundle_index_probs_kvp : pos_stats->duplex_bases) {
             const uint64_t bundle_index = bundle_index_probs_kvp.first;
 
-            dbx = &bundle_index_probs_kvp.second;
+            duplex_base = &bundle_index_probs_kvp.second;
             // BEWARE: the argument gets modified!
-            duplex_base_finalise(dbx);
+            duplex_base_finalise(duplex_base);
 
-            bp = &closed_bundles[bundle_index];
+            duplex_bundle = &duplex_bundles[bundle_index];
 
-            bundle_type = duplex_base_get_bundle_type(dbx, min_dplx_depth);
+            bundle_type = duplex_base_get_bundle_type(duplex_base, min_dplx_depth);
             if (bundle_type != 0) {
-                s << bundle_closed_pair_to_dsa_row(bp, pos_prefix, dbx, bundle_type);
+                dsa_push_row(s, duplex_bundle, duplex_base, &bulk_base, pos_prefix, bundle_type);
             }
 
         }
