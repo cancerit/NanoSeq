@@ -80,7 +80,7 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
 
                     // A. Push canonical base
                     bi = base_info_array_get_next(ba);
-                    bi->read_pos = (int16_t)query_pos;
+                    // bi->read_pos = (int16_t)query_pos;
                     bi->aln_pos = read->core.pos + ref_offset;
                     bi->base = nt16_allele[bam_nt];
                     bi->qual = qual[query_pos];
@@ -101,7 +101,7 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
 
                 // B. Push deletion
                 bi = base_info_array_get_next(ba);
-                bi->read_pos = (int16_t)query_pos;
+                // bi->read_pos = (int16_t)query_pos;
                 bi->aln_pos = read->core.pos + ref_offset;
                 bi->base = ALLELE_DEL;
                 bi->qual = 0;
