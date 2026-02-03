@@ -116,6 +116,12 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
 
     const uint64_t min_dplx_depth = static_cast<uint64_t>(opts->min_dplx_depth);
 
+    // TODO: make global (or part of the Pileup object)
+    probs_t probs = {};
+    probs_init(&probs);
+
+    // TODO: add processed read counters
+
     {
         std::unordered_map<uint64_t, bundle_open_t[BUNDLE_TYPES_COUNT]> open_bundles = {};
 
@@ -220,7 +226,10 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                             dbx->counts[DUPLEX_INDEX][r_type][bi->base]++;
 
                             // Duplex-specific
-                            dbx->duplex_depth[strand][read_index]++;
+                            if (strand != STRAND_INDEX_IGNORE) {
+                                dbx->duplex_depth[strand][read_index]++;
+                            }
+                            probs_add_p_error(&probs, bi->qual, bi->base, dbx->duplex_consensus_quality_accum[r_type]);
                         }
                     }
                 }
