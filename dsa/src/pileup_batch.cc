@@ -36,10 +36,14 @@ void PileupBatch::Update(const char *contig, const range_tid_t range, MaskLoader
 
     // Load masks
     this->mask.Reset(this->range);
+    assert(mask.CountBytesSet() == 0);
+
+    uint64_t max_masked_positions = 0;
     for (int i = 0; i < 2; ++i) {
-        mls[i].LoadMask(this->contig, this->range.start, this->range.end, this->mask);
+        max_masked_positions += mls[i].LoadMask(this->contig, this->range.start, this->range.end, this->mask);
     }
     std::cerr << std::format("Masked positions: {}\n", mask.CountBytesSet());
+    assert(mask.CountBytesSet() <= max_masked_positions);
 
     // Load reference sequence
     const range_t ref_range = range_grow(&this->range);

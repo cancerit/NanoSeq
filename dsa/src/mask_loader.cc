@@ -32,7 +32,7 @@ void MaskLoader::Init(const char *bed_fp) {
     }
 }
 
-void MaskLoader::LoadMask(const char *contig, const int start, const int end, Mask &mask) {
+uint64_t MaskLoader::LoadMask(const char *contig, const int start, const int end, Mask &mask) {
     assert(end - start > 0);
     const range_t t = {start, end};
 
@@ -44,8 +44,10 @@ void MaskLoader::LoadMask(const char *contig, const int start, const int end, Ma
     // hts_itr_t *itr = tbx_itr_querys(this->tbx, region);
     range_t r;
     if (itr == nullptr) {
-        // TODO: warn
-        return;
+        std::cerr << std::format(
+            "Failed to load mask iterator for range {}:{}-{}\n",
+            contig, start, end);
+        return 0;
     }
 
     kstring_t str = {};
@@ -75,4 +77,6 @@ void MaskLoader::LoadMask(const char *contig, const int start, const int end, Ma
     std::cerr << std::format(
         "Loaded {} variants ({}/{} positions covered).\n",
         variant_count, position_count, range_length(&t));
+
+    return position_count;
 }

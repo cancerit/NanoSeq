@@ -17,7 +17,7 @@ class MaskLoader {
     MaskLoader() = default;
     MaskLoader(const uint8_t index);
     void Init(const char *bed_fp);
-    void LoadMask(const char *contig, const int start, const int end, Mask &mask);
+    uint64_t LoadMask(const char *contig, const int start, const int end, Mask &mask);
 };
 
 #endif
