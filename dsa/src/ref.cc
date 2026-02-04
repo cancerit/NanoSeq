@@ -11,9 +11,19 @@ void Ref::Init(const char *fai_fp) {
   }
 }
 
-void Ref::Fetch(const char *contig, const range_t range) {
+void Ref::Fetch(const char *contig, const range_t range_) {
   int32_t seq_length;
   // TODO: verify whether the partitioning step respects the BED conventions...
+
+  const int32_t max_pos = faidx_seq_len(this->fai, contig) - 1;
+  assert(max_pos > 0);
+  range_t range = range_;
+  if (range.start < 0) {
+    range.start = 0;
+  }
+  if (range.end > max_pos) {
+    range.end = max_pos;
+  }
 
   this->seq.Set(range, faidx_fetch_seq(
     this->fai, contig, range.start, range.end - 1, &seq_length));
