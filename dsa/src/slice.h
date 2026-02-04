@@ -12,10 +12,11 @@ template<typename T>
 class Slice {
   private:
     range_t range;
+    size_t capacity;
     T *values;
 
   public:
-    Slice() : range({0, 0}), values(nullptr) {};
+    Slice() : range({0, 0}), capacity(0), values(nullptr) {};
     bool IsNull();
     uint64_t CountBytesSet();
     void Update(const range_t range, const T value);
@@ -68,7 +69,7 @@ inline int32_t Slice<T>::GetLength() {
 
 template <typename T>
 const std::string Slice<T>::ToString() {
-  return std::string(values, range_length(&range));
+  return std::string(this->values, this->GetLength());
 }
 
 template <typename T>
@@ -93,30 +94,41 @@ inline T *Slice<T>::Data() {
 
 template<typename T>
 void Slice<T>::Reset(const range_t range, const bool zero) {
-  const int32_t n = range_length(&this->range);
-  const int32_t m = range_length(&range);
-  assert(m > 0);
+  const int32_t new_range_length = range_length(&range);
+  assert(new_range_length > 0);
   this->range = range;
 
-  if (this->values == nullptr) {
-
-    this->values = (T*)calloc(m, sizeof(T));
-
-  } else {
-
-    // Expand the mask (if necessary) and reset it to zero
-    if (m > n) {
-      this->values = (T*)realloc(this->values, m);
-      if (this->values == nullptr) {
-        throw std::runtime_error("Failed to reallocate slice!");
-      }
-    }
-
-    if (zero) {
-      memset(this->values, 0, m);
-    }
-
+  /*
+  if (this->values) {
+    free(this->values);
   }
+  this->values = (T*)calloc(new_range_length + 1, sizeof(T));
+  return;
+  */
+
+  const size_t n = this->capacity;
+  const size_t m = static_cast<size_t>(new_range_length + 1);
+
+  if (m > n) {
+    this->capacity = m;
+  }
+
+  const size_t new_size = this->capacity * sizeof(T);
+
+  if (this->values == nullptr) {
+    this->values = (T*)malloc(new_size);
+  } else if (m > n) {
+    this->values = (T*)realloc(this->values, new_size);
+  }
+
+  if (this->values == nullptr) {
+    throw std::runtime_error("Failed to allocate slice!");
+  }
+
+  if (zero) {
+    memset(this->values, 0, new_size);
+  }
+
 }
 
 template<typename T>
