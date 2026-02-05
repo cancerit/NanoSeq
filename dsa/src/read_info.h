@@ -6,10 +6,10 @@
 #include "constants.h"
 
 typedef struct read_info_t {
-	int32_t strand;
-	int32_t read_index;
+    int32_t strand;
+    int32_t read_index;
 
-	int64_t asxs;
+    int64_t asxs;
     int64_t nm;
     int64_t proper_pair;
 
@@ -101,10 +101,10 @@ static inline int get_is_proper_pair(const bam1_t *b) {
 }
 
 static inline void read_info_init(read_info_t *r, const bam1_t *read) {
-	r->strand = get_strand_index(read);
-	r->read_index = get_read_type_index(read);
+    r->strand = get_strand_index(read);
+    r->read_index = get_read_type_index(read);
 
-	r->asxs = get_as_minus_xs(read);
+    r->asxs = get_as_minus_xs(read);
     r->nm = get_nm(read);
     r->proper_pair = read_is_in_proper_pair(read);
 }
