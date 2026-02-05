@@ -1,8 +1,8 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include <vector>
-#include <numeric>
+#include <string>
+#include <algorithm>
 #include <cmath>
 #include "constants.h"
 

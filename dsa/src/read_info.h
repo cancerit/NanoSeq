@@ -2,22 +2,24 @@
 #define READ_INFO_H_
 
 #include "htslib/sam.h"
-#include <string.h>
-#include <iostream>
-
-#include <cassert>
-#include <cmath>
-#include <map>
-#include <sstream>
 #include <string>
-#include <vector>
-#include <iostream>
-#include <stdexcept>
-#include <algorithm>
-#include <utility>
-
-#include "duplex_tag_info.h"
 #include "constants.h"
+
+typedef struct read_info_t {
+	int32_t strand;
+	int32_t read_index;
+
+	int64_t asxs;
+    int64_t nm;
+    int64_t proper_pair;
+
+    // Duplex-only
+    int64_t is_5p_clipped;
+} read_info_t;
+
+static inline int32_t read_info_get_r_type(const read_info_t *r) {
+    return r->strand != STRAND_INDEX_IGNORE ? RTYPES[r->strand][r->read_index] : 0;
+}
 
 static inline int read_has_flag(const bam1_t *b, const uint16_t flag) {
     return (b->core.flag & flag) != 0;
@@ -96,6 +98,15 @@ static inline int get_is_5p_clipped(const bam1_t *b, const int32_t strand) {
 
 static inline int get_is_proper_pair(const bam1_t *b) {
     return read_has_flag(b, BAM_FPROPER_PAIR);
+}
+
+static inline void read_info_init(read_info_t *r, const bam1_t *read) {
+	r->strand = get_strand_index(read);
+	r->read_index = get_read_type_index(read);
+
+	r->asxs = get_as_minus_xs(read);
+    r->nm = get_nm(read);
+    r->proper_pair = read_is_in_proper_pair(read);
 }
 
 #endif

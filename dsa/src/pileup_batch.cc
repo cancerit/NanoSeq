@@ -1,13 +1,18 @@
-#include <algorithm>  // fill
 #include "pileup_batch.h"
+#include "bulk_bundle.h"
+#include "dsa_serialiser.h"
+#include "duplex_bundle.h"
+#include "pos_stats.h"
+#include "read_info.h"
 #include "utils.h"
 #include <iostream>
 #include <unordered_map>
 #include <assert.h>
-#include <set>
+#include <map>
 #include "pileup_custom.h"
 #include "options.h"
-#include "bundle.h"
+#include <sstream>
+#include "duplex_tag_info.h"
 
 #define BULK_UNUSABLE (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FSUPPLEMENTARY | BAM_FDUP)
 
@@ -71,6 +76,16 @@ const std::string PileupBatch::PositionString(const char *contig, const int pos,
     return ss.str();
 }
 
+typedef struct pos_stats_t {
+    bulk_bundle_t bulk = {};
+    std::map<uint64_t, duplex_bundle_t> duplexes = {};
+} pos_stats_t;
+
+typedef struct duplex_info_t {
+	uint64_t index;
+	duplex_tag_info_t tag;
+} duplex_info_t;
+
 void PileupBatch::Pileup(pileup_state_t *state) {
     const Options *opts = state->opts;
 
@@ -101,8 +116,8 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
     // Genomic position -> bundle indices
     std::map<int32_t, pos_stats_t> pos_bundles = {};
-    std::unordered_map<uint64_t, bundle_closed_t> duplex_bundles = {};
-    std::vector<std::string> bundle_id_decoder = {};
+    // std::unordered_map<uint64_t, bundle_closed_t> duplex_bundles = {};
+    std::vector<duplex_tag_info_t> bundle_id_decoder = {};
 
     std::string bundle_id;
 
@@ -115,14 +130,87 @@ void PileupBatch::Pileup(pileup_state_t *state) {
     // TODO: add processed read counters
 
     {
-        std::unordered_map<uint64_t, bundle_open_t> open_bundles = {};
-
         {
-            std::unordered_map<std::string, uint64_t> bundle_id_encoder = {};
+            std::unordered_map<std::string, duplex_info_t> bundle_id_encoder = {};
 
-            // A. Aggregate bulk
+            // A. Aggregate duplex
+            std::cerr << "Aggregating duplex reads... ";
+            uint64_t duplex_total_reads = 0;
+            uint64_t duplex_usable_reads = 0;
+            uint64_t duplex_positions = 0;
+            uint64_t duplex_positions_in_range = 0;
+            duplex_bundle_t *duplex_bundle;
+            read_info_t read_info = {};
+            duplex_info_t *duplex_info;
+            uint64_t duplex_index;
+            while (1) {
+                const int rc = aux_iter(state->duplex_aux, read);
+                if (rc < 0) {
+                    if (rc == -1) {
+                        break;
+                    } else {
+                        throw std::runtime_error("Failed to read from duplex file!");
+                    }
+                }
+                duplex_total_reads++;
+
+                if (!is_valid_read(read)) {
+                    throw std::runtime_error("Invalid read in duplex file!");
+                }
+
+                if (is_usable_duplex_read(state->duplex_aux, read)) {
+                    duplex_usable_reads++;
+
+
+                    bundle_id = get_duplex_id(read);
+                    if (bundle_id_encoder.contains(bundle_id)) {
+                    	duplex_info = &bundle_id_encoder[bundle_id];
+                    } else {
+                        // Initialise and assign a the next duplex index
+                        duplex_index = bundle_id_encoder.size();
+                        duplex_info = &bundle_id_encoder[bundle_id];
+                        duplex_info->index = duplex_index;
+                        duplex_info->tag = duplex_tag_info_parse(bundle_id);
+                    }
+
+                    // Update bundle
+                    read_info_duplex_init(&read_info, read);
+
+                    // NOTE: do not filter by quality for duplex bundles (?)!
+                    if (base_array_update(&base_buffer, read, 0)) {
+                        throw std::runtime_error("Failed to perform pileup on bulk read!");
+                    }
+
+                    // Update allele counts
+                    base_t *bi;
+                    for (uint64_t i = 0; i < base_buffer.count; ++i) {
+                        duplex_positions++;
+
+                        bi = &base_buffer.bases[i];
+                        if (
+                            range_tid_contains(&r, bi->aln_pos) &&
+                            duplex_tag_info_is_pos_in_template(
+                                &duplex_info->tag,
+                                bi->aln_pos + opts->offset)
+                        ) {
+                            duplex_positions_in_range++;
+                            duplex_bundle = &pos_bundles[bi->aln_pos].duplexes[duplex_info->index];
+                            duplex_bundle_update(duplex_bundle, &read_info, &probs, bi);
+                        }
+                    }
+                }
+            }
+            std::cerr << std::format(
+                "{}/{} ({:.0f}%) usable reads, {}/{} ({:.0f}%) positions in range\n",
+                duplex_usable_reads,
+                duplex_total_reads,
+                static_cast<double>(duplex_usable_reads) / static_cast<double>(duplex_total_reads) * 100.0,
+                duplex_positions_in_range,
+                duplex_positions,
+                static_cast<double>(duplex_positions_in_range) / static_cast<double>(duplex_positions) * 100.0);
+
+            // B. Aggregate bulk
             std::cerr << "Aggregating bulk reads... ";
-            bulk_read_info_t bulk_read_info = {};
             uint64_t bulk_total_reads = 0;
             uint64_t bulk_usable_reads = 0;
             uint64_t bulk_positions = 0;
@@ -157,15 +245,16 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
                     // Update allele counts
                     base_t *bi;
-                    bulk_base_open_t *bbx;
-                    bulk_read_info_init(&bulk_read_info, read);
+                    bulk_bundle_t *bbx;
+                    read_info_init(&read_info, read);
                     for (uint64_t i = 0; i < base_buffer.count; ++i) {
                         bulk_positions++;
                         bi = &base_buffer.bases[i];
-                        bbx = &pos_bundles[bi->aln_pos].bulk_base;
-                        if (range_tid_contains(&r, bi->aln_pos)) {
+
+                        if (pos_bundles.contains(bi->aln_pos)) {
                             bulk_positions_in_range++;
-                            bulk_base_update(bbx, &bulk_read_info, bi, strand);
+                        	bbx = &pos_bundles[bi->aln_pos].bulk;
+                            bulk_bundle_update(bbx, &read_info, bi);
                         }
                     }
                 }
@@ -179,100 +268,17 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                 bulk_positions,
                 static_cast<double>(bulk_positions_in_range) / static_cast<double>(bulk_positions) * 100.0);
 
-            // B. Aggregate duplex
-            std::cerr << "Aggregating duplex reads... ";
-            uint64_t duplex_total_reads = 0;
-            uint64_t duplex_usable_reads = 0;
-            uint64_t duplex_positions = 0;
-            uint64_t duplex_positions_in_range = 0;
-            bundle_open_t *duplex_bundle;
-            while (1) {
-                const int rc = aux_iter(state->duplex_aux, read);
-                if (rc < 0) {
-                    if (rc == -1) {
-                        break;
-                    } else {
-                        throw std::runtime_error("Failed to read from duplex file!");
-                    }
-                }
-                duplex_total_reads++;
-
-                if (!is_valid_read(read)) {
-                    throw std::runtime_error("Invalid read in duplex file!");
-                }
-
-                if (is_usable_duplex_read(state->duplex_aux, read)) {
-                    duplex_usable_reads++;
-
-                    uint64_t bundle_index;
-                    bundle_id = get_duplex_id(read);
-                    if (bundle_id_encoder.contains(bundle_id)) {
-                        bundle_index = bundle_id_encoder[bundle_id];
-                    } else {
-                        // Initialise and assign a the next duplex index
-                        bundle_index = bundle_id_encoder.size();
-                        bundle_id_encoder[bundle_id] = bundle_index;
-                        open_bundles[bundle_index].duplex_tag_info = duplex_tag_info_parse(bundle_id);
-                    }
-
-                    // Update bundle
-                    duplex_bundle = &open_bundles[bundle_index];
-                    const int r_type = bundle_open_duplex_update(duplex_bundle, read);
-
-                    // NOTE: do not filter by quality for duplex bundles (?)!
-                    if (base_array_update(&base_buffer, read, 0)) {
-                        throw std::runtime_error("Failed to perform pileup on bulk read!");
-                    }
-
-                    const int strand = get_strand_index(read);
-                    const int read_index = get_read_type_index(read);
-
-                    // Update allele counts
-                    base_t *bi;
-                    duplex_base_t *dbx;
-                    for (uint64_t i = 0; i < base_buffer.count; ++i) {
-                        duplex_positions++;
-
-                        bi = &base_buffer.bases[i];
-                        dbx = &pos_bundles[bi->aln_pos].duplex_bases[bundle_index];
-                        if (
-                            range_tid_contains(&r, bi->aln_pos) &&
-                            duplex_tag_info_is_pos_in_template(
-                                &duplex_bundle->duplex_tag_info,
-                                bi->aln_pos + opts->offset)
-                        ) {
-                            duplex_positions_in_range++;
-                            dbx->counts[r_type][bi->base]++;
-
-                            // Duplex-specific
-                            if (strand != STRAND_INDEX_IGNORE) {
-                                dbx->duplex_depth[strand][read_index]++;
-                            }
-                            probs_add_p_error(&probs, bi->qual, bi->base, dbx->duplex_consensus_quality_accum[r_type]);
-                        }
-                    }
-                }
-            }
-            std::cerr << std::format(
-                "{}/{} ({:.0f}%) usable reads, {}/{} ({:.0f}%) positions in range\n",
-                duplex_usable_reads,
-                duplex_total_reads,
-                static_cast<double>(duplex_usable_reads) / static_cast<double>(duplex_total_reads) * 100.0,
-                duplex_positions_in_range,
-                duplex_positions,
-                static_cast<double>(duplex_positions_in_range) / static_cast<double>(duplex_positions) * 100.0);
-
-
             // C. Generate duplex index decoder
             bundle_id_decoder.resize(bundle_id_encoder.size());
             for (auto kvp : bundle_id_encoder) {
-                // From str -> int to int -> str
-                bundle_id_decoder[kvp.second] = kvp.first;
+                // From str -> (int, tag) to int -> tag
+                bundle_id_decoder[kvp.second.index] = kvp.second.tag;
             }
 
         }
 
         // D. Close bundles
+        /*
         std::cerr << "Finalising bundle stats..." << std::endl;
         bundle_open_t *duplex_bundle_open;
         bundle_closed_t *duplex_bundle;
@@ -284,6 +290,7 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
             bundle_closed_duplex_init(duplex_bundle, duplex_bundle_open);
         }
+        */
     }
 
     // E. Process bundle stats by position
@@ -294,10 +301,12 @@ void PileupBatch::Pileup(pileup_state_t *state) {
     // bundle_closed_t *duplex_bundle;
     uint8_t bundle_type;
     std::string pos_prefix;
-    bundle_closed_t *duplex_bundle;
-    duplex_base_t *duplex_base;
-    bulk_base_closed_t bulk_base = {};
+    duplex_bundle_t *duplex_bundle;
+    bulk_bundle_t *bulk_bundle;
     pos_stats_t *pos_stats;
+    pos_final_stats_t duplex_stats = {};
+    pos_final_stats_t bulk_stats = {};
+    duplex_tag_info_t *duplex_tag_info;
 
     uint64_t dsa_row_count = 0;
     for (auto pos_bundles_kvp : pos_bundles) {
@@ -311,21 +320,25 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
         std::stringstream s;
 
-        bulk_base_closed_init(&bulk_base, &pos_stats->bulk_base);
-        pos_prefix = bulk_base_get_dsa_chunk(&bulk_base, PositionString(this->contig, pos, state->ref, mask_values));
+        bulk_bundle = &pos_stats->bulk;
 
-        for (auto bundle_index_probs_kvp : pos_stats->duplex_bases) {
+        // TODO: check all attributes get overridden!
+        bulk_bundle_finalise(bulk_bundle, &bulk_stats);
+        pos_prefix = dsa_get_bulk_prefix(bulk_bundle, &bulk_stats, PositionString(this->contig, pos, state->ref, mask_values));
+
+        for (auto bundle_index_probs_kvp : pos_stats->duplexes) {
             const uint64_t bundle_index = bundle_index_probs_kvp.first;
+            duplex_bundle = &bundle_index_probs_kvp.second;
 
-            duplex_base = &bundle_index_probs_kvp.second;
             // BEWARE: the argument gets modified!
-            duplex_base_finalise(duplex_base);
+            // TODO: check all attributes get overridden!
+            duplex_bundle_finalise(duplex_bundle, &duplex_stats);
 
-            duplex_bundle = &duplex_bundles[bundle_index];
-
-            bundle_type = duplex_base_get_bundle_type(duplex_base, min_dplx_depth);
+            // TODO: prune the pileup by bundle type before bulk is processed?
+            bundle_type = duplex_base_get_bundle_type(duplex_bundle, min_dplx_depth);
             if (bundle_type != 0) {
-                dsa_push_row(s, duplex_bundle, duplex_base, &bulk_base, pos_prefix, bundle_type);
+            	duplex_tag_info = &bundle_id_decoder[bundle_index];
+                dsa_push_row(s, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, bundle_type);
             }
 
             dsa_row_count++;
