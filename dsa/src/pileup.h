@@ -50,6 +50,7 @@
 #include "range.h"
 #include "ref.h"
 #include "aux.h"
+#include "pileup_state.h"
 
 class Pileup {
   private:

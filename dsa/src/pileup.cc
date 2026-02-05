@@ -391,23 +391,29 @@ void Pileup::LoadRanges() {
 
 void Pileup::MultiplePileup() {
     std::cerr << "Output directory: " << opts->oname << std::endl;
+    std::cerr << "Compression level: " << opts->compression_level << std::endl;
+
     GzipCompressor compressor(opts->oname, "dsa.bed.gz", opts->compression_level);
 
-    aux_t *data_ptrs[BUNDLE_TYPES_COUNT];
-    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        this->data[i].iter = NULL;
-        data_ptrs[i] = &this->data[i];
-    }
-
-    PileupBatch batch;
-    const char *contig;
+    PileupBatch batch = {};
+    const char *contig = NULL;
+    pileup_state_t state = {};
+    state.bulk_aux = &this->data[BULK_INDEX];
+    state.duplex_aux = &this->data[DUPLEX_INDEX];
+    state.compressor = &compressor;
+    state.opts = this->opts;
+    state.ref = &this->ref;
 
     for (auto r : this->ranges) {
         contig = GetContig(r.tid);
-        std::cerr << std::format("(TID={}) {}:{}-{}\n", r.tid, contig, r.start, r.end);
+        if (contig == NULL) {
+            throw std::runtime_error(std::format(
+                "Contig name not found for TID {}!", r.tid));
+        }
+        std::cerr << std::format("(TID={}) {}:{}-{} ({} bp)\n", r.tid, contig, r.start, r.end, r.end - r.start);
 
         batch.Update(contig, r, masks, &ref);
-        batch.Pileup(data_ptrs, &ref, this->opts, &compressor);
+        batch.Pileup(&state);
 
         std::cerr << std::endl;
     }

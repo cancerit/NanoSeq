@@ -8,7 +8,6 @@ typedef struct {
     sam_hdr_t *head;
     hts_idx_t *idx;
     int min_mapQ;
-    int duplex;
 
     // Set per genomic range
     range_tid_t range;
@@ -35,13 +34,11 @@ static void aux_init(aux_t *a, const char *fp) {
 static void aux_duplex_init(aux_t *a, const char *fp, const int min_map_q) {
     aux_init(a, fp);
     a->min_mapQ = min_map_q;
-    a->duplex = 1;
 }
 
 static void aux_bulk_init(aux_t *a, const char *fp) {
     aux_init(a, fp);
     a->min_mapQ = 0;
-    a->duplex = 0;
 }
 
 static void aux_reset(aux_t *a) {
@@ -60,13 +57,15 @@ static void aux_reset(aux_t *a) {
     a->range.end = 0;
 }
 
-static void aux_set_iterator(aux_t *a, const range_tid_t range) {
+static int aux_set_iterator(aux_t *a, const range_tid_t range) {
     aux_reset(a);
     a->range = range;
     a->iter = sam_itr_queryi(a->idx, range.tid, range.start, range.end + 1);
     if (a->iter == NULL) {
         fprintf(stderr, "Failed to initialise iterator!\n");
+        return 1;
     }
+    return 0;
 }
 
 static int aux_iter(aux_t *a, bam1_t *b) {

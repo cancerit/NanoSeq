@@ -71,7 +71,9 @@ const std::string PileupBatch::PositionString(const char *contig, const int pos,
     return ss.str();
 }
 
-void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompressor *compressor) {
+void PileupBatch::Pileup(pileup_state_t *state) {
+    const Options *opts = state->opts;
+
     uint8_t mask_flag = 0;
     uint8_t mask_values[MASK_COUNT] = {0, 0};
     std::string posn;
@@ -81,12 +83,18 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         throw std::runtime_error("Failed to allocate base info array!");
     }
 
-    range_tid_t r = {this->range.start, this->range.end, this->tid};
-    aux_t *bulk_aux = data[BULK_INDEX];
-    aux_t *duplex_aux = data[DUPLEX_INDEX];
+    const range_tid_t r = {
+        .start = this->range.start,
+        .end = this->range.end,
+        .tid = this->tid
+    };
 
-    aux_set_iterator(bulk_aux, r);
-    aux_set_iterator(duplex_aux, r);
+    if (aux_set_iterator(state->bulk_aux, r)) {
+        throw std::runtime_error("Failed to create bulk iterator!");
+    }
+    if (aux_set_iterator(state->duplex_aux, r)) {
+        throw std::runtime_error("Failed to create duplex iterator!");
+    }
 
     // Bulk pileup
     bam1_t *read = bam_init1();
@@ -113,10 +121,14 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
             std::unordered_map<std::string, uint64_t> bundle_id_encoder = {};
 
             // A. Aggregate bulk
-            std::cerr << "Aggregating bulk reads..." << std::endl;
+            std::cerr << "Aggregating bulk reads... ";
             bulk_read_info_t bulk_read_info = {};
+            uint64_t bulk_total_reads = 0;
+            uint64_t bulk_usable_reads = 0;
+            uint64_t bulk_positions = 0;
+            uint64_t bulk_positions_in_range = 0;
             while (1) {
-                const int rc = aux_iter(bulk_aux, read);
+                const int rc = aux_iter(state->bulk_aux, read);
                 if (rc < 0) {
                     if (rc == -1) {
                         break;
@@ -124,12 +136,15 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                         throw std::runtime_error("Failed to read from bulk file!");
                     }
                 }
+                bulk_total_reads++;
 
                 if (!is_valid_read(read)) {
                     throw std::runtime_error("Invalid read in bulk file!");
                 }
 
-                if (is_usable_bulk_read(bulk_aux, read)) {
+                if (is_usable_bulk_read(state->bulk_aux, read)) {
+                    bulk_usable_reads++;
+
                     int strand = get_strand_index(read);
                     if (strand == STRAND_INDEX_IGNORE) {
                         // TODO: verify this recapitulates the original behaviour!
@@ -145,20 +160,34 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     bulk_base_open_t *bbx;
                     bulk_read_info_init(&bulk_read_info, read);
                     for (uint64_t i = 0; i < base_buffer.count; ++i) {
+                        bulk_positions++;
                         bi = &base_buffer.bases[i];
                         bbx = &pos_bundles[bi->aln_pos].bulk_base;
                         if (range_tid_contains(&r, bi->aln_pos)) {
+                            bulk_positions_in_range++;
                             bulk_base_update(bbx, &bulk_read_info, bi, strand);
                         }
                     }
                 }
             }
+            std::cerr << std::format(
+                "{}/{} ({:.0f}%) usable reads, {}/{} ({:.0f}%) positions in range\n",
+                bulk_usable_reads,
+                bulk_total_reads,
+                static_cast<double>(bulk_usable_reads) / static_cast<double>(bulk_total_reads) * 100.0,
+                bulk_positions_in_range,
+                bulk_positions,
+                static_cast<double>(bulk_positions_in_range) / static_cast<double>(bulk_positions) * 100.0);
 
             // B. Aggregate duplex
-            std::cerr << "Aggregating duplex reads..." << std::endl;
+            std::cerr << "Aggregating duplex reads... ";
+            uint64_t duplex_total_reads = 0;
+            uint64_t duplex_usable_reads = 0;
+            uint64_t duplex_positions = 0;
+            uint64_t duplex_positions_in_range = 0;
             bundle_open_t *duplex_bundle;
             while (1) {
-                const int rc = aux_iter(duplex_aux, read);
+                const int rc = aux_iter(state->duplex_aux, read);
                 if (rc < 0) {
                     if (rc == -1) {
                         break;
@@ -166,12 +195,15 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                         throw std::runtime_error("Failed to read from duplex file!");
                     }
                 }
+                duplex_total_reads++;
 
                 if (!is_valid_read(read)) {
                     throw std::runtime_error("Invalid read in duplex file!");
                 }
 
-                if (is_usable_duplex_read(duplex_aux, read)) {
+                if (is_usable_duplex_read(state->duplex_aux, read)) {
+                    duplex_usable_reads++;
+
                     uint64_t bundle_index;
                     bundle_id = get_duplex_id(read);
                     if (bundle_id_encoder.contains(bundle_id)) {
@@ -199,6 +231,8 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     base_t *bi;
                     duplex_base_t *dbx;
                     for (uint64_t i = 0; i < base_buffer.count; ++i) {
+                        duplex_positions++;
+
                         bi = &base_buffer.bases[i];
                         dbx = &pos_bundles[bi->aln_pos].duplex_bases[bundle_index];
                         if (
@@ -207,6 +241,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                                 &duplex_bundle->duplex_tag_info,
                                 bi->aln_pos + opts->offset)
                         ) {
+                            duplex_positions_in_range++;
                             dbx->counts[r_type][bi->base]++;
 
                             // Duplex-specific
@@ -218,6 +253,15 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
                     }
                 }
             }
+            std::cerr << std::format(
+                "{}/{} ({:.0f}%) usable reads, {}/{} ({:.0f}%) positions in range\n",
+                duplex_usable_reads,
+                duplex_total_reads,
+                static_cast<double>(duplex_usable_reads) / static_cast<double>(duplex_total_reads) * 100.0,
+                duplex_positions_in_range,
+                duplex_positions,
+                static_cast<double>(duplex_positions_in_range) / static_cast<double>(duplex_positions) * 100.0);
+
 
             // C. Generate duplex index decoder
             bundle_id_decoder.resize(bundle_id_encoder.size());
@@ -268,7 +312,7 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         std::stringstream s;
 
         bulk_base_closed_init(&bulk_base, &pos_stats->bulk_base);
-        pos_prefix = bulk_base_get_dsa_chunk(&bulk_base, PositionString(this->contig, pos, ref, mask_values));
+        pos_prefix = bulk_base_get_dsa_chunk(&bulk_base, PositionString(this->contig, pos, state->ref, mask_values));
 
         for (auto bundle_index_probs_kvp : pos_stats->duplex_bases) {
             const uint64_t bundle_index = bundle_index_probs_kvp.first;
@@ -288,11 +332,13 @@ void PileupBatch::Pileup(aux_t **data, Ref *ref, const Options *opts, GzipCompre
         }
 
         // Dump every position
-        compressor->compress(s.str());
-        compressor->write();
+        state->compressor->compress(s.str());
+        state->compressor->write();
 
     }
 
     std::cerr << std::format("Generated {} rows", dsa_row_count) << std::endl;
+
+    bam_destroy1(read);
 
 }
