@@ -26,7 +26,7 @@ static void probs_init(probs_t *p) {
   p->probs[PROB_INDEX_CORRECT] = 0.0;
 
   double p_error;
-  for (int i = 1; i <= UINT8_MAX; ++i) {
+  for (int i = 0; i <= UINT8_MAX; ++i) {
     p_error = std::pow(POWER, (-i / POWER));
     p->probs[i * PROB_STRIDE + PROB_INDEX_ERR]     = std::log10(p_error);
     p->probs[i * PROB_STRIDE + PROB_INDEX_CORRECT] = std::log10((1.0 - p_error) / ALT_BASES);

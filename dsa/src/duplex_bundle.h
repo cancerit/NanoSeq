@@ -79,6 +79,10 @@ static inline void duplex_bundle_finalise(duplex_bundle_t *bundle, pos_final_sta
     }
 
     // Duplex consensus base quality scores (overrides accumulator!)
+    for (int i = 0; i < RTYPE_COUNT; ++i) {
+        finalise_consensus_quality_scores(bundle->duplex_consensus_quality_accum[i]);
+    }
+    /*
     {
 	    uint64_t total;
 	    for (int i = 0; i < RTYPE_COUNT; ++i) {
@@ -92,6 +96,7 @@ static inline void duplex_bundle_finalise(duplex_bundle_t *bundle, pos_final_sta
 	        }
 	    }
     }
+    */
 }
 
 #endif
