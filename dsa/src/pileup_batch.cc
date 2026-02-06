@@ -116,7 +116,6 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
     // Genomic position -> bundle indices
     std::map<int32_t, pos_stats_t> pos_bundles = {};
-    // std::unordered_map<uint64_t, bundle_closed_t> duplex_bundles = {};
     std::vector<duplex_tag_info_t> bundle_id_decoder = {};
 
     std::string bundle_id;
