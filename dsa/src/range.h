@@ -35,10 +35,11 @@ static inline void range_clamp(range_t *r, const range_t *t) {
     }
 }
 
+/// Grow range by two units either side to accommodate for triplet retrieval
 static inline const range_t range_grow(const range_t *r) {
     return {
-        r->start <= 1 ? 0 : (r->start - 1),
-        r->end + 1
+        r->start <= 2 ? 0 : (r->start - 2),
+        r->end + 2
     };
 }
 

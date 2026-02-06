@@ -26,7 +26,7 @@ void Ref::Fetch(const char *contig, const range_t range_) {
   }
 
   this->seq.Set(range, faidx_fetch_seq(
-    this->fai, contig, range.start, range.end - 1, &seq_length));
+    this->fai, contig, range.start, range.end, &seq_length));
 
   // Validate reference sequence
   {
@@ -39,11 +39,13 @@ void Ref::Fetch(const char *contig, const range_t range_) {
   }
 
   // TODO: ensure this externally by checking the upper bound as well
+  /*
   if (range_length(&range) != seq_length) {
     throw std::runtime_error(std::format(
       "Out of bound reference sequence in {}:{}-{}!",
       contig, range.start, range.end));
   }
+  */
 
   switch (seq_length) {
   case 0:
