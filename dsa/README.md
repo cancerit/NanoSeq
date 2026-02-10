@@ -23,6 +23,26 @@ singularity exec \
         -O /output/
 ```
 
+Command line options:
+
+|Option|Type|Default|Description|
+|-|-|-|-|
+|`A`|file path|-|Bulk (neat) data (BAM/CRAM)|
+|`B`|file path|-|Duplex data (BAM/CRAM)|
+|`I`|file path|-|Target genomic ranges (BED)|
+|`C`|file path|-|SNP mask (BED)|
+|`D`|file path|-|Noise mask (BED)|
+|`R`|file path|-|Reference genome sequence (FASTA)|
+|`O`|file path|2|DSA table output path|
+|`Q`|integer|30|Minimum base quality score|
+|`M`|integer|0|Minimum read mapping quality|
+|`d`|integer|2|Minimum duplex depth|
+|`x`|integer|2|DSA table compression level (1-12)|
+
+Migrating from NanoSeq 3:
+
+- the single target genomic range is replaced by a BED file (`I` option)
+
 ## Development
 
 To generate `compile_commands.json`:
