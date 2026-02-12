@@ -83,8 +83,11 @@ typedef struct pos_stats_t {
 
 typedef struct duplex_info_t {
 	uint64_t index;
+	uint64_t read_count = 0;
 	duplex_tag_info_t tag;
 } duplex_info_t;
+
+static const bool dump_duplex_stats = false;
 
 void PileupBatch::Pileup(pileup_state_t *state) {
     const Options *opts = state->opts;
@@ -160,14 +163,15 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                 if (is_usable_duplex_read(state->duplex_aux, read)) {
                     duplex_usable_reads++;
 
-
                     bundle_id = get_duplex_id(read);
                     if (bundle_id_encoder.contains(bundle_id)) {
                     	duplex_info = &bundle_id_encoder[bundle_id];
+                        duplex_info->read_count++;
                     } else {
                         // Initialise and assign a the next duplex index
                         duplex_index = bundle_id_encoder.size();
                         duplex_info = &bundle_id_encoder[bundle_id];
+                        duplex_info->read_count = 1;
                         duplex_info->index = duplex_index;
                         duplex_info->tag = duplex_tag_info_parse(bundle_id);
                     }
@@ -269,9 +273,22 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
             // C. Generate duplex index decoder
             bundle_id_decoder.resize(bundle_id_encoder.size());
+
+            // TODO: consider whether to keep these stats
+            FILE *f = NULL;
+            if (dump_duplex_stats) {
+            	// TODO: write to output directory
+            	fopen("/output/duplex_bundles.tsv", "w");
+            }
             for (auto kvp : bundle_id_encoder) {
                 // From str -> (int, tag) to int -> tag
                 bundle_id_decoder[kvp.second.index] = kvp.second.tag;
+                if (dump_duplex_stats) {
+                	fprintf(f, "%s\t%llu\n", kvp.first.c_str(), kvp.second.read_count);
+                }
+            }
+            if (dump_duplex_stats) {
+            	fclose(f);
             }
 
         }
