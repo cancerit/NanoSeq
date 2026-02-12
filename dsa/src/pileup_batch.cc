@@ -77,23 +77,80 @@ const std::string PileupBatch::PositionString(const char *contig, const int pos,
     return ss.str();
 }
 
-typedef struct pos_stats_t {
-    bulk_bundle_t bulk = {};
-    std::map<uint64_t, duplex_bundle_t> duplexes = {};
-} pos_stats_t;
-
 typedef struct duplex_info_t {
 	uint64_t index;
 	uint64_t read_count = 0;
 	duplex_tag_info_t tag;
 } duplex_info_t;
 
+void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state, const int32_t pos) {
+    if (!state->pos_bundles.contains(pos)) {
+        return;
+    }
+    const uint64_t min_dplx_depth = static_cast<uint64_t>(opts->min_dplx_depth);
+
+    pos_stats_t *pos_stats = &state->pos_bundles[pos];
+
+    // Generate DSA table row prefix
+    uint8_t mask_flag = 0;
+    mask_flag = this->mask.GetFlag(pos);
+
+    // TODO: add to state (?)
+    uint8_t mask_values[MASK_COUNT] = {0, 0};
+    mask_values[MASK_INDEX_SNP] = flag_is_set(mask_flag, MASK_FLAG_SNP);
+    mask_values[MASK_INDEX_NOISE] = flag_is_set(mask_flag, MASK_FLAG_NOISE);
+
+    std::stringstream s;
+
+    bulk_bundle_t *bulk_bundle = &pos_stats->bulk;
+    pos_final_stats_t bulk_stats = {};
+    duplex_bundle_t *duplex_bundle;
+    pos_final_stats_t duplex_stats = {};
+
+    // TODO: check all attributes get overridden!
+    bulk_bundle_finalise(bulk_bundle, &bulk_stats);
+    std::string pos_prefix = dsa_get_bulk_prefix(bulk_bundle, &bulk_stats, PositionString(this->contig, pos, state->ref, mask_values));
+
+    duplex_tag_info_t *duplex_tag_info;
+
+    for (auto bundle_index_probs_kvp : pos_stats->duplexes) {
+        const uint64_t bundle_index = bundle_index_probs_kvp.first;
+        duplex_bundle = &bundle_index_probs_kvp.second;
+       	duplex_tag_info = &state->bundle_id_decoder[bundle_index];
+        duplex_bundle_finalise(duplex_bundle, &duplex_stats);
+
+        // NOTE: duplex bundle finalisation does not affect the duplex depth
+        //  the bundle type is based on, and can therefore be safely postponed.
+        // TODO: prune the pileup by bundle type before bulk is processed?
+        const uint8_t bundle_type = duplex_base_get_bundle_type(duplex_bundle, min_dplx_depth);
+
+        if (opts->debug_mode) {
+            fprintf(state->debug_pos_duplexes_f, "%d\t", pos);
+            fprintf(state->debug_pos_duplexes_f, "%d\t%d\t%s|%s\t", duplex_tag_info->beg, duplex_tag_info->end, duplex_tag_info->fwd_bc.c_str(), duplex_tag_info->rev_bc.c_str());
+            fprintf(state->debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[0][0]);
+            fprintf(state->debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[0][1]);
+            fprintf(state->debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[1][0]);
+            fprintf(state->debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[1][1]);
+            fprintf(state->debug_pos_duplexes_f, "%u\n", bundle_type);
+        }
+
+        if (bundle_type != 0) {
+            // BEWARE: the argument gets modified!
+            // TODO: check all attributes get overridden!
+
+            dsa_push_row(s, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, bundle_type);
+        }
+
+        state->dsa_row_count++;
+    }
+
+    // Dump every position
+    state->compressor->compress(s.str());
+    state->compressor->write();
+}
+
 void PileupBatch::Pileup(pileup_state_t *state) {
     const Options *opts = state->opts;
-
-    uint8_t mask_flag = 0;
-    uint8_t mask_values[MASK_COUNT] = {0, 0};
-    std::string posn;
 
     base_array_t base_buffer = {};
     if (base_info_array_reset(&base_buffer, 256)) {
@@ -116,13 +173,7 @@ void PileupBatch::Pileup(pileup_state_t *state) {
     // Bulk pileup
     bam1_t *read = bam_init1();
 
-    // Genomic position -> bundle indices
-    std::map<int32_t, pos_stats_t> pos_bundles = {};
-    std::vector<duplex_tag_info_t> bundle_id_decoder = {};
-
     std::string bundle_id;
-
-    const uint64_t min_dplx_depth = static_cast<uint64_t>(opts->min_dplx_depth);
 
     // TODO: make global (or part of the Pileup object)
     probs_t probs = {};
@@ -196,7 +247,7 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                                 bi->aln_pos + opts->offset)
                         ) {
                             duplex_positions_in_range++;
-                            duplex_bundle = &pos_bundles[bi->aln_pos].duplexes[duplex_info->index];
+                            duplex_bundle = &state->pos_bundles[bi->aln_pos].duplexes[duplex_info->index];
                             duplex_bundle_update(duplex_bundle, &read_info, &probs, bi);
                         }
                     }
@@ -253,9 +304,9 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                         bulk_positions++;
                         bi = &base_buffer.bases[i];
 
-                        if (pos_bundles.contains(bi->aln_pos)) {
+                        if (state->pos_bundles.contains(bi->aln_pos)) {
                             bulk_positions_in_range++;
-                        	bbx = &pos_bundles[bi->aln_pos].bulk;
+                        	bbx = &state->pos_bundles[bi->aln_pos].bulk;
                             bulk_bundle_update(bbx, &read_info, bi);
                         }
                     }
@@ -271,14 +322,14 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                 static_cast<double>(bulk_positions_in_range) / static_cast<double>(bulk_positions) * 100.0);
 
             // C. Generate duplex index decoder
-            bundle_id_decoder.resize(bundle_id_encoder.size());
+            state->bundle_id_decoder.resize(bundle_id_encoder.size());
 
             {
                 // TODO: consider whether to keep these stats
                 FILE *f = options_open_output_debug_file(opts, "duplex_bundles.tsv");
                 for (auto kvp : bundle_id_encoder) {
                     // From str -> (int, tag) to int -> tag
-                    bundle_id_decoder[kvp.second.index] = kvp.second.tag;
+                    state->bundle_id_decoder[kvp.second.index] = kvp.second.tag;
                     if (opts->debug_mode) {
                        	fprintf(f, "%s\t%llu\n", kvp.first.c_str(), kvp.second.read_count);
                     }
@@ -309,81 +360,19 @@ void PileupBatch::Pileup(pileup_state_t *state) {
     // E. Process bundle stats by position
 
     std::cerr << "Generating DSA table..." << std::endl;
+    state->debug_pos_duplexes_f = options_open_output_debug_file(opts, "pos_duplexes.tsv");
+
     int32_t pos;
-    // bundle_closed_t *bulk_bundle;
-    // bundle_closed_t *duplex_bundle;
-    uint8_t bundle_type;
-    std::string pos_prefix;
-    duplex_bundle_t *duplex_bundle;
-    bulk_bundle_t *bulk_bundle;
-    pos_stats_t *pos_stats;
-    pos_final_stats_t duplex_stats = {};
-    pos_final_stats_t bulk_stats = {};
-    duplex_tag_info_t *duplex_tag_info;
-
-    uint64_t dsa_row_count = 0;
-
-    FILE *debug_pos_duplexes_f = options_open_output_debug_file(opts, "pos_duplexes.tsv");
-
-    for (auto pos_bundles_kvp : pos_bundles) {
+    for (auto pos_bundles_kvp : state->pos_bundles) {
         pos = pos_bundles_kvp.first;
-        pos_stats = &pos_bundles_kvp.second;
-
-        // Generate DSA table row prefix
-        mask_flag = this->mask.GetFlag(pos);
-        mask_values[MASK_INDEX_SNP] = flag_is_set(mask_flag, MASK_FLAG_SNP);
-        mask_values[MASK_INDEX_NOISE] = flag_is_set(mask_flag, MASK_FLAG_NOISE);
-
-        std::stringstream s;
-
-        bulk_bundle = &pos_stats->bulk;
-
-        // TODO: check all attributes get overridden!
-        bulk_bundle_finalise(bulk_bundle, &bulk_stats);
-        pos_prefix = dsa_get_bulk_prefix(bulk_bundle, &bulk_stats, PositionString(this->contig, pos, state->ref, mask_values));
-
-        for (auto bundle_index_probs_kvp : pos_stats->duplexes) {
-            const uint64_t bundle_index = bundle_index_probs_kvp.first;
-            duplex_bundle = &bundle_index_probs_kvp.second;
-           	duplex_tag_info = &bundle_id_decoder[bundle_index];
-            duplex_bundle_finalise(duplex_bundle, &duplex_stats);
-
-            // NOTE: duplex bundle finalisation does not affect the duplex depth
-            //  the bundle type is based on, and can therefore be safely postponed.
-            // TODO: prune the pileup by bundle type before bulk is processed?
-            bundle_type = duplex_base_get_bundle_type(duplex_bundle, min_dplx_depth);
-
-            if (opts->debug_mode) {
-                fprintf(debug_pos_duplexes_f, "%d\t", pos);
-                fprintf(debug_pos_duplexes_f, "%d\t%d\t%s|%s\t", duplex_tag_info->beg, duplex_tag_info->end, duplex_tag_info->fwd_bc.c_str(), duplex_tag_info->rev_bc.c_str());
-                fprintf(debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[0][0]);
-                fprintf(debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[0][1]);
-                fprintf(debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[1][0]);
-                fprintf(debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[1][1]);
-                fprintf(debug_pos_duplexes_f, "%u\n", bundle_type);
-            }
-
-            if (bundle_type != 0) {
-                // BEWARE: the argument gets modified!
-                // TODO: check all attributes get overridden!
-
-                dsa_push_row(s, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, bundle_type);
-            }
-
-            dsa_row_count++;
-        }
-
-        // Dump every position
-        state->compressor->compress(s.str());
-        state->compressor->write();
-
+        PileupDumpPosition(opts, state, pos);
     }
 
     if (opts->debug_mode) {
-        fclose(debug_pos_duplexes_f);
+        fclose(state->debug_pos_duplexes_f);
     }
 
-    std::cerr << std::format("Generated {} rows", dsa_row_count) << std::endl;
+    std::cerr << std::format("Generated {} rows", state->dsa_row_count) << std::endl;
 
     bam_destroy1(read);
 
