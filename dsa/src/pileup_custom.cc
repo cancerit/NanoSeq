@@ -1,4 +1,5 @@
 #include "pileup_custom.h"
+#include <assert.h>
 
 #define count_bits(x) __builtin_popcount(x)
 
@@ -26,7 +27,12 @@ static const uint8_t cigar_maps_to_ref[16] = {
     [BAM_CDIFF] = 1
 };
 
-static inline void patch_anchor_base(const base_array_t *a) {
+static inline void base_init_indel(base_t *b) {
+    b->base = ALLELE_DEL;
+    b->qual = 0;  // NOTE: this is probably unnecessary
+}
+
+static inline void patch_anchor_base(base_array_t *a) {
     /*
     Mark the anchor base of an indel as a deletion, matching the original behaviour:
 
@@ -34,15 +40,43 @@ static inline void patch_anchor_base(const base_array_t *a) {
         return std::make_pair('i', -1);
     }
     */
-    base_t *b = base_info_get_last(a);
-    if (b != NULL && b->base != ALLELE_DEL) {
-        b->base = ALLELE_DEL;
-        b->qual = 0;
+
+    base_t *b;
+    if (a->count == 0) {
+    	/*
+        // TODO: check bam_plp_* behaviour on unaligned reads (hopefully discarded in filtering irrespective)
+        fprintf(stderr, "ANCHOR BASE ON FIRST QUERY POSITION (read start: %d)!\n", a->start);
+        // First position
+        b = base_info_array_get_next(a);
+        // BEWARE: does not support the first base of the contig (anchor would be after)
+        // NOTE: check the behaviour of the htslib pileup engine in that scenario.
+        b->aln_pos = a->start - 1;
+        assert(b->aln_pos >= 0);
+        base_init_indel(b);
+        a->count++;
+        */
+    } else {
+        b = base_info_get_last(a);
+        assert(b != NULL);
+        if (b->base != ALLELE_DEL) {
+            base_init_indel(b);
+        }
     }
 }
 
+/*
+static inline void cigar_print(const bam1_t *read) {
+    uint32_t *cigar = bam_get_cigar(read);
+    for (uint32_t i = 0; i < read->core.n_cigar; ++i) {
+        fprintf(stderr, "%d%c", bam_cigar_oplen(cigar[i]), bam_cigar_opchr(cigar[i]));
+    }
+    printf("\n");
+}
+*/
+
 int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
     const bam1_core_t *c = &read->core;
+    ba->start = static_cast<int32_t>(c->pos);
 
     // Expand output array if necessary
     const int32_t read_length = c->l_qseq;
@@ -91,26 +125,38 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
                 ref_offset++;
             }
         } else if (op == BAM_CDEL) {
-
+            /*
+            cigar_print(read);
+            fprintf(stderr, "\t%d\tDELETION at %d/%d\n", ba->start, (int32_t)read->core.pos + ref_offset, query_pos);
+            */
             // ANCHOR BASE PATCH (ONLY TO MATCH CURRENT OUTPUT!)
             patch_anchor_base(ba);
+            // ref_offset += len;
 
             // Consider that in samtools pileup skips are marked as deletions (bug)!
+
+            // NOTE: matching the bam_plp_* behaviour by ignoring non-reference bases
             ref_offset_end = ref_offset + len;
             for (; ref_offset < ref_offset_end; ++ref_offset) {
 
                 // B. Push deletion
                 bi = base_info_array_get_next(ba);
                 // bi->read_pos = (int16_t)query_pos;
+                base_init_indel(bi);
                 bi->aln_pos = read->core.pos + ref_offset;
-                bi->base = ALLELE_DEL;
-                bi->qual = 0;
                 ba->count++;
 
             }
         } else if (op == BAM_CINS) {
+       	    /*
+            cigar_print(read);
+            fprintf(stderr, "\t%d\tINSERTION at %d/%d\n", ba->start, (int32_t)read->core.pos + ref_offset, query_pos);
+            */
+            // Skip ahead (this avoids processing any actual inserted base, which would have no reference position)
+            query_pos  += len;
 
             // ANCHOR BASE PATCH (ONLY TO MATCH CURRENT OUTPUT!)
+            // TODO: verify whether this case should be skipping any preceding deletion up to the anchor...?
             patch_anchor_base(ba);
 
         } else {

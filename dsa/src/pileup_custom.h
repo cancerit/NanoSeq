@@ -6,6 +6,7 @@
 #include "base.h"
 
 typedef struct base_array_t {
+    int32_t start;  // Alignment start position, used to find anchors for indels on the first base
     uint64_t count;
     uint64_t capacity;
     base_t *bases;
