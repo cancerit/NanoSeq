@@ -5,6 +5,7 @@
 #include "pos_stats.h"
 #include "read_info.h"
 #include "utils.h"
+#include <filesystem>
 #include <iostream>
 #include <unordered_map>
 #include <assert.h>
@@ -86,8 +87,6 @@ typedef struct duplex_info_t {
 	uint64_t read_count = 0;
 	duplex_tag_info_t tag;
 } duplex_info_t;
-
-static const bool dump_duplex_stats = false;
 
 void PileupBatch::Pileup(pileup_state_t *state) {
     const Options *opts = state->opts;
@@ -274,21 +273,19 @@ void PileupBatch::Pileup(pileup_state_t *state) {
             // C. Generate duplex index decoder
             bundle_id_decoder.resize(bundle_id_encoder.size());
 
-            // TODO: consider whether to keep these stats
-            FILE *f = NULL;
-            if (dump_duplex_stats) {
-            	// TODO: write to output directory
-            	fopen("/output/duplex_bundles.tsv", "w");
-            }
-            for (auto kvp : bundle_id_encoder) {
-                // From str -> (int, tag) to int -> tag
-                bundle_id_decoder[kvp.second.index] = kvp.second.tag;
-                if (dump_duplex_stats) {
-                	fprintf(f, "%s\t%llu\n", kvp.first.c_str(), kvp.second.read_count);
+            {
+                // TODO: consider whether to keep these stats
+                FILE *f = options_open_output_debug_file(opts, "duplex_bundles.tsv");
+                for (auto kvp : bundle_id_encoder) {
+                    // From str -> (int, tag) to int -> tag
+                    bundle_id_decoder[kvp.second.index] = kvp.second.tag;
+                    if (opts->debug_mode) {
+                       	fprintf(f, "%s\t%llu\n", kvp.first.c_str(), kvp.second.read_count);
+                    }
                 }
-            }
-            if (dump_duplex_stats) {
-            	fclose(f);
+                if (opts->debug_mode) {
+                   	fclose(f);
+                }
             }
 
         }
@@ -325,6 +322,9 @@ void PileupBatch::Pileup(pileup_state_t *state) {
     duplex_tag_info_t *duplex_tag_info;
 
     uint64_t dsa_row_count = 0;
+
+    FILE *debug_pos_duplexes_f = options_open_output_debug_file(opts, "pos_duplexes.tsv");
+
     for (auto pos_bundles_kvp : pos_bundles) {
         pos = pos_bundles_kvp.first;
         pos_stats = &pos_bundles_kvp.second;
@@ -345,15 +345,28 @@ void PileupBatch::Pileup(pileup_state_t *state) {
         for (auto bundle_index_probs_kvp : pos_stats->duplexes) {
             const uint64_t bundle_index = bundle_index_probs_kvp.first;
             duplex_bundle = &bundle_index_probs_kvp.second;
-
-            // BEWARE: the argument gets modified!
-            // TODO: check all attributes get overridden!
+           	duplex_tag_info = &bundle_id_decoder[bundle_index];
             duplex_bundle_finalise(duplex_bundle, &duplex_stats);
 
+            // NOTE: duplex bundle finalisation does not affect the duplex depth
+            //  the bundle type is based on, and can therefore be safely postponed.
             // TODO: prune the pileup by bundle type before bulk is processed?
             bundle_type = duplex_base_get_bundle_type(duplex_bundle, min_dplx_depth);
+
+            if (opts->debug_mode) {
+                fprintf(debug_pos_duplexes_f, "%d\t", pos);
+                fprintf(debug_pos_duplexes_f, "%d\t%d\t%s|%s\t", duplex_tag_info->beg, duplex_tag_info->end, duplex_tag_info->fwd_bc.c_str(), duplex_tag_info->rev_bc.c_str());
+                fprintf(debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[0][0]);
+                fprintf(debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[0][1]);
+                fprintf(debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[1][0]);
+                fprintf(debug_pos_duplexes_f, "%llu\t", duplex_bundle->duplex_depth[1][1]);
+                fprintf(debug_pos_duplexes_f, "%u\n", bundle_type);
+            }
+
             if (bundle_type != 0) {
-            	duplex_tag_info = &bundle_id_decoder[bundle_index];
+                // BEWARE: the argument gets modified!
+                // TODO: check all attributes get overridden!
+
                 dsa_push_row(s, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, bundle_type);
             }
 
@@ -364,6 +377,10 @@ void PileupBatch::Pileup(pileup_state_t *state) {
         state->compressor->compress(s.str());
         state->compressor->write();
 
+    }
+
+    if (opts->debug_mode) {
+        fclose(debug_pos_duplexes_f);
     }
 
     std::cerr << std::format("Generated {} rows", dsa_row_count) << std::endl;

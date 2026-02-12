@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022, 2025 Genome Research Ltd
+# Copyright (c) 2022, 2025, 2026 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -55,7 +55,7 @@ void Usage() {
   fprintf(stderr, "\t-h\tHelp\n");
 }
 
-static void SetupOptions(int argc, char **argv, Options *opts) {
+static int SetupOptions(int argc, char **argv, Options *opts) {
   opts->max_plp_depth    = 20000000;
   opts->min_dplx_depth   = MIN_DEPTH_DEFAULT;
   opts->offset           = 1;  // Used to correct genomic positions when comparing to duplex boundaries
@@ -65,11 +65,12 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
   opts->beds[MASK_INDEX_SNP]   = "\0";
   opts->beds[MASK_INDEX_NOISE] = "\0";
   opts->compression_level = COMPRESSION_LEVEL_DEFAULT;
+  opts->debug_mode = false;
   int opt = 0;
 
   // TODO: make output file mandatory for now?
 
-  while ((opt = getopt(argc, argv, "A:B:I:C:D:R:Q:M:d:O:x:th")) >= 0) {
+  while ((opt = getopt(argc, argv, "A:B:I:C:D:R:Q:M:d:O:x:thv")) >= 0) {
     switch (opt) {
       case 'A':
         opts->bams[0] = optarg;
@@ -107,6 +108,9 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
       case 't':
         opts->doTests = false;
         break;
+      case 'v':
+          opts->debug_mode = true;
+          break;
       case 'h':
         Usage();
         exit(0);
@@ -114,15 +118,14 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
         break;
     }
   }
+
+  return options_validate(opts);
 }
 
 int main(int argc, char **argv) {
-  Options opts;
-  SetupOptions(argc, argv, &opts);
-
-  if (opts.compression_level < 1 || opts.compression_level > 12) {
-    std::cerr << "Invalid compression level (should be in [1, 12])!\n";
-    return 1;
+  Options opts = {};
+  if (SetupOptions(argc, argv, &opts)) {
+      return 1;
   }
 
   Pileup pileup;

@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022, 2025 Genome Research Ltd
+# Copyright (c) 2022, 2025, 2026 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -33,6 +33,11 @@
 #define OPTIONS_H_
 
 #include "constants.h"
+#include <filesystem>
+#include <format>
+#include <cstdio>
+#include <iostream>
+#include <stdexcept>
 
 struct Options {
   const char *bams[BAM_COUNT];
@@ -47,7 +52,38 @@ struct Options {
   int max_dplx_depth;
   int offset;
   bool doTests;
+  bool debug_mode;
   int compression_level;
 };
+
+static int options_validate(const Options *opt) {
+
+    // TODO: is level zero valid?
+    if (opt->compression_level < 0 || opt->compression_level > 12) {
+        std::cerr << std::format(
+            "Invalid compression level %d (should be in [1, 12])!\n",
+            opt->compression_level);
+        return 1;
+    }
+
+    if (opt->debug_mode) {
+        std::cerr << "Verbose mode (debug)\n";
+    }
+    return 0;
+}
+
+static FILE *options_open_output_file(const Options *opt, const char *fn) {
+    const std::filesystem::path fp = std::filesystem::path(opt->oname).append(fn);
+    FILE *f = fopen(fp.c_str(), "w");
+    if (f == NULL) {
+        throw std::runtime_error(std::format(
+            "Failed to open output file '{}'!", fp.c_str()));
+    }
+    return f;
+}
+
+static FILE *options_open_output_debug_file(const Options *opt, const char *fn) {
+    return opt->debug_mode ? options_open_output_file(opt, fn) : NULL;
+}
 
 #endif  // OPTIONS_H_
