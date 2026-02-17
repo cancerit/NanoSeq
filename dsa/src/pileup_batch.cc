@@ -2,6 +2,7 @@
 #include "bulk_bundle.h"
 #include "dsa_serialiser.h"
 #include "duplex_bundle.h"
+#include "pileup_state.h"
 #include "pos_stats.h"
 #include "read_info.h"
 #include "utils.h"
@@ -144,55 +145,119 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
         state->dsa_row_count++;
     }
 
-    // Dump every position
+    // Dump to the DSA table temporary file
     state->compressor->compress(s.str());
     state->compressor->write();
+
+    // Remove position from memory
+    state->pos_bundles.erase(pos);
+}
+
+static inline double ratio_or_zero(const uint64_t x, const uint64_t y) {
+    return y == 0 ? 0.0 : static_cast<double>(x) / static_cast<double>(y);
+}
+
+void PileupBatch::PileupBulk(const Options *opts, pileup_state_t *state) {
+    std::cerr << "Aggregating bulk reads... ";
+    bam1_t *read = state->read;
+    read_info_t read_info = {};
+
+    uint64_t bulk_total_reads = 0;
+    uint64_t bulk_usable_reads = 0;
+    uint64_t bulk_positions = 0;
+    uint64_t bulk_positions_in_range = 0;
+    while (1) {
+        const int rc = aux_iter(state->bulk_aux, read);
+        if (rc < 0) {
+            if (rc == -1) {
+                break;
+            } else {
+                throw std::runtime_error("Failed to read from bulk file!");
+            }
+        }
+        bulk_total_reads++;
+
+        if (!is_valid_read(read)) {
+            throw std::runtime_error("Invalid read in bulk file!");
+        }
+
+        if (is_usable_bulk_read(state->bulk_aux, read)) {
+            bulk_usable_reads++;
+
+            const int strand = get_strand_index(read);
+            if (strand == STRAND_INDEX_IGNORE) {
+                // TODO: verify this recapitulates the original behaviour!
+                continue;
+            }
+
+            if (base_array_update(&state->base_buffer, read, opts->min_base_quality)) {
+                throw std::runtime_error("Failed to perform pileup on bulk read!");
+            }
+
+            // Update allele counts
+            base_t *bi;
+            bulk_bundle_t *bbx;
+            read_info_init(&read_info, read);
+            for (uint64_t i = 0; i < state->base_buffer.count; ++i) {
+                bulk_positions++;
+                bi = &state->base_buffer.bases[i];
+
+                if (range_tid_contains(&state->range, bi->aln_pos)) {
+                    bulk_positions_in_range++;
+                	bbx = &state->pos_bundles[bi->aln_pos].bulk;
+                    bulk_bundle_update(bbx, &read_info, bi);
+                }
+            }
+        }
+    }
+    std::cerr << std::format(
+        "{}/{} ({:.0f}%) usable reads, {}/{} ({:.0f}%) positions in range\n",
+        bulk_usable_reads,
+        bulk_total_reads,
+        ratio_or_zero(bulk_usable_reads, bulk_total_reads) * 100.0,
+        bulk_positions_in_range,
+        bulk_positions,
+        static_cast<double>(bulk_positions_in_range) / static_cast<double>(bulk_positions) * 100.0);
+    // TODO: consider finalising bundles into smaller objects (closed bundles)
 }
 
 void PileupBatch::Pileup(pileup_state_t *state) {
     const Options *opts = state->opts;
 
-    base_array_t base_buffer = {};
-    if (base_info_array_reset(&base_buffer, 256)) {
-        throw std::runtime_error("Failed to allocate base info array!");
-    }
-
-    const range_tid_t r = {
+    state->range = {
         .start = this->range.start,
         .end = this->range.end,
         .tid = this->tid
     };
 
-    if (aux_set_iterator(state->bulk_aux, r)) {
+    if (aux_set_iterator(state->bulk_aux, state->range)) {
         throw std::runtime_error("Failed to create bulk iterator!");
     }
-    if (aux_set_iterator(state->duplex_aux, r)) {
+    if (aux_set_iterator(state->duplex_aux, state->range)) {
         throw std::runtime_error("Failed to create duplex iterator!");
     }
 
-    // Bulk pileup
-    bam1_t *read = bam_init1();
-
     std::string bundle_id;
+    read_info_t read_info = {};
 
-    // TODO: make global (or part of the Pileup object)
-    probs_t probs = {};
-    probs_init(&probs);
-
-    // TODO: add processed read counters
-
+    bam1_t *read = state->read;
+    std::vector<int32_t> prev_positions = {};
     {
         {
             std::unordered_map<std::string, duplex_info_t> bundle_id_encoder = {};
 
-            // A. Aggregate duplex
+            // A. Aggregate bulk
+            PileupBulk(opts, state);
+
+            state->debug_pos_duplexes_f = options_open_output_debug_file(opts, "pos_duplexes.tsv");
+
+            // B. Aggregate duplex
             std::cerr << "Aggregating duplex reads... ";
             uint64_t duplex_total_reads = 0;
             uint64_t duplex_usable_reads = 0;
             uint64_t duplex_positions = 0;
             uint64_t duplex_positions_in_range = 0;
             duplex_bundle_t *duplex_bundle;
-            read_info_t read_info = {};
             duplex_info_t *duplex_info;
             uint64_t duplex_index;
             while (1) {
@@ -210,6 +275,19 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                     throw std::runtime_error("Invalid read in duplex file!");
                 }
 
+                if (read->core.pos != state->read_start) {
+                    prev_positions.clear();
+                    for (auto kvp : state->pos_bundles) {
+                        if (kvp.first < read->core.pos) {
+                            prev_positions.push_back(kvp.first);
+                        }
+                    }
+                    for (auto pos : prev_positions) {
+                        PileupDumpPosition(opts, state, pos);
+                    }
+                    state->read_start = read->core.pos;
+                }
+
                 if (is_usable_duplex_read(state->duplex_aux, read)) {
                     duplex_usable_reads++;
 
@@ -224,31 +302,34 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                         duplex_info->read_count = 1;
                         duplex_info->index = duplex_index;
                         duplex_info->tag = duplex_tag_info_parse(bundle_id);
+
+                        // TODO: reconsider if in the new streaming structure which key/values should be stored in the decoder!
+                        state->bundle_id_decoder.push_back(duplex_info->tag);
                     }
 
                     // Update bundle
                     read_info_duplex_init(&read_info, read);
 
                     // NOTE: do not filter by quality for duplex bundles (?)!
-                    if (base_array_update(&base_buffer, read, 0)) {
+                    if (base_array_update(&state->base_buffer, read, 0)) {
                         throw std::runtime_error("Failed to perform pileup on bulk read!");
                     }
 
                     // Update allele counts
                     base_t *bi;
-                    for (uint64_t i = 0; i < base_buffer.count; ++i) {
+                    for (uint64_t i = 0; i < state->base_buffer.count; ++i) {
                         duplex_positions++;
 
-                        bi = &base_buffer.bases[i];
+                        bi = &state->base_buffer.bases[i];
                         if (
-                            range_tid_contains(&r, bi->aln_pos) &&
+                            range_tid_contains(&state->range, bi->aln_pos) &&
                             duplex_tag_info_is_pos_in_template(
                                 &duplex_info->tag,
                                 bi->aln_pos + opts->offset)
                         ) {
                             duplex_positions_in_range++;
                             duplex_bundle = &state->pos_bundles[bi->aln_pos].duplexes[duplex_info->index];
-                            duplex_bundle_update(duplex_bundle, &read_info, &probs, bi);
+                            duplex_bundle_update(duplex_bundle, &read_info, &state->probs, bi);
                         }
                     }
                 }
@@ -257,79 +338,19 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                 "{}/{} ({:.0f}%) usable reads, {}/{} ({:.0f}%) positions in range\n",
                 duplex_usable_reads,
                 duplex_total_reads,
-                static_cast<double>(duplex_usable_reads) / static_cast<double>(duplex_total_reads) * 100.0,
+                ratio_or_zero(duplex_usable_reads, duplex_total_reads) * 100.0,
                 duplex_positions_in_range,
                 duplex_positions,
                 static_cast<double>(duplex_positions_in_range) / static_cast<double>(duplex_positions) * 100.0);
 
-            // B. Aggregate bulk
-            std::cerr << "Aggregating bulk reads... ";
-            uint64_t bulk_total_reads = 0;
-            uint64_t bulk_usable_reads = 0;
-            uint64_t bulk_positions = 0;
-            uint64_t bulk_positions_in_range = 0;
-            while (1) {
-                const int rc = aux_iter(state->bulk_aux, read);
-                if (rc < 0) {
-                    if (rc == -1) {
-                        break;
-                    } else {
-                        throw std::runtime_error("Failed to read from bulk file!");
-                    }
-                }
-                bulk_total_reads++;
-
-                if (!is_valid_read(read)) {
-                    throw std::runtime_error("Invalid read in bulk file!");
-                }
-
-                if (is_usable_bulk_read(state->bulk_aux, read)) {
-                    bulk_usable_reads++;
-
-                    int strand = get_strand_index(read);
-                    if (strand == STRAND_INDEX_IGNORE) {
-                        // TODO: verify this recapitulates the original behaviour!
-                        continue;
-                    }
-
-                    if (base_array_update(&base_buffer, read, opts->min_base_quality)) {
-                        throw std::runtime_error("Failed to perform pileup on bulk read!");
-                    }
-
-                    // Update allele counts
-                    base_t *bi;
-                    bulk_bundle_t *bbx;
-                    read_info_init(&read_info, read);
-                    for (uint64_t i = 0; i < base_buffer.count; ++i) {
-                        bulk_positions++;
-                        bi = &base_buffer.bases[i];
-
-                        if (state->pos_bundles.contains(bi->aln_pos)) {
-                            bulk_positions_in_range++;
-                        	bbx = &state->pos_bundles[bi->aln_pos].bulk;
-                            bulk_bundle_update(bbx, &read_info, bi);
-                        }
-                    }
-                }
-            }
-            std::cerr << std::format(
-                "{}/{} ({:.0f}%) usable reads, {}/{} ({:.0f}%) positions in range\n",
-                bulk_usable_reads,
-                bulk_total_reads,
-                static_cast<double>(bulk_usable_reads) / static_cast<double>(bulk_total_reads) * 100.0,
-                bulk_positions_in_range,
-                bulk_positions,
-                static_cast<double>(bulk_positions_in_range) / static_cast<double>(bulk_positions) * 100.0);
-
             // C. Generate duplex index decoder
-            state->bundle_id_decoder.resize(bundle_id_encoder.size());
-
+            // state->bundle_id_decoder.resize(bundle_id_encoder.size());
             {
                 // TODO: consider whether to keep these stats
                 FILE *f = options_open_output_debug_file(opts, "duplex_bundles.tsv");
                 for (auto kvp : bundle_id_encoder) {
                     // From str -> (int, tag) to int -> tag
-                    state->bundle_id_decoder[kvp.second.index] = kvp.second.tag;
+                    // state->bundle_id_decoder[kvp.second.index] = kvp.second.tag;
                     if (opts->debug_mode) {
                        	fprintf(f, "%s\t%llu\n", kvp.first.c_str(), kvp.second.read_count);
                     }
@@ -359,14 +380,15 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
     // E. Process bundle stats by position
 
-    std::cerr << "Generating DSA table..." << std::endl;
-    state->debug_pos_duplexes_f = options_open_output_debug_file(opts, "pos_duplexes.tsv");
+    // std::cerr << "Generating DSA table..." << std::endl;
 
+    /*
     int32_t pos;
     for (auto pos_bundles_kvp : state->pos_bundles) {
         pos = pos_bundles_kvp.first;
         PileupDumpPosition(opts, state, pos);
     }
+    */
 
     if (opts->debug_mode) {
         fclose(state->debug_pos_duplexes_f);
@@ -374,6 +396,6 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
     std::cerr << std::format("Generated {} rows", state->dsa_row_count) << std::endl;
 
-    bam_destroy1(read);
+    // bam_destroy1(read);
 
 }

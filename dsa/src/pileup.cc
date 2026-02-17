@@ -397,12 +397,14 @@ void Pileup::MultiplePileup() {
 
     PileupBatch batch = {};
     const char *contig = NULL;
+
     pileup_state_t state = {};
     state.bulk_aux = &this->data[BULK_INDEX];
     state.duplex_aux = &this->data[DUPLEX_INDEX];
     state.compressor = &compressor;
     state.opts = this->opts;
     state.ref = &this->ref;
+    pileup_state_init(&state);
 
     for (auto r : this->ranges) {
         contig = GetContig(r.tid);
