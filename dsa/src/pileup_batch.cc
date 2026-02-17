@@ -214,7 +214,7 @@ void PileupBatch::PileupBulk(const Options *opts, pileup_state_t *state) {
         ratio_or_zero(bulk_usable_reads, bulk_total_reads) * 100.0,
         bulk_positions_in_range,
         bulk_positions,
-        static_cast<double>(bulk_positions_in_range) / static_cast<double>(bulk_positions) * 100.0);
+        ratio_or_zero(bulk_positions_in_range, bulk_positions) * 100.0);
     // TODO: consider finalising bundles into smaller objects (closed bundles)
 }
 
@@ -336,7 +336,7 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                 ratio_or_zero(duplex_usable_reads, duplex_total_reads) * 100.0,
                 duplex_positions_in_range,
                 duplex_positions,
-                static_cast<double>(duplex_positions_in_range) / static_cast<double>(duplex_positions) * 100.0);
+                ratio_or_zero(duplex_positions_in_range, duplex_positions) * 100.0);
 
             // C. Generate duplex index decoder
             // state->bundle_id_decoder.resize(bundle_id_encoder.size());
