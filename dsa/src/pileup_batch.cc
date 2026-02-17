@@ -221,11 +221,14 @@ void PileupBatch::PileupBulk(const Options *opts, pileup_state_t *state) {
 void PileupBatch::Pileup(pileup_state_t *state) {
     const Options *opts = state->opts;
 
-    state->range = {
-        .start = this->range.start,
-        .end = this->range.end,
-        .tid = this->tid
-    };
+    {
+        const range_tid_t range_ = {
+            .start = this->range.start,
+            .end = this->range.end,
+            .tid = this->tid
+        };
+        pileup_state_reset(state, &range_);
+    }
 
     if (aux_set_iterator(state->bulk_aux, state->range)) {
         throw std::runtime_error("Failed to create bulk iterator!");
@@ -329,6 +332,18 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                     }
                 }
             }
+
+            // Dump any remaining positions
+            {
+                auto it = state->pos_bundles.begin();
+                auto end = state->pos_bundles.end();
+                while (it != end) {
+                    const int32_t pos = it->first;
+                    ++it;
+                    PileupDumpPosition(opts, state, pos);
+                }
+            }
+
             std::cerr << std::format(
                 "{}/{} ({:.0f}%) usable reads, {}/{} ({:.0f}%) positions in range\n",
                 duplex_usable_reads,
