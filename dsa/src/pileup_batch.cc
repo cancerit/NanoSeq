@@ -114,7 +114,7 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
 
     duplex_tag_info_t *duplex_tag_info;
 
-    for (auto bundle_index_probs_kvp : pos_stats->duplexes) {
+    for (auto &bundle_index_probs_kvp : pos_stats->duplexes) {
         const uint64_t bundle_index = bundle_index_probs_kvp.first;
         duplex_bundle = &bundle_index_probs_kvp.second;
        	duplex_tag_info = &state->bundle_id_decoder[bundle_index];
@@ -277,12 +277,12 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
                 if (read->core.pos != state->read_start) {
                     prev_positions.clear();
-                    for (auto kvp : state->pos_bundles) {
+                    for (const auto& kvp : state->pos_bundles) {
                         if (kvp.first < read->core.pos) {
                             prev_positions.push_back(kvp.first);
                         }
                     }
-                    for (auto pos : prev_positions) {
+                    for (const auto &pos : prev_positions) {
                         PileupDumpPosition(opts, state, pos);
                     }
                     state->read_start = read->core.pos;
@@ -348,7 +348,7 @@ void PileupBatch::Pileup(pileup_state_t *state) {
             {
                 // TODO: consider whether to keep these stats
                 FILE *f = options_open_output_debug_file(opts, "duplex_bundles.tsv");
-                for (auto kvp : bundle_id_encoder) {
+                for (const auto& kvp : bundle_id_encoder) {
                     // From str -> (int, tag) to int -> tag
                     // state->bundle_id_decoder[kvp.second.index] = kvp.second.tag;
                     if (opts->debug_mode) {
