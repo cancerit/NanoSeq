@@ -148,9 +148,6 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
     // Dump to the DSA table temporary file
     state->compressor->compress(s.str());
     state->compressor->write();
-
-    // Remove position from memory
-    state->pos_bundles.erase(pos);
 }
 
 static inline double ratio_or_zero(const uint64_t x, const uint64_t y) {
@@ -241,7 +238,6 @@ void PileupBatch::Pileup(pileup_state_t *state) {
     read_info_t read_info = {};
 
     bam1_t *read = state->read;
-    std::vector<int32_t> prev_positions = {};
     {
         {
             std::unordered_map<std::string, duplex_info_t> bundle_id_encoder = {};
@@ -276,14 +272,13 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                 }
 
                 if (read->core.pos != state->read_start) {
-                    prev_positions.clear();
-                    for (const auto& kvp : state->pos_bundles) {
-                        if (kvp.first < read->core.pos) {
-                            prev_positions.push_back(kvp.first);
-                        }
-                    }
-                    for (const auto &pos : prev_positions) {
+                    auto it = state->pos_bundles.begin();
+                    auto end = state->pos_bundles.lower_bound(read->core.pos);
+                    while (it != end) {
+                        const int32_t pos = it->first;
+                        ++it;  // should preceed the erease!
                         PileupDumpPosition(opts, state, pos);
+                        state->pos_bundles.erase(pos);
                     }
                     state->read_start = read->core.pos;
                 }
