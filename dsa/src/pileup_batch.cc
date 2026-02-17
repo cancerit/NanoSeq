@@ -339,7 +339,6 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                 ratio_or_zero(duplex_positions_in_range, duplex_positions) * 100.0);
 
             // C. Generate duplex index decoder
-            // state->bundle_id_decoder.resize(bundle_id_encoder.size());
             {
                 // TODO: consider whether to keep these stats
                 FILE *f = options_open_output_debug_file(opts, "duplex_bundles.tsv");
@@ -356,34 +355,7 @@ void PileupBatch::Pileup(pileup_state_t *state) {
             }
 
         }
-
-        // D. Close bundles
-        /*
-        std::cerr << "Finalising bundle stats..." << std::endl;
-        bundle_open_t *duplex_bundle_open;
-        bundle_closed_t *duplex_bundle;
-        for (auto kvp : open_bundles) {
-            const uint64_t bundle_index = kvp.first;
-            duplex_bundle_open = &kvp.second;
-            duplex_bundle = &duplex_bundles[bundle_index];
-            bundle_id = bundle_id_decoder[bundle_index];
-
-            bundle_closed_duplex_init(duplex_bundle, duplex_bundle_open);
-        }
-        */
     }
-
-    // E. Process bundle stats by position
-
-    // std::cerr << "Generating DSA table..." << std::endl;
-
-    /*
-    int32_t pos;
-    for (auto pos_bundles_kvp : state->pos_bundles) {
-        pos = pos_bundles_kvp.first;
-        PileupDumpPosition(opts, state, pos);
-    }
-    */
 
     if (opts->debug_mode) {
         fclose(state->debug_pos_duplexes_f);
