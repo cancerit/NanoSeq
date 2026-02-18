@@ -51,22 +51,12 @@ static inline void duplex_bundle_update(duplex_bundle_t *bundle, const read_info
 
 static inline void duplex_bundle_finalise(duplex_bundle_t *bundle, pos_final_stats_t *s) {
 	const bundle_t *b = &bundle->bundle;
-	const bool has_a = b->read_counts[RTYPE_A] != 0;
-    const bool has_b = b->read_counts[RTYPE_B] != 0;
 	pos_stats_set_common(s, b);
 
 	// NM
-    if (has_a && has_b) {
-        s->nm = std::max(
-            bundle_mean(b, RTYPE_A, b->nm),
-            bundle_mean(b, RTYPE_B, b->nm));
-    } else if (has_a) {
-        s->nm = bundle_mean(b, RTYPE_A, b->nm);
-    } else if (has_b) {
-        s->nm = bundle_mean(b, RTYPE_B, b->nm);
-    } else {
-        s->nm = 0.0f;
-    }
+    s->nm = std::max(
+        bundle_mean(b, RTYPE_A, b->nm),
+        bundle_mean(b, RTYPE_B, b->nm));
 
     // 5'-clipping
     {
