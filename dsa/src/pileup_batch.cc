@@ -59,23 +59,12 @@ void PileupBatch::Update(const char *contig, const range_tid_t range, MaskLoader
     ref->Fetch(contig, ref_range);
 }
 
-const std::string PileupBatch::PositionString(const char *contig, const int pos, Ref *ref, const uint8_t mask_values[MASK_COUNT]) {
+static inline const std::string get_position_string(const char *contig, const int pos, Ref *ref, const uint8_t mask_values[MASK_COUNT]) {
     const std::string_view ctx = ref->GetTripletAround(pos);
-
-    std::stringstream ss;
-    ss << contig;
-    ss << "\t";
-    ss << pos;
-    ss << "\t";
-    ss << pos + 1;
-    ss << "\t";
-    ss << ctx;
-    ss << "\t";
-    ss << static_cast<int>(mask_values[MASK_INDEX_SNP]);
-    ss << "\t";
-    ss << static_cast<int>(mask_values[MASK_INDEX_NOISE]);
-
-    return ss.str();
+    return std::format("{}\t{}\t{}\t{}\t{}\t{}",
+        contig, pos, pos + 1, ctx,
+        static_cast<int>(mask_values[MASK_INDEX_SNP]),
+        static_cast<int>(mask_values[MASK_INDEX_NOISE]));
 }
 
 typedef struct duplex_info_t {
@@ -110,7 +99,7 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
 
     // TODO: check all attributes get overridden!
     bulk_bundle_finalise(bulk_bundle, &bulk_stats);
-    std::string pos_prefix = dsa_get_bulk_prefix(bulk_bundle, &bulk_stats, PositionString(this->contig, pos, state->ref, mask_values));
+    std::string pos_prefix = dsa_get_bulk_prefix(bulk_bundle, &bulk_stats, get_position_string(this->contig, pos, state->ref, mask_values));
 
     duplex_tag_info_t *duplex_tag_info;
 

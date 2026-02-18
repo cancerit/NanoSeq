@@ -14,8 +14,6 @@ private:
     int32_t tid = -1;
     range_t range = {0, 0};
 
-    const std::string PositionString(const char *contig, const int pos, Ref *ref, const uint8_t mask_values[MASK_COUNT]);
-
 public:
     Mask mask;
     PileupBatch() : contig(nullptr), tid(-1), range({0, 0}) {};
