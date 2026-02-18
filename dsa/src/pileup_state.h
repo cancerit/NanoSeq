@@ -11,6 +11,7 @@
 #include "range.h"
 #include "ref.h"
 #include <map>
+#include <sstream>
 
 typedef struct pos_stats_t {
     bulk_bundle_t bulk = {};
@@ -36,11 +37,12 @@ typedef struct pileup_state_t {
     std::map<int32_t, pos_stats_t> pos_bundles = {};
     // Genomic position -> bundle indices
     std::vector<duplex_tag_info_t> bundle_id_decoder = {};
+    std::stringstream dsa_uncompressed_stream = {};
 
     FILE *debug_pos_duplexes_f = NULL;
 } pileup_state_t;
 
-static void pileup_state_init(pileup_state_t *state) {
+static inline void pileup_state_init(pileup_state_t *state) {
     state->read = bam_init1();
 
     if (base_info_array_reset(&state->base_buffer, 256)) {
@@ -50,7 +52,12 @@ static void pileup_state_init(pileup_state_t *state) {
     probs_init(&state->probs);
 }
 
-static void pileup_state_reset(pileup_state_t *state, const range_tid_t *range) {
+static inline void pileup_state_reset_dsa_stream(pileup_state_t *state) {
+    state->dsa_uncompressed_stream.str("");
+    state->dsa_uncompressed_stream.clear();
+}
+
+static inline void pileup_state_reset(pileup_state_t *state, const range_tid_t *range) {
     state->range.start = range->start;
     state->range.end = range->end;
     state->range.tid = range->tid;
@@ -58,6 +65,7 @@ static void pileup_state_reset(pileup_state_t *state, const range_tid_t *range) 
     state->dsa_row_count = 0;
     state->pos_bundles.clear();
     state->bundle_id_decoder.clear();
+    pileup_state_reset_dsa_stream(state);
 }
 
 #endif

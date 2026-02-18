@@ -90,8 +90,6 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
     mask_values[MASK_INDEX_SNP] = flag_is_set(mask_flag, MASK_FLAG_SNP);
     mask_values[MASK_INDEX_NOISE] = flag_is_set(mask_flag, MASK_FLAG_NOISE);
 
-    std::stringstream s;
-
     bulk_bundle_t *bulk_bundle = &pos_stats->bulk;
     pos_final_stats_t bulk_stats = {};
     duplex_bundle_t *duplex_bundle;
@@ -102,6 +100,9 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
     std::string pos_prefix = dsa_get_bulk_prefix(bulk_bundle, &bulk_stats, get_position_string(this->contig, pos, state->ref, mask_values));
 
     duplex_tag_info_t *duplex_tag_info;
+
+    // Reset the string stream
+    pileup_state_reset_dsa_stream(state);
 
     for (auto &bundle_index_probs_kvp : pos_stats->duplexes) {
         const uint64_t bundle_index = bundle_index_probs_kvp.first;
@@ -128,14 +129,14 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
             // BEWARE: the argument gets modified!
             // TODO: check all attributes get overridden!
 
-            dsa_push_row(s, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, bundle_type);
+            dsa_push_row(state->dsa_uncompressed_stream, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, bundle_type);
         }
 
         state->dsa_row_count++;
     }
 
     // Dump to the DSA table temporary file
-    state->compressor->compress(s.str());
+    state->compressor->compress(state->dsa_uncompressed_stream.str());
     state->compressor->write();
 }
 
