@@ -1,6 +1,7 @@
 #ifndef DSA_SERIALISER_H_
 #define DSA_SERIALISER_H_
 
+#include <sstream>
 #include <string>
 #include <format>
 #include "bulk_bundle.h"
