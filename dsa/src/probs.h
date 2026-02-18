@@ -34,14 +34,14 @@ static void probs_init(probs_t *p) {
 }
 
 static void probs_add_p_error(const probs_t *p, const int qual, int base_code, double *probs) {
-    if (base_code != ALLELE_DISCARDED && base_code != ALLELE_DEL) {
+    if (base_code != ALLELE_DEL) {
         const double pc = p->probs[qual * PROB_STRIDE + PROB_INDEX_CORRECT];
-        double dp[ALLELE_COUNT] = {0.0, pc, pc, pc, pc, 0.0};
+        double dp[ALLELE_COUNT - 1] = {pc, pc, pc, pc};
         dp[base_code] = p->probs[qual * PROB_STRIDE + PROB_INDEX_ERR];
-        probs[ALLELE_INDEX_A] += dp[ALLELE_A];
-        probs[ALLELE_INDEX_C] += dp[ALLELE_C];
-        probs[ALLELE_INDEX_G] += dp[ALLELE_G];
-        probs[ALLELE_INDEX_T] += dp[ALLELE_T];
+        probs[ALLELE_A] += dp[ALLELE_A];
+        probs[ALLELE_C] += dp[ALLELE_C];
+        probs[ALLELE_G] += dp[ALLELE_G];
+        probs[ALLELE_T] += dp[ALLELE_T];
     }
 }
 

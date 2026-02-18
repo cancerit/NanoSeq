@@ -116,7 +116,7 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
                     bi = base_info_array_get_next(ba);
                     // bi->read_pos = (int16_t)query_pos;
                     bi->aln_pos = read->core.pos + ref_offset;
-                    bi->base = nt16_allele[bam_nt];
+                    bi->base = canonical_nt16_minus_one_to_allele[bam_nt - 1];
                     bi->qual = qual[query_pos];
                     ba->count++;
 
