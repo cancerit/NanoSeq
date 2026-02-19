@@ -32,7 +32,7 @@ static inline void base_init_indel(base_t *b) {
     b->qual = 0;  // NOTE: this is probably unnecessary
 }
 
-static inline void patch_anchor_base(base_array_t *a) {
+static inline void patch_anchor_base(base_array_t *a, const int32_t pos) {
     /*
     Mark the anchor base of an indel as a deletion, matching the original behaviour:
 
@@ -41,26 +41,18 @@ static inline void patch_anchor_base(base_array_t *a) {
     }
     */
 
-    base_t *b;
-    if (a->count == 0) {
-    	/*
-        // TODO: check bam_plp_* behaviour on unaligned reads (hopefully discarded in filtering irrespective)
-        fprintf(stderr, "ANCHOR BASE ON FIRST QUERY POSITION (read start: %d)!\n", a->start);
-        // First position
-        b = base_info_array_get_next(a);
-        // BEWARE: does not support the first base of the contig (anchor would be after)
-        // NOTE: check the behaviour of the htslib pileup engine in that scenario.
-        b->aln_pos = a->start - 1;
-        assert(b->aln_pos >= 0);
+    // NOTE: if the anchor base is non-canonical, it will not be present;
+    //  therefore, the alignment position needs to be tested before patching.
+
+    base_t *b = base_info_get_last(a);
+    if (
+        b != NULL &&              // not the first base
+        b->aln_pos == pos - 1 &&  // immediately preceding position
+        b->base != ALLELE_DEL     // neither an indel nor a [patched] anchor
+    ) {
+        // NOTE: the quality score is not being overridden
+        // ASSUMPTION: the quality score of an indel is never evaluated
         base_init_indel(b);
-        a->count++;
-        */
-    } else {
-        b = base_info_get_last(a);
-        assert(b != NULL);
-        if (b->base != ALLELE_DEL) {
-            base_init_indel(b);
-        }
     }
 }
 
@@ -115,7 +107,7 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
                     // A. Push canonical base
                     bi = base_info_array_get_next(ba);
                     // bi->read_pos = (int16_t)query_pos;
-                    bi->aln_pos = read->core.pos + ref_offset;
+                    bi->aln_pos = c->pos + ref_offset;
                     bi->base = canonical_nt16_minus_one_to_allele[bam_nt - 1];
                     bi->qual = qual[query_pos];
                     ba->count++;
@@ -130,7 +122,7 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
             fprintf(stderr, "\t%d\tDELETION at %d/%d\n", ba->start, (int32_t)read->core.pos + ref_offset, query_pos);
             */
             // ANCHOR BASE PATCH (ONLY TO MATCH CURRENT OUTPUT!)
-            patch_anchor_base(ba);
+            patch_anchor_base(ba, c->pos + ref_offset);
             // ref_offset += len;
 
             // Consider that in samtools pileup skips are marked as deletions (bug)!
@@ -143,7 +135,7 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
                 bi = base_info_array_get_next(ba);
                 // bi->read_pos = (int16_t)query_pos;
                 base_init_indel(bi);
-                bi->aln_pos = read->core.pos + ref_offset;
+                bi->aln_pos = c->pos + ref_offset;
                 ba->count++;
 
             }
@@ -157,7 +149,7 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
 
             // ANCHOR BASE PATCH (ONLY TO MATCH CURRENT OUTPUT!)
             // TODO: verify whether this case should be skipping any preceding deletion up to the anchor...?
-            patch_anchor_base(ba);
+            patch_anchor_base(ba, c->pos + ref_offset);
 
         } else {
             // TODO: consider behaviour with soft-clipped bases!
