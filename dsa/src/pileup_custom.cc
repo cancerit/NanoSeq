@@ -27,7 +27,7 @@ static const uint8_t cigar_maps_to_ref[16] = {
     [BAM_CDIFF] = 1
 };
 
-static inline void base_init_indel(base_t *b) {
+static inline void base_mark_as_indel(base_t *b) {
     b->base = ALLELE_DEL;
     b->qual = 0;  // NOTE: this is probably unnecessary
 }
@@ -44,27 +44,28 @@ static inline void patch_anchor_base(base_array_t *a, const int32_t pos) {
     // NOTE: if the anchor base is non-canonical, it will not be present;
     //  therefore, the alignment position needs to be tested before patching.
 
-    base_t *b = base_info_get_last(a);
-    if (
-        b != NULL &&              // not the first base
-        b->aln_pos == pos - 1 &&  // immediately preceding position
-        b->base != ALLELE_DEL     // neither an indel nor a [patched] anchor
-    ) {
-        // NOTE: the quality score is not being overridden
-        // ASSUMPTION: the quality score of an indel is never evaluated
-        base_init_indel(b);
+    // Do not create any base before the start (to verify)
+    if (pos == a->start) {
+        return;
     }
-}
 
-/*
-static inline void cigar_print(const bam1_t *read) {
-    uint32_t *cigar = bam_get_cigar(read);
-    for (uint32_t i = 0; i < read->core.n_cigar; ++i) {
-        fprintf(stderr, "%d%c", bam_cigar_oplen(cigar[i]), bam_cigar_opchr(cigar[i]));
+    base_t *b = base_info_get_last(a);
+    if (b == NULL || b->aln_pos != pos - 1) {
+
+        // Create anchor
+        // NOTE: necessary if it was discarded as ambiguous or low-quality
+        b = base_info_array_get_next(a);
+        b->aln_pos = pos - 1;
+        base_mark_as_indel(b);
+        a->count++;
+
+    } else {
+
+        // Patch anchor (may override an indel allele, but won't change the result)
+        base_mark_as_indel(b);
+
     }
-    printf("\n");
 }
-*/
 
 int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
     const bam1_core_t *c = &read->core;
@@ -72,7 +73,8 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
 
     // Expand output array if necessary
     const int32_t read_length = c->l_qseq;
-    if (base_info_array_reset(ba, (uint64_t)read_length)) {
+    // NOTE: verify soft-clipping implications on read start...
+    if (base_info_array_reset(ba, (uint64_t)read_length, c->pos)) {
         fprintf(stderr, "Failed to allocate base info array!\n");
         return 1;
     }
@@ -102,11 +104,11 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
                 bam_nt = bam_seqi(seq, query_pos);
 
                 // Verify it is a canonical base
+                // BEWARE: CAN'T DISCARD BASED ON QUALITY, OTHERWISE NO ANCHOR?
                 if (count_bits(bam_nt) == 1 && qual[query_pos] >= min_qual) {
 
                     // A. Push canonical base
                     bi = base_info_array_get_next(ba);
-                    // bi->read_pos = (int16_t)query_pos;
                     bi->aln_pos = c->pos + ref_offset;
                     bi->base = canonical_nt16_minus_one_to_allele[bam_nt - 1];
                     bi->qual = qual[query_pos];
@@ -117,13 +119,8 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
                 ref_offset++;
             }
         } else if (op == BAM_CDEL) {
-            /*
-            cigar_print(read);
-            fprintf(stderr, "\t%d\tDELETION at %d/%d\n", ba->start, (int32_t)read->core.pos + ref_offset, query_pos);
-            */
             // ANCHOR BASE PATCH (ONLY TO MATCH CURRENT OUTPUT!)
             patch_anchor_base(ba, c->pos + ref_offset);
-            // ref_offset += len;
 
             // Consider that in samtools pileup skips are marked as deletions (bug)!
 
@@ -133,19 +130,14 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
 
                 // B. Push deletion
                 bi = base_info_array_get_next(ba);
-                // bi->read_pos = (int16_t)query_pos;
-                base_init_indel(bi);
+                base_mark_as_indel(bi);
                 bi->aln_pos = c->pos + ref_offset;
                 ba->count++;
 
             }
         } else if (op == BAM_CINS) {
-       	    /*
-            cigar_print(read);
-            fprintf(stderr, "\t%d\tINSERTION at %d/%d\n", ba->start, (int32_t)read->core.pos + ref_offset, query_pos);
-            */
             // Skip ahead (this avoids processing any actual inserted base, which would have no reference position)
-            query_pos  += len;
+            query_pos += len;
 
             // ANCHOR BASE PATCH (ONLY TO MATCH CURRENT OUTPUT!)
             // TODO: verify whether this case should be skipping any preceding deletion up to the anchor...?

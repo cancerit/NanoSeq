@@ -45,7 +45,7 @@ typedef struct pileup_state_t {
 static inline void pileup_state_init(pileup_state_t *state) {
     state->read = bam_init1();
 
-    if (base_info_array_reset(&state->base_buffer, 256)) {
+    if (base_info_array_init(&state->base_buffer, 256)) {
         throw std::runtime_error("Failed to allocate base info array!");
     }
 
