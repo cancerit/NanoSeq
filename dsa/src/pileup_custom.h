@@ -34,6 +34,6 @@ static inline base_t *base_info_get_last(const base_array_t *a) {
     return a->count != 0 ? &a->bases[a->count - 1] : NULL;
 }
 
-int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual);
+int base_array_update(base_array_t *ba, bam1_t *read);
 
 #endif

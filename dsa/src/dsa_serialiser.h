@@ -27,7 +27,7 @@ static inline std::string dsa_base_counts(const uint64_t counts[RTYPE_COUNT][ALL
 static inline std::string dsa_get_bulk_prefix(const bulk_bundle_t *bulk, const pos_final_stats_t *stats, const std::string pos_prefix) {
     return std::format("{}\t{}\t{}\t{}",
         pos_prefix,
-        custom_round(stats->asxs),
+        stats->asxs,
         custom_round(stats->nm),
         dsa_base_counts(bulk->allele_counts));
 }
@@ -71,13 +71,13 @@ static inline void dsa_push_row(
     << pos_prefix
     << dsa_get_duplex_id(tag_info, bundle_type)
     << std::format("{}\t{}\t{}\t",
-        custom_round(duplex_stats->asxs),
-        custom_round(duplex_stats->clip),
+        duplex_stats->asxs,
+        duplex_stats->clip,
         static_cast<float>(0.1 * custom_round(duplex_stats->nm * 10.0)))
     << dsa_base_counts(duplex_bundle->bundle.allele_counts)
     << dsa_get_duplex_base_consensus_qualities(duplex_bundle)
-    << custom_round(bulk_stats->proper_pairs) << '\t'
-    << custom_round(duplex_stats->proper_pairs) << '\n';
+    << bulk_stats->proper_pairs << '\t'
+    << duplex_stats->proper_pairs << '\n';
 }
 
 #endif

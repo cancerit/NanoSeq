@@ -53,7 +53,7 @@ static inline void patch_anchor_base(base_array_t *a, const int32_t pos) {
     if (b == NULL || b->aln_pos != pos - 1) {
 
         // Create anchor
-        // NOTE: necessary if it was discarded as ambiguous or low-quality
+        // NOTE: verify under which conditions this is possible now that non-canonical and low-quality bases are still pushed to the array of bases
         b = base_info_array_get_next(a);
         b->aln_pos = pos - 1;
         base_mark_as_indel(b);
@@ -67,7 +67,7 @@ static inline void patch_anchor_base(base_array_t *a, const int32_t pos) {
     }
 }
 
-int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
+int base_array_update(base_array_t *ba, bam1_t *read) {
     const bam1_core_t *c = &read->core;
     ba->start = static_cast<int32_t>(c->pos);
 
@@ -103,18 +103,14 @@ int base_array_update(base_array_t *ba, bam1_t *read, const uint8_t min_qual) {
             for (; query_pos < query_pos_end; ++query_pos) {
                 bam_nt = bam_seqi(seq, query_pos);
 
-                // Verify it is a canonical base
-                // BEWARE: CAN'T DISCARD BASED ON QUALITY, OTHERWISE NO ANCHOR?
-                if (count_bits(bam_nt) == 1 && qual[query_pos] >= min_qual) {
-
-                    // A. Push canonical base
-                    bi = base_info_array_get_next(ba);
-                    bi->aln_pos = c->pos + ref_offset;
-                    bi->base = canonical_nt16_minus_one_to_allele[bam_nt - 1];
-                    bi->qual = qual[query_pos];
-                    ba->count++;
-
-                }
+                // A. Push canonical or invalid base
+                bi = base_info_array_get_next(ba);
+                bi->aln_pos = c->pos + ref_offset;
+                bi->qual = qual[query_pos];
+                bi->base = count_bits(bam_nt) == 1 ?
+                    canonical_nt16_minus_one_to_allele[bam_nt - 1] :
+                    ALLELE_INVALID;
+                ba->count++;
 
                 ref_offset++;
             }

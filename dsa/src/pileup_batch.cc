@@ -177,7 +177,7 @@ void PileupBatch::PileupBulk(const Options *opts, pileup_state_t *state) {
                 continue;
             }
 
-            if (base_array_update(&state->base_buffer, read, opts->min_base_quality)) {
+            if (base_array_update(&state->base_buffer, read)) {
                 throw std::runtime_error("Failed to perform pileup on bulk read!");
             }
 
@@ -192,7 +192,7 @@ void PileupBatch::PileupBulk(const Options *opts, pileup_state_t *state) {
                 if (range_tid_contains(&state->range, bi->aln_pos)) {
                     bulk_positions_in_range++;
                 	bbx = &state->pos_bundles[bi->aln_pos].bulk;
-                    bulk_bundle_update(bbx, &read_info, bi);
+                    bulk_bundle_update(bbx, &read_info, bi, opts->min_base_quality);
                 }
             }
         }
@@ -299,7 +299,7 @@ void PileupBatch::Pileup(pileup_state_t *state) {
                     read_info_duplex_init(&read_info, read);
 
                     // NOTE: do not filter by quality for duplex bundles (?)!
-                    if (base_array_update(&state->base_buffer, read, 0)) {
+                    if (base_array_update(&state->base_buffer, read)) {
                         throw std::runtime_error("Failed to perform pileup on bulk read!");
                     }
 

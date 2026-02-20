@@ -43,10 +43,12 @@ static inline void duplex_bundle_update(duplex_bundle_t *bundle, const read_info
     bundle->clip[r_type] += r->is_5p_clipped;
     bundle_update(&bundle->bundle, r, r_type);
 
-    bundle->bundle.allele_counts[r_type][base->base]++;
-    probs_add_p_error(
-        probs, base->qual, base->base,
-        bundle->duplex_consensus_quality_accum[r_type]);
+    if (base->base != ALLELE_INVALID) {
+        bundle->bundle.allele_counts[r_type][base->base]++;
+        probs_add_p_error(
+            probs, base->qual, base->base,
+            bundle->duplex_consensus_quality_accum[r_type]);
+    }
 }
 
 static inline void duplex_bundle_finalise(duplex_bundle_t *bundle, pos_final_stats_t *s) {
@@ -62,9 +64,9 @@ static inline void duplex_bundle_finalise(duplex_bundle_t *bundle, pos_final_sta
     {
         const uint64_t total = b->read_counts[RTYPE_A] + b->read_counts[RTYPE_B];
         if (total != 0) {
-            s->clip = static_cast<double>(bundle->clip[RTYPE_A] + bundle->clip[RTYPE_B]) / static_cast<double>(total);
+            s->clip = custom_round(static_cast<float>(bundle->clip[RTYPE_A] + bundle->clip[RTYPE_B]) / static_cast<float>(total));
         } else {
-            s->clip = 0.0;
+            s->clip = 0;
         }
     }
 
@@ -72,21 +74,6 @@ static inline void duplex_bundle_finalise(duplex_bundle_t *bundle, pos_final_sta
     for (int i = 0; i < RTYPE_COUNT; ++i) {
         finalise_consensus_quality_scores(bundle->duplex_consensus_quality_accum[i]);
     }
-    /*
-    {
-        uint64_t total;
-        for (int i = 0; i < RTYPE_COUNT; ++i) {
-            total = 0;
-            // NOTE: skipping the first allele, which is a placeholder for discarded alleles
-            for (int j = 1; j < ALLELE_COUNT; ++j) {
-                total += bundle->bundle.allele_counts[i][j];
-            }
-            if (total != 0) {
-                finalise_consensus_quality_scores(bundle->duplex_consensus_quality_accum[i]);
-            }
-        }
-    }
-    */
 }
 
 #endif

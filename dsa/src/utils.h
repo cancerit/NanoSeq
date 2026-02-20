@@ -17,7 +17,7 @@ static inline void get_region(const char *contig, const int start, const int end
 }
 
 static inline int custom_round(const double d) {
-  const int n = std::round(d);
+  const int n = (int)std::round(d);
   // TODO: verify how this can occur
   return (n == -0) ? 0 : n;
 }

@@ -19,6 +19,8 @@
 #define ALLELE_DEL 4
 #define ALLELE_COUNT 5
 
+#define ALLELE_INVALID 255
+
 // ASSUMPTION: the 4-bit base has been validated as canonical beforehand
 static const uint8_t canonical_nt16_minus_one_to_allele[8] = {
   [BAM_NT_A - 1] = ALLELE_A,

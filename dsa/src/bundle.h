@@ -6,6 +6,7 @@
 #include "constants.h"
 #include "read_info.h"
 #include "pos_stats.h"
+#include "utils.h"
 
 /// Stats common to duplex and bulk bundles
 typedef struct bundle_t {
@@ -26,8 +27,8 @@ static inline void bundle_update(bundle_t *bundle, const read_info_t *r, const i
     bundle->proper_pairs[i] += r->proper_pair;
 }
 
-static inline double bundle_mean(const bundle_t *b, const uint64_t r_type, const int64_t x[2]) {
-    return static_cast<double>(x[r_type]) / static_cast<double>(b->read_counts[r_type]);
+static inline float bundle_mean(const bundle_t *b, const uint64_t r_type, const int64_t x[2]) {
+    return static_cast<float>(x[r_type]) / static_cast<float>(b->read_counts[r_type]);
 }
 
 static inline void pos_stats_set_common(pos_final_stats_t *s, const bundle_t *b) {
@@ -37,23 +38,23 @@ static inline void pos_stats_set_common(pos_final_stats_t *s, const bundle_t *b)
     // Mean AS - XS and proper pair counts
     if (has_a && has_b) {
 
-        s->asxs = std::min(
+        s->asxs = custom_round(std::min(
             bundle_mean(b, RTYPE_A, b->asxs),
-            bundle_mean(b, RTYPE_B, b->asxs));
+            bundle_mean(b, RTYPE_B, b->asxs)));
 
-        s->proper_pairs = std::min(
+        s->proper_pairs = custom_round(std::min(
             bundle_mean(b, RTYPE_A, b->proper_pairs),
-            bundle_mean(b, RTYPE_B, b->proper_pairs));
+            bundle_mean(b, RTYPE_B, b->proper_pairs)));
 
     } else if (has_a) {
-        s->asxs = bundle_mean(b, RTYPE_A, b->asxs);
-        s->proper_pairs = bundle_mean(b, RTYPE_A, b->proper_pairs);
+        s->asxs = custom_round(bundle_mean(b, RTYPE_A, b->asxs));
+        s->proper_pairs = custom_round(bundle_mean(b, RTYPE_A, b->proper_pairs));
     } else if (has_b) {
-        s->asxs = bundle_mean(b, RTYPE_B, b->asxs);
-        s->proper_pairs = bundle_mean(b, RTYPE_B, b->proper_pairs);
+        s->asxs = custom_round(bundle_mean(b, RTYPE_B, b->asxs));
+        s->proper_pairs = custom_round(bundle_mean(b, RTYPE_B, b->proper_pairs));
     } else {
-        s->asxs = 0.0;
-        s->proper_pairs = 0.0;
+        s->asxs = 0;
+        s->proper_pairs = 0;
     }
 }
 
