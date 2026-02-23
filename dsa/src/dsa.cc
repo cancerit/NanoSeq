@@ -41,18 +41,18 @@
 
 void Usage() {
   fprintf(stderr, "\nUsage:\n");
-  fprintf(stderr, "\t-A\tBulk BAM/CRAM file name\n");
-  fprintf(stderr, "\t-B\tDuplex BAM/CRAM file name\n");
-  fprintf(stderr, "\t-I\tRegions BED file name\n");
-  fprintf(stderr, "\t-C\tSNP BED file name\n");
-  fprintf(stderr, "\t-D\tMask BED file name\n");
-  fprintf(stderr, "\t-R\tReference sequence file (faidx indexed)\n");
-  fprintf(stderr, "\t-Q\tMinimum base quality for bulk sequencing (default %d)\n", MIN_BASE_QUALITY);
-  fprintf(stderr, "\t-M\tRemove duplex reads w/ MAPQ smaller than this (default %d)\n", MIN_MAPQ);
-  fprintf(stderr, "\t-d\tMinimum duplex depth (default %d)\n", MIN_DEPTH_DEFAULT);
-  fprintf(stderr, "\t-O\tOutput file\n");
-  fprintf(stderr, "\t-x\tCompression level (default %d)\n", COMPRESSION_LEVEL_DEFAULT);
-  fprintf(stderr, "\t-h\tHelp\n");
+  fprintf(stderr, "  -A\tBulk BAM/CRAM file name\n");
+  fprintf(stderr, "  -B\tDuplex BAM/CRAM file name\n");
+  fprintf(stderr, "  -I\tRegions BED file name\n");
+  fprintf(stderr, "  -C\tSNP BED file name\n");
+  fprintf(stderr, "  -D\tMask BED file name\n");
+  fprintf(stderr, "  -R\tReference sequence file (faidx indexed)\n");
+  fprintf(stderr, "  -Q\tMinimum base quality for bulk sequencing (default %d)\n", MIN_BASE_QUALITY);
+  fprintf(stderr, "  -M\tRemove duplex reads with MAPQ smaller than this (default %d)\n", MIN_MAPQ);
+  fprintf(stderr, "  -d\tMinimum duplex depth (default %d)\n", MIN_DEPTH_DEFAULT);
+  fprintf(stderr, "  -O\tOutput file\n");
+  fprintf(stderr, "  -x\tCompression level (default %d)\n", COMPRESSION_LEVEL_DEFAULT);
+  fprintf(stderr, "  -h\tHelp\n");
 }
 
 static int SetupOptions(int argc, char **argv, Options *opts) {
@@ -117,7 +117,11 @@ static int SetupOptions(int argc, char **argv, Options *opts) {
     }
   }
 
-  return options_validate(opts);
+  const int rc = options_validate(opts);
+  if (rc) {
+    Usage();
+  }
+  return rc;
 }
 
 int main(int argc, char **argv) {
