@@ -62,8 +62,6 @@ static int SetupOptions(int argc, char **argv, Options *opts) {
   opts->min_base_quality = MIN_BASE_QUALITY;
   opts->min_mapQ         = MIN_MAPQ;
   opts->doTests          = true;
-  opts->beds[MASK_INDEX_SNP]   = "\0";
-  opts->beds[MASK_INDEX_NOISE] = "\0";
   opts->compression_level = COMPRESSION_LEVEL_DEFAULT;
   opts->debug_mode = false;
   int opt = 0;

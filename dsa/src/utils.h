@@ -1,9 +1,10 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include <string>
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <string>
 #include "constants.h"
 
 #define flag_is_set(a,b) (((a) & (b)) != 0)
@@ -20,6 +21,10 @@ static inline int custom_round(const double d) {
   const int n = (int)std::round(d);
   // TODO: verify how this can occur
   return (n == -0) ? 0 : n;
+}
+
+static inline int path_exists(const char *fp) {
+  return std::filesystem::exists(std::filesystem::path(fp));
 }
 
 #endif

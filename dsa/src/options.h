@@ -38,13 +38,14 @@
 #include <cstdio>
 #include <iostream>
 #include <stdexcept>
+#include "utils.h"
 
 struct Options {
-  const char *bams[BAM_COUNT];
-  const char *beds[MASK_COUNT];
-  const char *ranges_bed;
-  const char *fasta;
-  const char *oname;
+  const char *bams[BAM_COUNT] = {NULL, NULL};
+  const char *beds[MASK_COUNT] = {NULL, NULL};
+  const char *ranges_bed = NULL;
+  const char *fasta = NULL;
+  const char *oname = NULL;
   int min_base_quality;
   int min_mapQ;
   int max_plp_depth;
@@ -57,6 +58,34 @@ struct Options {
 };
 
 static int options_validate(const Options *opt) {
+
+    if (opt->oname == NULL) {
+        std::cerr << std::format("Output directory not set!\n");
+        return 1;
+    }
+
+    if (!path_exists(opt->oname)) {
+        std::cerr << std::format(
+            "Output directory not found at '{}'!\n", opt->oname);
+        return 1;
+    }
+
+    const char *bed_fp = NULL;
+    for (int i = 0; i < MASK_COUNT; ++i) {
+        bed_fp = opt->beds[i];
+
+        if (bed_fp == NULL) {
+            std::cerr << std::format(
+                "Mask file path not set!\n");
+            return 1;
+        }
+
+        if (!path_exists(bed_fp)) {
+            std::cerr << std::format(
+                "Mask file not found at '{}'!\n", bed_fp);
+            return 1;
+        }
+    }
 
     // TODO: is level zero valid?
     if (opt->compression_level < 0 || opt->compression_level > 12) {

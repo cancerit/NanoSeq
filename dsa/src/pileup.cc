@@ -122,10 +122,12 @@ void Pileup::Initiate(Options *opts) {
     static_assert(MASK_INDEX_NOISE == 1);
     static_assert(MASK_COUNT == 2);
 
+    const char *bed_fp;
     for (int i = 0; i < MASK_COUNT; ++i) {
-        std::cerr << std::format("Loading mask {} from {}...\n", i, this->opts->beds[i]);
+        bed_fp = this->opts->beds[i];
+        std::cerr << std::format("Loading mask {} from {}...\n", i, bed_fp);
         this->masks[i] = MaskLoader(i);
-        this->masks[i].Init(this->opts->beds[i]);
+        this->masks[i].Init(bed_fp);
     }
 
     // Load FAI

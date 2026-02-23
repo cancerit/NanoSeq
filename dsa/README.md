@@ -2,6 +2,15 @@
 
 ## Usage
 
+Minimal:
+
+```sh
+# Output table: ./output/dsa.bed.gz
+./dsa -I ranges.bed -A x.neat.cram -B x.bam -O ./output/
+```
+
+Singularity:
+
 ```sh
 singularity exec \
     -B "/lustre/...:/extra/:ro" \
@@ -42,6 +51,7 @@ Command line options:
 Migrating from NanoSeq 3:
 
 - the single target genomic range is replaced by a BED file (`I` option)
+- no standard output mode
 
 ## Development
 
@@ -49,4 +59,10 @@ To generate `compile_commands.json`:
 
 ```sh
 bear -- ./build.sh
+```
+
+To build the Docker and Singularity image:
+
+```sh
+docker build -t dsa . && rm -f dsa.sif && singularity pull dsa.sif
 ```
