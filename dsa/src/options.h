@@ -70,20 +70,41 @@ static int options_validate(const Options *opt) {
         return 1;
     }
 
-    const char *bed_fp = NULL;
-    for (int i = 0; i < MASK_COUNT; ++i) {
-        bed_fp = opt->beds[i];
+    {
+        const char *bed_fp = NULL;
+        for (int i = 0; i < MASK_COUNT; ++i) {
+            bed_fp = opt->beds[i];
 
-        if (bed_fp == NULL) {
-            std::cerr << std::format(
-                "Mask file path not set!\n");
-            return 1;
+            if (bed_fp == NULL) {
+                std::cerr << std::format(
+                    "Mask file path not set!\n");
+                return 1;
+            }
+
+            if (!path_exists(bed_fp)) {
+                std::cerr << std::format(
+                    "Mask file not found at '{}'!\n", bed_fp);
+                return 1;
+            }
         }
+    }
 
-        if (!path_exists(bed_fp)) {
-            std::cerr << std::format(
-                "Mask file not found at '{}'!\n", bed_fp);
-            return 1;
+    {
+        const char *bam_fp = NULL;
+        for (int i = 0; i < BAM_COUNT; ++i) {
+            bam_fp = opt->bams[i];
+
+            if (bam_fp == NULL) {
+                std::cerr << std::format(
+                    "BAM/CRAM file path not set!\n");
+                return 1;
+            }
+
+            if (!path_exists(bam_fp)) {
+                std::cerr << std::format(
+                    "BAM/CRAM file not found at '{}'!\n", bam_fp);
+                return 1;
+            }
         }
     }
 
