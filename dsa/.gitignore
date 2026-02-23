@@ -5,3 +5,4 @@ dsa
 compile_commands.json
 *.a
 .cache/
+*.dSYM/
