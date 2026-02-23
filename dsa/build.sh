@@ -9,11 +9,8 @@ clang++ \
     -Wall -Wextra -Wpedantic -Wnull-dereference -Warray-bounds -Wformat=2 \
     -Wno-unused-private-field \
     -Wno-unused-function \
-    -L"$HOME/.homebrew/lib" \
-    -I"$HOME/.homebrew/include" \
     src/ref.cc \
     src/mask.cc \
-    src/bundle.cc \
     src/mask_loader.cc \
     src/pileup_custom.cc \
     src/pileup.cc \
