@@ -76,3 +76,22 @@ WORKDIR /workspace
 COPY --from=builder /workspace/dsa ./dsa
 USER ubuntu
 ENTRYPOINT ["/workspace/dsa"]
+
+# Runtime stage with Python wrapper
+FROM runtime AS runtime-python
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends python3.14 \
+    && apt-get purge -y software-properties-common \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3.14 /usr/bin/python3
+
+COPY scripts/ /workspace/scripts/
+
+USER ubuntu
+ENV PATH="/workspace/scripts:$PATH"
+ENTRYPOINT ["python3", "/workspace/run_dsa.py"]
