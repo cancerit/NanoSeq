@@ -2,12 +2,25 @@
 
 from argparse import ArgumentParser
 import json
+import logging
 import os
+import subprocess
 import sys
 
 
 DSA_FILE_NAME = 'dsa.bed.gz'
 REPORT_FILE_NAME = 'report.json'
+
+
+def md5sum(fp: str) -> str:
+    result = subprocess.run(
+        ['md5sum', fp],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    return result.stdout.split(maxsplit=1)[0]
 
 
 def main(dsa_fp: str, report_fp: str, checksum: bool = False) -> None:
@@ -32,14 +45,22 @@ def main(dsa_fp: str, report_fp: str, checksum: bool = False) -> None:
 
     dsa_size_exp: int | None = compressed_meta.get('size_bytes', None)
     if not isinstance(dsa_size_exp, int):
-        sys.exit("Invalid size!")
+        sys.exit("Invalid expected size format!")
 
     # Compare DSA file size with the expected size
     if dsa_size != dsa_size_exp:
-        sys.exit(f"Compressed size mismatch ({dsa_size}, expected {dsa_size_exp})!")
+        sys.exit(f"Compressed size mismatch ({dsa_size} B, expected {dsa_size_exp} B)!")
 
     if checksum:
-        raise NotImplementedError
+        logging.info("Calculating MD5...")
+        dsa_md5_obs: str = md5sum(dsa_fp)
+        dsa_md5_exp: str | None = compressed_meta.get('md5', None)
+
+        if not dsa_md5_exp:
+            sys.exit("Expected MD5 not found!")
+
+        if dsa_md5_obs != dsa_md5_exp:
+            sys.exit(f"Compressed MD5 does not match!")
 
 
 if __name__ == '__main__':
@@ -49,4 +70,5 @@ if __name__ == '__main__':
     p.add_argument('--checksum', action='store_true')
     args = p.parse_args()
 
+    logging.basicConfig(level=logging.INFO)
     main(args.dsa, args.report, checksum=args.checksum)

@@ -5,7 +5,8 @@
 set -e
 
 DSA_DIR=$1
+SCRIPTS_DIR=$(dirname "$0")
 
-./validate_dsa.py "${DSA_DIR}/dsa.bed.gz" "${DSA_DIR}/report.json"
+"${SCRIPTS_DIR}/validate_dsa.py" --checksum "${DSA_DIR}/dsa.bed.gz" "${DSA_DIR}/report.json"
 
 set +e
