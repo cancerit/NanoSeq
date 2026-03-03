@@ -37,6 +37,8 @@ def main(dsa_fp: str, report_fp: str, checksum: bool = False) -> None:
             report = json.load(fh)
     except FileNotFoundError:
         sys.exit(f"DSA report not found at '{report_fp}'!")
+    except json.JSONDecodeError:
+        sys.exit(f"Invalid DSA report at '{report_fp}'!")
 
     # Load expected DSA file size
     compressed_meta: dict | None = report.get('compressed', None)
