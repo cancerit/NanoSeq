@@ -299,9 +299,6 @@ if __name__ == '__main__':
     with open(cov_args_fp) as iofile:
         mapQ = json.load(iofile)['Q']
 
-    # TODO: generate!
-    ranges_fp = ""
-
     a = DSAArgs(
         exe=exe,
         normal=args.normal,
