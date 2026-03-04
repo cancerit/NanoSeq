@@ -18,6 +18,7 @@ import tempfile
 DEFAULT_THREADS = 1
 DEFAULT_MIN_DUPLEX_DEPTH = 2
 DEFAULT_MIN_BASE_QUALITY = 30
+DEFAULT_COMPRESSION_LEVEL = 2
 
 DIR_COV = 'cov'
 DIR_DSA = 'dsa'
@@ -242,7 +243,7 @@ if __name__ == '__main__':
     p.add_argument('-A', '--normal', required=True, help="normal BAM / CRAM")
     p.add_argument('-B', '--duplex', required=True, help="duplex (tumour) BAM / CRAM")
 
-    p.add_argument('-x', '--compression-level', help="compression level")
+    p.add_argument('-x', '--compression-level', default=DEFAULT_COMPRESSION_LEVEL, help=f"compression level (default {DEFAULT_COMPRESSION_LEVEL})")
     p.add_argument('-C', '--snp', help="SNP BED (gz) file")
     p.add_argument('-D', '--mask', help="mask BED (gz) file")
     p.add_argument('-d', type=int, default=DEFAULT_MIN_DUPLEX_DEPTH, help=f"minimum duplex depth ({DEFAULT_MIN_DUPLEX_DEPTH})")
