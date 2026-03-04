@@ -42,7 +42,7 @@ typedef struct pileup_state_t {
     FILE *debug_pos_duplexes_f = NULL;
 } pileup_state_t;
 
-static inline void pileup_state_init(pileup_state_t *state) {
+inline void pileup_state_init(pileup_state_t *state) {
     state->read = bam_init1();
 
     if (base_info_array_init(&state->base_buffer, 256)) {
@@ -52,12 +52,12 @@ static inline void pileup_state_init(pileup_state_t *state) {
     probs_init(&state->probs);
 }
 
-static inline void pileup_state_reset_dsa_stream(pileup_state_t *state) {
+inline void pileup_state_reset_dsa_stream(pileup_state_t *state) {
     state->dsa_uncompressed_stream.str("");
     state->dsa_uncompressed_stream.clear();
 }
 
-static inline void pileup_state_reset(pileup_state_t *state, const genomic_region_t *r) {
+inline void pileup_state_reset(pileup_state_t *state, const genomic_region_t *r) {
     const auto gr = r->grange;
     state->range.grange.start = gr.start;
     state->range.grange.end = gr.end;

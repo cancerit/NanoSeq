@@ -3,8 +3,7 @@
 
 #include <cstdint>
 #include <cmath>
-#include <vector>
-#include <utility>
+
 #include "constants.h"
 
 #define ALT_BASES 3.0  // ALPH_LEN - 1
@@ -21,7 +20,7 @@ typedef struct probs_t {
   double probs[PROB_ARRAY_LENGTH];
 } probs_t;
 
-static void probs_init(probs_t *p) {
+inline void probs_init(probs_t *p) {
   p->probs[PROB_INDEX_ERR] = 0.0;
   p->probs[PROB_INDEX_CORRECT] = 0.0;
 
@@ -33,7 +32,7 @@ static void probs_init(probs_t *p) {
   }
 }
 
-static void probs_add_p_error(const probs_t *p, const int qual, int base_code, double *probs) {
+inline void probs_add_p_error(const probs_t *p, const int qual, int base_code, double *probs) {
     if (base_code != ALLELE_DEL) {
         const double pc = p->probs[qual * PROB_STRIDE + PROB_INDEX_CORRECT];
         double dp[ALLELE_COUNT - 1] = {pc, pc, pc, pc};
@@ -45,7 +44,7 @@ static void probs_add_p_error(const probs_t *p, const int qual, int base_code, d
     }
 }
 
-static inline void finalise_consensus_quality_scores(double probs[ALPH_LEN]) {
+inline void finalise_consensus_quality_scores(double probs[ALPH_LEN]) {
     // log10 sum exp
     double maxp = probs[0];
     for (size_t i = 1; i < ALPH_LEN; ++i) {

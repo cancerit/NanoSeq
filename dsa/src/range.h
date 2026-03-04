@@ -7,15 +7,11 @@
 
 // 0-indexed end-exclusive aka half-open
 // (as BED spec)
-// NOTE why signed ints?
 typedef struct {
-    int32_t start;
+    int32_t start;  // signed ints per htslib
     int32_t end;
 } range_t ;
 
-// NOTE why are these static
-// and why are they free (c.f. rest of the codebase)
-// and if free why are they not namespaced
 inline void range_is_regular(const range_t *r) {
     assert(r->start >= 0 && r->end > r->start);
 }

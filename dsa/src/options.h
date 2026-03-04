@@ -57,7 +57,7 @@ struct Options {
   int compression_level;
 };
 
-static int options_validate(const Options *opt) {
+inline int options_validate(const Options *opt) {
 
     if (opt->oname == NULL) {
         std::cerr << std::format("Output directory not set!\n");
@@ -122,7 +122,7 @@ static int options_validate(const Options *opt) {
     return 0;
 }
 
-static FILE *options_open_output_file(const Options *opt, const char *fn) {
+inline FILE *options_open_output_file(const Options *opt, const char *fn) {
     const std::filesystem::path fp = std::filesystem::path(opt->oname).append(fn);
     FILE *f = fopen(fp.c_str(), "w");
     if (f == NULL) {
@@ -132,7 +132,7 @@ static FILE *options_open_output_file(const Options *opt, const char *fn) {
     return f;
 }
 
-static FILE *options_open_output_debug_file(const Options *opt, const char *fn) {
+inline FILE *options_open_output_debug_file(const Options *opt, const char *fn) {
     return opt->debug_mode ? options_open_output_file(opt, fn) : NULL;
 }
 

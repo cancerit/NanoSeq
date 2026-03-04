@@ -12,7 +12,7 @@ typedef struct base_array_t {
     base_t *bases;
 } base_array_t;
 
-static inline int base_info_array_reset(base_array_t *a, const uint64_t capacity, const int32_t start) {
+inline int base_info_array_reset(base_array_t *a, const uint64_t capacity, const int32_t start) {
     a->count = 0;
     a->start = start;
     if (capacity > a->capacity) {
@@ -22,15 +22,15 @@ static inline int base_info_array_reset(base_array_t *a, const uint64_t capacity
     return a->bases == NULL;
 }
 
-static inline int base_info_array_init(base_array_t *a, const uint64_t capacity) {
+inline int base_info_array_init(base_array_t *a, const uint64_t capacity) {
     return base_info_array_reset(a, capacity, -1);
 }
 
-static inline base_t *base_info_array_get_next(const base_array_t *a) {
+inline base_t *base_info_array_get_next(const base_array_t *a) {
     return &a->bases[a->count];
 }
 
-static inline base_t *base_info_get_last(const base_array_t *a) {
+inline base_t *base_info_get_last(const base_array_t *a) {
     return a->count != 0 ? &a->bases[a->count - 1] : NULL;
 }
 

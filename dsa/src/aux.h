@@ -19,7 +19,7 @@ typedef struct {
 
 } aux_t;
 
-static void aux_init(aux_t *a, const char *fp) {
+inline void aux_init(aux_t *a, const char *fp) {
     a->fp = NULL;
     a->head = NULL;
     a->idx = NULL;
@@ -34,17 +34,17 @@ static void aux_init(aux_t *a, const char *fp) {
     assert(a->idx);
 }
 
-static void aux_duplex_init(aux_t *a, const char *fp, const int min_map_q) {
+inline void aux_duplex_init(aux_t *a, const char *fp, const int min_map_q) {
     aux_init(a, fp);
     a->min_mapQ = min_map_q;
 }
 
-static void aux_bulk_init(aux_t *a, const char *fp) {
+inline void aux_bulk_init(aux_t *a, const char *fp) {
     aux_init(a, fp);
     a->min_mapQ = 0;
 }
 
-static void aux_reset(aux_t *a) {
+inline void aux_reset(aux_t *a) {
     // Iterator
     if (a->iter != NULL) {
         sam_itr_destroy(a->iter);
@@ -60,7 +60,7 @@ static void aux_reset(aux_t *a) {
     a->range.grange.end = 0;
 }
 
-static int aux_set_iterator(aux_t *a, const genomic_region_t r) {
+inline int aux_set_iterator(aux_t *a, const genomic_region_t r) {
     aux_reset(a);
     a->range = r;
     a->iter = sam_itr_queryi(a->idx, r.tid, r.grange.start, r.grange.end);
@@ -71,7 +71,7 @@ static int aux_set_iterator(aux_t *a, const genomic_region_t r) {
     return 0;
 }
 
-static int aux_iter(aux_t *a, bam1_t *b) {
+inline int aux_iter(aux_t *a, bam1_t *b) {
     a->iterations++;
     return sam_itr_next(a->fp, a->iter, b);
 }

@@ -6,7 +6,7 @@
 #include "bundle.h"
 #include "base.h"
 
-static inline void read_info_duplex_init(read_info_t *r, const bam1_t *read) {
+inline void read_info_duplex_init(read_info_t *r, const bam1_t *read) {
     read_info_init(r, read);
     r->is_5p_clipped = get_is_5p_clipped(read, r->strand);
 }
@@ -19,20 +19,20 @@ typedef struct duplex_bundle_t {
     double duplex_consensus_quality_accum[RTYPE_COUNT][ALPH_LEN] = {};
 } duplex_bundle_t;
 
-static inline int high_duplex_depth(const duplex_bundle_t *b, const int strand, const uint64_t min_dplx_depth) {
+inline int high_duplex_depth(const duplex_bundle_t *b, const int strand, const uint64_t min_dplx_depth) {
     return static_cast<int>(
         (b->duplex_depth[strand][READ_TYPE_INDEX_READ_1] >= min_dplx_depth) &&
         (b->duplex_depth[strand][READ_TYPE_INDEX_READ_2] >= min_dplx_depth));
 }
 
-static inline int duplex_base_get_bundle_type(const duplex_bundle_t *b, const uint64_t min_dplx_depth) {
+inline int duplex_base_get_bundle_type(const duplex_bundle_t *b, const uint64_t min_dplx_depth) {
     // BEWARE: only use on duplex bundles (not bulk)!
     return
         (high_duplex_depth(b, STRAND_INDEX_REVERSE, min_dplx_depth) << 1) |
         (high_duplex_depth(b, STRAND_INDEX_FORWARD, min_dplx_depth) << 0);
 }
 
-static inline void duplex_bundle_update(duplex_bundle_t *bundle, const read_info_t *r, const probs_t *probs, const base_t *base) {
+inline void duplex_bundle_update(duplex_bundle_t *bundle, const read_info_t *r, const probs_t *probs, const base_t *base) {
     // Duplex-specific stats
     // NOTE: zero as default should replicate missing key (strand) in the original implementation
     int r_type = 0;
@@ -51,7 +51,7 @@ static inline void duplex_bundle_update(duplex_bundle_t *bundle, const read_info
     }
 }
 
-static inline void duplex_bundle_finalise(duplex_bundle_t *bundle, pos_final_stats_t *s) {
+inline void duplex_bundle_finalise(duplex_bundle_t *bundle, pos_final_stats_t *s) {
     const bundle_t *b = &bundle->bundle;
     pos_stats_set_common(s, b);
 

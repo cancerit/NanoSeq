@@ -10,7 +10,7 @@
 #include "pos_stats.h"
 #include "utils.h"
 
-static inline std::string dsa_base_counts(const uint64_t counts[RTYPE_COUNT][ALLELE_COUNT]) {
+inline std::string dsa_base_counts(const uint64_t counts[RTYPE_COUNT][ALLELE_COUNT]) {
     return std::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t",
         counts[RTYPE_A][ALLELE_A],
         counts[RTYPE_A][ALLELE_C],
@@ -24,7 +24,7 @@ static inline std::string dsa_base_counts(const uint64_t counts[RTYPE_COUNT][ALL
         counts[RTYPE_B][ALLELE_DEL]);
 }
 
-static inline std::string dsa_get_bulk_prefix(const bulk_bundle_t *bulk, const pos_final_stats_t *stats, const std::string pos_prefix) {
+inline std::string dsa_get_bulk_prefix(const bulk_bundle_t *bulk, const pos_final_stats_t *stats, const std::string pos_prefix) {
     return std::format("{}\t{}\t{}\t{}",
         pos_prefix,
         stats->asxs,
@@ -32,7 +32,7 @@ static inline std::string dsa_get_bulk_prefix(const bulk_bundle_t *bulk, const p
         dsa_base_counts(bulk->allele_counts));
 }
 
-static inline std::string dsa_get_duplex_base_consensus_qualities(const duplex_bundle_t *b) {
+inline std::string dsa_get_duplex_base_consensus_qualities(const duplex_bundle_t *b) {
     // ASSUMPTION: the object has been finalised, and therefore the accumulator is actually the final quality score
     return std::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t",
         custom_round(b->duplex_consensus_quality_accum[RTYPE_A][0]),
@@ -45,7 +45,7 @@ static inline std::string dsa_get_duplex_base_consensus_qualities(const duplex_b
         custom_round(b->duplex_consensus_quality_accum[RTYPE_B][3]));
 }
 
-static inline std::string dsa_get_duplex_id(const duplex_tag_info_t *info, const uint8_t bundle_type) {
+inline std::string dsa_get_duplex_id(const duplex_tag_info_t *info, const uint8_t bundle_type) {
     std::string fwd_bc = info->fwd_bc;
     std::string rev_bc = info->rev_bc;
     upper(fwd_bc);
@@ -58,7 +58,7 @@ static inline std::string dsa_get_duplex_id(const duplex_tag_info_t *info, const
         bundle_type);
 }
 
-static inline void dsa_push_row(
+inline void dsa_push_row(
     std::stringstream &s,
     const duplex_tag_info_t *tag_info,
     const duplex_bundle_t *duplex_bundle,
