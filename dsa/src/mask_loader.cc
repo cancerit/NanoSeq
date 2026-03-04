@@ -2,6 +2,7 @@
 #include <format>
 #include <iostream>
 #include "mask_loader.h"
+#include "range.h"
 
 MaskLoader::MaskLoader(const uint8_t bit_index) {
     constexpr auto FLAG_WIDTH
@@ -68,8 +69,30 @@ uint64_t MaskLoader::LoadMask(const char *contig, const int start, const int end
             throw std::runtime_error(std::format(
                 "Invalid entry in mask file!"));
         }
-        r.start = std::stoi(&str.s[fields[1]]);
-        r.end = std::stoi(&str.s[fields[2]]);
+        try {
+            r.start = std::stoi(&str.s[fields[1]]);
+            r.end = std::stoi(&str.s[fields[2]]);
+        } catch (const std::exception& e) {
+            throw std::runtime_error(
+                std::format(
+                    "Could not conver coordinate in mask file"
+                    " to integer: {}",
+                    e.what()
+                )
+            );
+        }
+
+        if (!range_is_valid(&r)) {
+            throw std::runtime_error(
+                std::format(
+                    "Mask file contains invalid range [{}-{}] -"
+                    " ranges must be valid positive half open coordinates "
+                    "(start >= 0 && end > start)",
+                    r.start,
+                    r.end
+                )
+            );
+        }
 
         range_clamp(&r, &t);
 
