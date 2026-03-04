@@ -61,9 +61,7 @@ def get_dsa_file(tmp_dir: str, fn: str) -> str:
 
 
 class CmdFail(Exception):
-    def __init__(self, msg: str, *args: object) -> None:
-        super().__init__(*args)
-        self.msg = msg
+    pass
 
 
 @dataclass(slots=True)
@@ -120,13 +118,13 @@ class JobInfo:
 
     @property
     def dsa_ln(self) -> str:
-        # e.g., 1.dsa.bed.gz -> 1/dsa.bed.gz
+        # e.g., /tmp/dsa/1.dsa.bed.gz -> /tmp/dsa/1/dsa.bed.gz
         return self.get_work_dir_fp(self._qualify_fn(DSA_FILE_NAME))
 
     @property
     def done_fp(self) -> str:
-        # e.g., 1.done
-        return self.get_work_dir_fp(self._qualify_fn(DONE_FILE_NAME))
+        # e.g., /tmp/dsa/1.done
+        return self.get_fp(self._qualify_fn(DONE_FILE_NAME))
 
     @property
     def ranges_fp(self) -> str:
@@ -226,6 +224,10 @@ def prepare_dsa_job(args: DSAArgs, job: JobInfo) -> Cmd | None:
     # Create the done file in the dsa directory
     cmd.push_and(f"touch {job.done_fp}")
     return cmd
+
+
+def cmd_run_in_thread(cmd: Cmd, dry: bool) -> None:
+    cmd.run(dry=dry)
 
 
 if __name__ == '__main__':
@@ -353,15 +355,18 @@ if __name__ == '__main__':
 
         # multithread
         with Pool(args.threads) as p:
-            p.map(lambda x: x.run(dry=args.dry), commands)
+            try:
+                p.starmap(cmd_run_in_thread, zip(commands, [args.dry] * len(commands)))
+            except CmdFail as ex:
+                sys.exit(str(ex))
 
     else:
         # array execution
-        cmd = prepare_dsa_job(a, JobInfo(dsa_dir, args.index + 1))
+        cmd = prepare_dsa_job(a, JobInfo(dsa_dir, args.index))
         if cmd:
             try:
                 cmd.run(dry=args.dry)
             except CmdFail as ex:
-                sys.exit(ex.msg)
+                sys.exit(str(ex))
 
     print("Completed dsa calculation\n")
