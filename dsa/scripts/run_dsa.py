@@ -119,7 +119,7 @@ class JobInfo:
     @property
     def dsa_ln(self) -> str:
         # e.g., /tmp/dsa/1.dsa.bed.gz -> /tmp/dsa/1/dsa.bed.gz
-        return self.get_work_dir_fp(self._qualify_fn(DSA_FILE_NAME))
+        return self.get_fp(self._qualify_fn(DSA_FILE_NAME))
 
     @property
     def done_fp(self) -> str:
