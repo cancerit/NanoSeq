@@ -81,11 +81,9 @@ target_compile_options(dsa PRIVATE
     -Wconversion
     -Wsign-conversion
     -Wfloat-equal
-    -Wnon-virtual-dtor
     -Wold-style-cast
-    -Woverloaded-virtual
     -Wnull-dereference
-    -Wdouble-promotion
+    -Wunused
     -Wformat=2
 )
 

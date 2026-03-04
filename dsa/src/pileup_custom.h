@@ -2,7 +2,6 @@
 #define PILEUP_CUSTOM_H
 
 #include <htslib/sam.h>
-#include "constants.h"
 #include "base.h"
 
 typedef struct base_array_t {

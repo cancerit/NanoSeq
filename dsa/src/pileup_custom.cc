@@ -1,5 +1,7 @@
-#include "pileup_custom.h"
 #include <assert.h>
+
+#include "pileup_custom.h"
+#include "constants.h"
 
 #define count_bits(x) __builtin_popcount(x)
 
