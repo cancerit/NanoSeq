@@ -40,7 +40,7 @@ class GInterval:
 
     def convert2DSAInput(self):
         # zero based and inclusive of end
-        return(GInterval(self.chr, self.beg - 1, self.end - 1))
+        return(GInterval(self.chr, self.beg - 1, self.end))
 
     def write_bed(self, fh):
         r = self.convert2DSAInput()
