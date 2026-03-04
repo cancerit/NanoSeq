@@ -60,6 +60,12 @@ def get_dsa_file(tmp_dir: str, fn: str) -> str:
     return os.path.join(tmp_dir, DIR_DSA, fn)
 
 
+class CmdFail(Exception):
+    def __init__(self, msg: str, *args: object) -> None:
+        super().__init__(*args)
+        self.msg = msg
+
+
 @dataclass(slots=True)
 class Cmd:
     array_index: int
@@ -76,7 +82,7 @@ class Cmd:
             if p.returncode != 0:
                 error = stderr.decode()
                 sys.stderr.write("Error processing at array index %d!\n" % self.array_index)
-                raise ValueError(error)
+                raise CmdFail(error)
         else:
             print(self.cmd)
 
@@ -186,8 +192,9 @@ def prepare_dsa_job(args: DSAArgs, job: JobInfo) -> Cmd | None:
 
     fp = job.ranges_fp
     if not args.dry:
+        os.makedirs(job.work_dir, exist_ok=True)
         with open(fp, 'w') as fh:
-            for interval in intervalsPerCPU[i]:
+            for interval in intervalsPerCPU[job.array_index - 1]:
                 interval.write_bed(fh)
     else:
         logging.info("Would be writing to %s" % fp)
@@ -196,6 +203,7 @@ def prepare_dsa_job(args: DSAArgs, job: JobInfo) -> Cmd | None:
     b.push_option('A', args.normal)
     b.push_option('B', args.duplex)
     b.push_option('I', job.ranges_fp)
+    b.push_option('O', job.work_dir)
     b.push_option('R', args.ref)
     b.push_option('d', args.d)
     b.push_option('Q', args.q)
@@ -321,6 +329,10 @@ if __name__ == '__main__':
 
     # TODO: moving the dsa table to the root could facilitate clean-up...? Unless it's done at the directory level.
 
+    dsa_dir = os.path.join(tmp_dir, DIR_DSA)
+    if not a.dry:
+        os.makedirs(dsa_dir, exist_ok=True)
+
     if args.index is None or args.index == 1:
         fp = "%s/dsa/nfiles" % tmp_dir
         if not a.dry:
@@ -331,7 +343,7 @@ if __name__ == '__main__':
 
     # execute dsa commans
     print("Starting dsa calculation\n")
-    dsa_dir = os.path.join(tmp_dir, DIR_DSA)
+
     if (args.index is None):
         commands: list[Cmd] = []
         for i in range(njobs):
@@ -347,6 +359,9 @@ if __name__ == '__main__':
         # array execution
         cmd = prepare_dsa_job(a, JobInfo(dsa_dir, args.index + 1))
         if cmd:
-            cmd.run(dry=args.dry)
+            try:
+                cmd.run(dry=args.dry)
+            except CmdFail as ex:
+                sys.exit(ex.msg)
 
     print("Completed dsa calculation\n")
