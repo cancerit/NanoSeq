@@ -53,6 +53,61 @@ Migrating from NanoSeq 3:
 - the single target genomic range is replaced by a BED file (`I` option)
 - no standard output mode
 
+## Scripts
+
+### Run within a NanoSeq workflow
+
+Equivalent to the DSA section of `runNanoSeq.py`, used in workflows. Includes validation logic.
+
+Expects the `DSA_EXE` environmnet variable to be set as the path to the DSA executable.
+
+```sh
+usage: run_dsa.py [-h] [-j INDEX] [-k MAX_INDEX] [-t THREADS] -R REF -A NORMAL -B DUPLEX [-C SNP] [-D MASK] [-d D] [-q Q] [--no_test] [--dry] [--out OUT] [-v]
+
+options:
+  -h, --help            show this help message and exit
+  -j, --index INDEX     index of the LSF job array. One based
+  -k, --max_index MAX_INDEX
+                        maximum index of the LSF job array
+  -t, --threads THREADS
+                        number of threads (1)
+  -R, --ref REF         referene sequence
+  -A, --normal NORMAL   normal BAM / CRAM
+  -B, --duplex DUPLEX   duplex (tumour) BAM / CRAM
+  -C, --snp SNP         SNP BED (gz) file
+  -D, --mask MASK       mask BED (gz) file
+  -d D                  minimum duplex depth (2)
+  -q Q                  minimum base quality for normal (30)
+  --no_test             skip BAM format tests, use with caution
+  --dry                 print the commands and exit
+  --out OUT             path of the output files and scratch directory (.)
+  -v, --version         show program's version number and exit
+```
+
+### Validate results
+
+Usage:
+
+```sh
+./validate_dsa_dir.sh tmpDir/dsa
+```
+
+This wraps around a more fine-grained tool that compares a compressed DSA table with a report to check for discrepancies in size and, optionally, MD5.
+
+```sh
+usage: validate_dsa.py [-h] [--checksum] dsa report
+
+Validate DSA table against truncation.
+
+positional arguments:
+  dsa         Path of dsa.bed.gz file
+  report      Path of report.json file
+
+options:
+  -h, --help  show this help message and exit
+  --checksum
+```
+
 ## File formats
 
 ### Report
