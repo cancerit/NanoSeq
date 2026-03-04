@@ -11,6 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(ENABLE_DEBUG_FLAGS "Enable extra debug compile options" OFF)
+option(MAKE_TEST "Enable compilation of test binary" OFF)
 
 # user paths to htslib if needed
 set(HTSLIB_INCLUDE_DIR "" CACHE PATH "Path to directory that contains htslib/hts.h")
@@ -23,13 +24,14 @@ find_package(OpenSSL REQUIRED)
 pkg_check_modules(LIBDEFLATE REQUIRED IMPORTED_TARGET libdeflate)
 
 # ------- htslib -------
+# NOTE: no version control
 message(STATUS "Finding htslib")
 set(HTSLIB_TARGET "")
 set(_htslib_inc "")
 set(_htslib_lib "")
 
 if(HTSLIB_INCLUDE_DIR AND HTSLIB_LIBRARY)
-  message(STATUS "Using user-specified htslib install. Must be >=1.14, but this is not enforced.")
+  message(STATUS "Using user-specified htslib install")
   set(_htslib_inc "${HTSLIB_INCLUDE_DIR}")
   set(_htslib_lib "${HTSLIB_LIBRARY}")
 endif()
@@ -46,9 +48,9 @@ endif()
 
 if(NOT HTSLIB_TARGET AND PkgConfig_FOUND)
   # assuming the pkg-config module is called "htslib"
-  pkg_check_modules(HTSLIB QUIET IMPORTED_TARGET htslib>=1.14)
+  pkg_check_modules(HTSLIB QUIET IMPORTED_TARGET htslib)
   if(HTSLIB_FOUND)
-    message(STATUS "Located htslib>=1.14 install via pkg-config.")
+    message(STATUS "Located htslib install via pkg-config.")
     set(HTSLIB_TARGET PkgConfig::HTSLIB)
   endif()
 endif()
@@ -61,7 +63,26 @@ if(NOT HTSLIB_TARGET)
 endif()
 # //--- end deps ---//
 
+# //--- testing ---//
+if(MAKE_TEST)
+  message(STATUS "Finding catch2 for test binary")
+  Include(FetchContent)
 
+  FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG        v3.8.1
+  )
+
+  FetchContent_MakeAvailable(Catch2)
+
+  add_executable(test-dsa tests/test.cc)
+  target_include_directories(test-dsa PRIVATE src)
+  target_link_libraries(test-dsa PRIVATE
+    Catch2::Catch2WithMain
+  )
+endif(MAKE_TEST)
+# //--- end testing ---//
 
 add_executable(dsa
   src/ref.cc

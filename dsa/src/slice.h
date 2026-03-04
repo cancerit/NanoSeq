@@ -133,7 +133,7 @@ void Slice<T>::Reset(const range_t r, const bool zero) {
 
 template<typename T>
 void Slice<T>::Update(const range_t r, const T value) {
-  assert(range_is_regular(&r));
+  assert(range_is_valid(&r));
   const int32_t a = r.start - this->range.start;
   assert(a >= 0 && a < range_length(&this->range));
   for (int i = a; i < a + range_length(&r); ++i) {
