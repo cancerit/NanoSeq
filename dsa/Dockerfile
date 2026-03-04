@@ -93,5 +93,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY scripts/ /workspace/scripts/
 
 USER ubuntu
+
+# Expose scripts
 ENV PATH="/workspace/scripts:$PATH"
-ENTRYPOINT ["python3", "/workspace/run_dsa.py"]
+
+# Required by run_dsa.py
+ENV DSA_EXE="/workspace/dsa"
+
+CMD ["run_dsa.py"]
