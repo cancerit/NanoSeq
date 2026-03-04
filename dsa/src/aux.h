@@ -1,6 +1,9 @@
 #ifndef AUX_H_
 #define AUX_H_
 
+#include "range.h"
+#include <htslib/sam.h>
+
 typedef struct {
 
     // Set at startup
@@ -10,7 +13,7 @@ typedef struct {
     int min_mapQ;
 
     // Set per genomic range
-    range_tid_t range;
+    genomic_region_t range;
     hts_itr_t *iter;
     uint64_t iterations;
 
@@ -53,14 +56,14 @@ static void aux_reset(aux_t *a) {
 
     // Range
     a->range.tid = -1;
-    a->range.start = 0;
-    a->range.end = 0;
+    a->range.grange.start = 0;
+    a->range.grange.end = 0;
 }
 
-static int aux_set_iterator(aux_t *a, const range_tid_t range) {
+static int aux_set_iterator(aux_t *a, const genomic_region_t r) {
     aux_reset(a);
-    a->range = range;
-    a->iter = sam_itr_queryi(a->idx, range.tid, range.start, range.end + 1);
+    a->range = r;
+    a->iter = sam_itr_queryi(a->idx, r.tid, r.grange.start, r.grange.end);
     if (a->iter == NULL) {
         fprintf(stderr, "Failed to initialise iterator!\n");
         return 1;

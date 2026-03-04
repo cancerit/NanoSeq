@@ -31,7 +31,7 @@ typedef struct pileup_state_t {
     bam1_t *read = NULL;
 
     // To clear between batches (pileup_state_reset)
-    range_tid_t range = {};
+    genomic_region_t range = {};
     uint64_t dsa_row_count = 0;
     int32_t read_start = -1;
     std::map<int32_t, pos_stats_t> pos_bundles = {};
@@ -57,10 +57,11 @@ static inline void pileup_state_reset_dsa_stream(pileup_state_t *state) {
     state->dsa_uncompressed_stream.clear();
 }
 
-static inline void pileup_state_reset(pileup_state_t *state, const range_tid_t *range) {
-    state->range.start = range->start;
-    state->range.end = range->end;
-    state->range.tid = range->tid;
+static inline void pileup_state_reset(pileup_state_t *state, const genomic_region_t *r) {
+    const auto gr = r->grange;
+    state->range.grange.start = gr.start;
+    state->range.grange.end = gr.end;
+    state->range.tid = r->tid;
     state->read_start = -1;
     state->dsa_row_count = 0;
     state->pos_bundles.clear();

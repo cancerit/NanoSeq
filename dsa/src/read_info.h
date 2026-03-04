@@ -2,6 +2,7 @@
 #define READ_INFO_H_
 
 #include "htslib/sam.h"
+#include <format>
 #include <string>
 #include "constants.h"
 

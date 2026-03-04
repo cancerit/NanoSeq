@@ -2,14 +2,13 @@
 #define MASK_LOADER_H_
 
 #include "htslib/tbx.h"
-#include "htslib/kstring.h"
 #include "mask.h"
 
 class MaskLoader {
   private:
     uint8_t index;
     uint8_t flag;
-    const char *bed_fp;
+    const char *mask_fp;  // BED format
     htsFile *f;
     tbx_t *tbx;
 

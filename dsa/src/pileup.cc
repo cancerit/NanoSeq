@@ -33,7 +33,7 @@
 #include <sstream>
 #include "pileup.h"
 #include "pileup_batch.h"
-#include "utils.h"
+#include "range.h"
 
 std::vector<std::string> tokenize(std::string str, char delimiter) {
     std::istringstream iss(str);
@@ -110,8 +110,8 @@ const char *Pileup::GetContig(const int32_t tid) {
     return sam_hdr_tid2name(bulk_hdr, tid);
 }
 
-void Pileup::Initiate(Options *opts) {
-    this->opts = opts;
+void Pileup::Initiate(Options *init_opts) {
+    this->opts = init_opts;
     // this->out.opts = opts;
 
     // TODO: reintroduce write permission test?
@@ -123,7 +123,7 @@ void Pileup::Initiate(Options *opts) {
     static_assert(MASK_COUNT == 2);
 
     const char *bed_fp;
-    for (int i = 0; i < MASK_COUNT; ++i) {
+    for (uint8_t i = 0; i < MASK_COUNT; ++i) {
         bed_fp = this->opts->beds[i];
         std::cerr << std::format("Loading mask {} from {}...\n", i, bed_fp);
         this->masks[i] = MaskLoader(i);
@@ -317,8 +317,10 @@ static void destroy_iterator(hts_itr_t **it) {
     }
 }
 
-static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_t *r) {
-    *it = sam_itr_queryi(idx, r->tid, r->start, r->end + 1);
+static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const genomic_region_t *r) {
+    const auto tid = r->tid;
+    const auto& gr = r->grange;
+    *it = sam_itr_queryi(idx, tid, gr.start, gr.end);
     if (*it == NULL) {
         std::stringstream er;
         er << "Error: failed to parse region";
@@ -327,13 +329,13 @@ static void init_iterator(hts_itr_t **it, const hts_idx_t *idx, const range_tid_
     } else if ((*it)->finished) {
         std::cerr << std::format(
             "Warning: no reads in region tid={} {}:{}\n",
-            r->tid, r->start, r->end + 1);
+            tid, gr.start, gr.end);
 
         destroy_iterator(it);
     }
 }
 
-void Pileup::InitIterators(const range_tid_t *r) {
+void Pileup::InitIterators(const genomic_region_t *r) {
     for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
         init_iterator(&this->data[i].iter, this->indices[i], r);
     }
@@ -360,28 +362,29 @@ void Pileup::LoadRanges() {
             "Failed to open {}!", fp));
     }
 
-    range_tid_t r = {};
+    decltype(genomic_region_t::tid) tid;
+    range_t gr = {};
     kstring_t ks = {0, 0, nullptr};
     std:: string contig_s;
     const char *contig;
     while (hts_getline(f, '\n', &ks) >= 0) {
         std::string line(ks.s, ks.l);
         std::stringstream ss(line);
-        if (!(ss >> contig_s >> r.start >> r.end)) {
+        if (!(ss >> contig_s >> gr.start >> gr.end)) {
             std::runtime_error(std::format(
                 "Failed to parse line in {}!", fp));
         }
-        if (r.end <= r.start) {
+        if (gr.end <= gr.start) {
             std::runtime_error(std::format(
                 "Invalid range {}:{}-{} (end must be greater than start) in {}!",
-                contig, r.start, r.end, fp));
+                contig, gr.start, gr.end, fp));
         }
         contig = contig_s.c_str();
-        r.tid = GetTID(contig);
-        if (r.tid >= 0) {
-            ranges.push_back(r);
+        tid = GetTID(contig);
+        if (tid >= 0) {
+            ranges.emplace_back(gr, tid);
         } else {
-            log_skip_contig_range(contig, {r.start, r.end});
+            log_skip_contig_range(contig, gr);
         }
     }
 
@@ -408,13 +411,14 @@ void Pileup::MultiplePileup() {
     state.ref = &this->ref;
     pileup_state_init(&state);
 
-    for (auto r : this->ranges) {
+    for (const auto &r : this->ranges) {
+        const auto& gr = r.grange;
         contig = GetContig(r.tid);
         if (contig == NULL) {
             throw std::runtime_error(std::format(
                 "Contig name not found for TID {}!", r.tid));
         }
-        std::cerr << std::format("(TID={}) {}:{}-{} ({} bp)\n", r.tid, contig, r.start, r.end, r.end - r.start);
+        std::cerr << std::format("(TID={}) {}:{}-{} ({} bp)\n", r.tid, contig, gr.start, gr.end, range_length(&gr));
 
         batch.Update(contig, r, masks, &ref);
         batch.Pileup(&state);
