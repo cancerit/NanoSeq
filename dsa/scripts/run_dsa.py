@@ -158,6 +158,7 @@ class CmdBuilder:
 class DSAArgs:
     exe: str
     dry: bool
+    compression_level: int
     normal: str
     duplex: str
     ref: str
@@ -206,6 +207,7 @@ def prepare_dsa_job(args: DSAArgs, job: JobInfo) -> Cmd | None:
     b.push_option('d', args.d)
     b.push_option('Q', args.q)
     b.push_option('M', args.mapQ)
+    b.push_option('x', args.compression_level)
 
     if args.no_test:
         b.push('-t')
@@ -240,6 +242,7 @@ if __name__ == '__main__':
     p.add_argument('-A', '--normal', required=True, help="normal BAM / CRAM")
     p.add_argument('-B', '--duplex', required=True, help="duplex (tumour) BAM / CRAM")
 
+    p.add_argument('-x', '--compression-level', help="compression level")
     p.add_argument('-C', '--snp', help="SNP BED (gz) file")
     p.add_argument('-D', '--mask', help="mask BED (gz) file")
     p.add_argument('-d', type=int, default=DEFAULT_MIN_DUPLEX_DEPTH, help=f"minimum duplex depth ({DEFAULT_MIN_DUPLEX_DEPTH})")
@@ -319,6 +322,7 @@ if __name__ == '__main__':
     a = DSAArgs(
         exe=exe,
         dry=args.dry,
+        compression_level=args.compression_level,
         normal=args.normal,
         duplex=args.duplex,
         ref=args.ref,
