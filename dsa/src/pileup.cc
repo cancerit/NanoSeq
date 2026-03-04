@@ -98,10 +98,8 @@ sam_hdr_t *Pileup::GetDuplexHeader() {
 
 int Pileup::GetTID(const char *contig) {
     sam_hdr_t *bulk_hdr = GetBulkHeader();
-    sam_hdr_t *duplex_hdr = GetDuplexHeader();
     const int bulk_tid = sam_hdr_name2tid(bulk_hdr, contig);
-    const int duplex_tid = sam_hdr_name2tid(duplex_hdr, contig);
-    assert(bulk_tid == duplex_tid);
+    assert(bulk_tid == sam_hdr_name2tid(GetDuplexHeader(), contig));
     return bulk_tid;
 }
 

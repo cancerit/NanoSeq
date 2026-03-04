@@ -78,17 +78,18 @@ target_compile_options(dsa PRIVATE
     -Wextra
     -Wpedantic
     -Wshadow
-    -Wconversion
-    -Wsign-conversion
     -Wfloat-equal
-    -Wold-style-cast
     -Wnull-dereference
-    -Wunused
+    -Warray-bounds
     -Wformat=2
 )
 
 if(ENABLE_DEBUG_FLAGS)
   target_compile_options(dsa PRIVATE
+    -Wconversion
+    -Wsign-conversion
+    -Wunused
+    -Wold-style-cast
     -fsanitize=address,undefined
     -fno-omit-frame-pointer
     -O0 -g

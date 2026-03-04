@@ -12,8 +12,8 @@ typedef struct {
     int32_t end;
 } range_t ;
 
-inline void range_is_regular(const range_t *r) {
-    assert(r->start >= 0 && r->end > r->start);
+inline bool range_is_regular(const range_t *r) {
+    return r->start >= 0 && r->end > r->start;
 }
 
 inline int32_t range_length(const range_t *r) {

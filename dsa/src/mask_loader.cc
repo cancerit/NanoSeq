@@ -15,7 +15,7 @@ MaskLoader::MaskLoader(const uint8_t bit_index) {
         ));
     }
     this->index = bit_index;
-    this->flag = 1 << this->index;  // set single bit
+    this->flag = static_cast<uint8_t>(1 << this->index);  // set single bit
 }
 
 // long term, string view may be easier than const char*

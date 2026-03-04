@@ -116,9 +116,9 @@ void Slice<T>::Reset(const range_t r, const bool zero) {
   const size_t new_size = this->capacity * sizeof(T);
 
   if (this->values == nullptr) {
-    this->values = (T*)malloc(new_size);
+    this->values = static_cast<T*>(malloc(new_size));
   } else if (m > n) {
-    this->values = (T*)realloc(this->values, new_size);
+    this->values = static_cast<T*>(realloc(this->values, new_size));
   }
 
   if (this->values == nullptr) {
@@ -133,7 +133,7 @@ void Slice<T>::Reset(const range_t r, const bool zero) {
 
 template<typename T>
 void Slice<T>::Update(const range_t r, const T value) {
-  range_is_regular(&r);
+  assert(range_is_regular(&r));
   const int32_t a = r.start - this->range.start;
   assert(a >= 0 && a < range_length(&this->range));
   for (int i = a; i < a + range_length(&r); ++i) {

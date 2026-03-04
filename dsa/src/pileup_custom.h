@@ -15,7 +15,7 @@ inline int base_info_array_reset(base_array_t *a, const uint64_t capacity, const
     a->count = 0;
     a->start = start;
     if (capacity > a->capacity) {
-        a->bases = (base_t*)realloc(a->bases, capacity * sizeof(base_t));
+        a->bases = static_cast<base_t*>(realloc(a->bases, capacity * sizeof(base_t)));
         a->capacity = capacity;
     }
     return a->bases == NULL;

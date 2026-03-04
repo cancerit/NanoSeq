@@ -22,7 +22,7 @@ static inline bool is_valid_read(const bam1_t *b) {
 }
 
 static inline bool is_usable_read(const aux_t *aux, const bam1_t *b) {
-    return ((int)b->core.qual >= aux->min_mapQ);
+    return (static_cast<int> (b->core.qual) >= aux->min_mapQ);
 }
 
 static inline bool is_usable_bulk_read(const aux_t *aux, const bam1_t *b) {
@@ -112,7 +112,7 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
         // NOTE: duplex bundle finalisation does not affect the duplex depth
         //  the bundle type is based on, and can therefore be safely postponed.
         // TODO: prune the pileup by bundle type before bulk is processed?
-        const uint8_t bundle_type = duplex_base_get_bundle_type(duplex_bundle, min_dplx_depth);
+        const auto bundle_type = duplex_base_get_bundle_type(duplex_bundle, min_dplx_depth);
 
         if (opts->debug_mode) {
             fprintf(state->debug_pos_duplexes_f, "%d\t", pos);
@@ -128,7 +128,7 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
             // BEWARE: the argument gets modified!
             // TODO: check all attributes get overridden!
 
-            dsa_push_row(state->dsa_uncompressed_stream, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, bundle_type);
+            dsa_push_row(state->dsa_uncompressed_stream, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, static_cast<uint8_t>(bundle_type));
         }
 
         state->dsa_row_count++;
@@ -191,7 +191,7 @@ void PileupBatch::PileupBulk(const Options *opts, pileup_state_t *state) {
                 if (range_contains(&state->range.grange, bi->aln_pos)) {
                     bulk_positions_in_range++;
                 	bbx = &state->pos_bundles[bi->aln_pos].bulk;
-                    bulk_bundle_update(bbx, &read_info, bi, opts->min_base_quality);
+                    bulk_bundle_update(bbx, &read_info, bi, static_cast<uint8_t>(opts->min_base_quality));
                 }
             }
         }
