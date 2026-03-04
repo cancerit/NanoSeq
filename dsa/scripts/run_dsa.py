@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from dataclasses import dataclass, field
 import glob
 import json
+import logging
 from multiprocessing import Pool
 import os
 import pickle
@@ -123,7 +124,8 @@ class JobInfo:
 
     @property
     def ranges_fp(self) -> str:
-        return os.path.join(self.work_dir, BED_FILE_NAME)
+        # e.g., /tmp/dsa/3/ranges.bed
+        return self.get_work_dir_fp(BED_FILE_NAME)
 
 
 @dataclass(slots=True)
@@ -131,7 +133,7 @@ class CmdBuilder:
     exe: str
     job: JobInfo
 
-    _tokens: list[str] = field(init=False)
+    _tokens: list[str] = field(init=False, default_factory=list)
 
     def push(self, a: str) -> None:
         self._tokens.append(a)
@@ -151,6 +153,7 @@ class CmdBuilder:
 @dataclass(slots=True, frozen=True)
 class DSAArgs:
     exe: str
+    dry: bool
     normal: str
     duplex: str
     ref: str
@@ -181,10 +184,13 @@ def prepare_dsa_job(args: DSAArgs, job: JobInfo) -> Cmd | None:
     ):
         return None
 
-    ranges_fp = job.get_work_dir_fp(BED_FILE_NAME)
-    with open(ranges_fp, 'w') as fh:
-        for interval in intervalsPerCPU[i]:
-            interval.write_bed(fh)
+    fp = job.ranges_fp
+    if not args.dry:
+        with open(fp, 'w') as fh:
+            for interval in intervalsPerCPU[i]:
+                interval.write_bed(fh)
+    else:
+        logging.info("Would be writing to %s" % fp)
 
     b = CmdBuilder(args.exe, job)
     b.push_option('A', args.normal)
@@ -235,17 +241,20 @@ if __name__ == '__main__':
     p.add_argument('-v', '--version', action='version', version=__version__)
     args = p.parse_args()
 
+    logging.basicConfig(level=logging.INFO)
+
     exe: str | None = os.getenv('DSA_EXE')
     assert exe
 
     if not os.path.isdir(args.out):
         p.error("Specified out directory %s is not accessible!" % args.out)
 
-    try:
-        testfile = tempfile.TemporaryFile(dir=args.out)
-        testfile.close()
-    except OSError:
-        sys.exit("\nCan't write to out directory %s\n" % args.out)
+    if not args.dry:
+        try:
+            testfile = tempfile.TemporaryFile(dir=args.out)
+            testfile.close()
+        except OSError:
+            sys.exit("\nCan't write to out directory %s\n" % args.out)
 
     tmp_dir = os.path.join(args.out, 'tmpNanoSeq')
 
@@ -261,15 +270,13 @@ if __name__ == '__main__':
     assert isinstance(njobs, int)
 
     part_job = JobInfo(os.path.join(tmp_dir, DIR_PART), 1)
-    part_done_fp = part_job.done_fp
-    # part_done_fp = get_part_file(tmp_dir, '1.done')
-    # part_ipc_fp = get_part_file(tmp_dir, 'intervalsPerCPU.dat')
+    part_done_fp = part_job.get_fp('1.done')
     part_ipc_fp = part_job.get_fp('intervalsPerCPU.dat')
 
     if len(glob.glob(part_done_fp)) != 1:
-        sys.exit("\npart job did not complete correctly\n")
+        sys.exit(f"\npart job did not complete correctly ({part_done_fp})\n")
     if len(glob.glob(part_ipc_fp)) != 1:
-        sys.exit("\npart job did not complete correctly\n")
+        sys.exit(f"\npart job did not complete correctly ({part_ipc_fp})\n")
 
     # make sure that number of jobs matches what was specified in part
     if (args.max_index is not None):
@@ -301,6 +308,7 @@ if __name__ == '__main__':
 
     a = DSAArgs(
         exe=exe,
+        dry=args.dry,
         normal=args.normal,
         duplex=args.duplex,
         ref=args.ref,
@@ -314,8 +322,12 @@ if __name__ == '__main__':
     # TODO: moving the dsa table to the root could facilitate clean-up...? Unless it's done at the directory level.
 
     if args.index is None or args.index == 1:
-        with open("%s/dsa/nfiles" % (tmp_dir), "w") as iofile:
-            iofile.write(str(njobs))
+        fp = "%s/dsa/nfiles" % tmp_dir
+        if not a.dry:
+            with open(fp, "w") as iofile:
+                iofile.write(str(njobs))
+        else:
+            logging.info("Would be writing to %s" % fp)
 
     # execute dsa commans
     print("Starting dsa calculation\n")
