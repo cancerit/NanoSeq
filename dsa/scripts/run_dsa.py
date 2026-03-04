@@ -227,7 +227,7 @@ if __name__ == '__main__':
     p.add_argument('-C', '--snp', help="SNP BED (gz) file")
     p.add_argument('-D', '--mask', help="mask BED (gz) file")
     p.add_argument('-d', type=int, default=DEFAULT_MIN_DUPLEX_DEPTH, help=f"minimum duplex depth ({DEFAULT_MIN_DUPLEX_DEPTH})")
-    p.add_argument('-q', type=int, default=DEFAULT_MIN_BASE_QUALITY, help=f"minimum base quality for normal ({DEFAULT_MIN_BASE_QUALITY}])")
+    p.add_argument('-q', type=int, default=DEFAULT_MIN_BASE_QUALITY, help=f"minimum base quality for normal ({DEFAULT_MIN_BASE_QUALITY})")
     p.add_argument('--no_test', action='store_true', help="skip BAM format tests, use with caution")
     p.add_argument('--dry', action='store_true', help="print the commands and exit")
 
