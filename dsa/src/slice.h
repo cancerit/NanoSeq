@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <cstring>  // memset
 #include <string>
+#include <cstdlib>
+
 #include "range.h"
 
 template<typename T>
