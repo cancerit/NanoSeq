@@ -61,6 +61,8 @@ Equivalent to the DSA section of `runNanoSeq.py`, used in workflows. Includes va
 
 Expects the `DSA_EXE` environmnet variable to be set as the path to the DSA executable.
 
+Usage:
+
 ```sh
 usage: run_dsa.py [-h] [-j INDEX] [-k MAX_INDEX] [-t THREADS] -R REF -A NORMAL -B DUPLEX [-C SNP] [-D MASK] [-d D] [-q Q] [--no_test] [--dry] [--out OUT] [-v]
 
@@ -84,12 +86,25 @@ options:
   -v, --version         show program's version number and exit
 ```
 
+Via Singularity:
+
+```sh
+# Creates ./work_dir/tmpNanoSeq/dsa/
+singularity exec -B"${PWD}/work_dir/:/work_dir/" dsa.sif run_dsa.py -A a -B b -C c -D d -R r -t 80 --out /work_dir
+```
+
 ### Validate results
 
 Usage:
 
 ```sh
 ./validate_dsa_dir.sh tmpDir/dsa
+```
+
+Via Singularity:
+
+```sh
+singularity exec -B"${PWD}/output/:/output/:ro" dsa.sif validate_dsa_dir.sh /output
 ```
 
 This wraps around a more fine-grained tool that compares a compressed DSA table with a report to check for discrepancies in size and, optionally, MD5.
