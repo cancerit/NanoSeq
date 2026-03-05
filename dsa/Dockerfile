@@ -68,6 +68,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /workspace
-COPY --from=builder /workspace/build ./dsa
+COPY --from=builder /workspace/build/dsa ./dsa
 USER ubuntu
 ENTRYPOINT ["/workspace/dsa"]
