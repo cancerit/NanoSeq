@@ -67,7 +67,7 @@ uint64_t MaskLoader::LoadMask(const char *contig, const int start, const int end
         fields = ksplit(&str, 0, &field_count);
         if (fields == nullptr || field_count < 3) {
             throw std::runtime_error(std::format(
-                "Invalid entry in mask file!"));
+                "Invalid entry in mask {}!", this->mask_fp));
         }
         try {
             r.start = std::stoi(&str.s[fields[1]]);
@@ -75,23 +75,24 @@ uint64_t MaskLoader::LoadMask(const char *contig, const int start, const int end
         } catch (const std::exception& e) {
             throw std::runtime_error(
                 std::format(
-                    "Could not conver coordinate in mask file"
+                    "Could not convert coordinate in mask {}"
                     " to integer: {}",
+                    this->mask_fp,
                     e.what()
                 )
             );
         }
 
         if (!range_is_valid(&r)) {
-            throw std::runtime_error(
-                std::format(
-                    "Mask file contains invalid range [{}-{}] -"
+            std::cerr << std::format(
+                    "Warning: skipping invalid range [{}-{}] in mask {} -"
                     " ranges must be valid positive half open coordinates "
                     "(start >= 0 && end > start)",
                     r.start,
-                    r.end
-                )
+                    r.end,
+                    this->mask_fp
             );
+            continue;
         }
 
         range_clamp(&r, &t);
