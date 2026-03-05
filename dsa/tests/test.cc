@@ -34,3 +34,7 @@ TEST_CASE("range_clamp") {
   REQUIRE(r.start == 10);
   REQUIRE(r.end == 20);
 }
+
+TEST_CASE("range_triplet_grow") {
+  // TODO
+}

@@ -365,14 +365,14 @@ void Pileup::LoadRanges() {
     kstring_t ks = {0, 0, nullptr};
     std:: string contig_s;
     const char *contig;
-    while (hts_getline(f, '\n', &ks) >= 0) {
+    for (size_t ln = 0; hts_getline(f, '\n', &ks) >= 0; ++ln) {
         std::string line(ks.s, ks.l);
         std::stringstream ss(line);
         if (!(ss >> contig_s >> gr.start >> gr.end)) {
             std::runtime_error(std::format(
-                "Failed to parse line in {}!", fp));
+                "Failed to parse line {} in {}!", ln, fp));
         }
-        if (gr.end <= gr.start) {
+        if (!range_is_valid(&gr)) {
             std::runtime_error(std::format(
                 "Invalid range {}:{}-{} (end must be greater than start) in {}!",
                 contig, gr.start, gr.end, fp));
