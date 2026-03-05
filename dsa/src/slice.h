@@ -5,6 +5,7 @@
 #include <cstring>  // memset
 #include <string>
 #include <cstdlib>
+#include <stdexcept>
 
 #include "range.h"
 
