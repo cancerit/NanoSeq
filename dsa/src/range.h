@@ -29,7 +29,7 @@ inline void range_clamp(range_t *r, const range_t *t) {
 }
 
 /// Grow range by two units either side to accommodate for triplet retrieval
-inline range_t range_triplet_grow(const range_t *r) {
+[[nodiscard]] inline range_t range_triplet_grow(const range_t *r) {
     assert (range_is_valid(r));
     return {
         r->start <= 2 ? 0 : (r->start - 2),

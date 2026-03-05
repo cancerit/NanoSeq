@@ -31,10 +31,27 @@ TEST_CASE("range_clamp") {
 
   range_clamp(&r, &c);
 
-  REQUIRE(r.start == 10);
-  REQUIRE(r.end == 20);
+  REQUIRE (r.start == 10);
+  REQUIRE (r.end == 20);
 }
 
 TEST_CASE("range_triplet_grow") {
-  // TODO
+  range_t rin{0, 10};
+  range_t rout;
+  rout = range_triplet_grow(&rin);
+
+  REQUIRE (rout.start == 0);
+  REQUIRE (rout.end == 12);
+
+  rin.start = 1;
+  rout = range_triplet_grow(&rin);
+  REQUIRE (rout.start == 0);
+
+  rin.start = 2;
+  rout = range_triplet_grow(&rin);
+  REQUIRE (rout.start == 0);
+
+  rin.start = 3;
+  rout = range_triplet_grow(&rin);
+  REQUIRE (rout.start == 1);
 }
