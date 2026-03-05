@@ -31,6 +31,8 @@ DSA_REPORT_FILE_NAME = 'report.json'
 
 
 class GInterval:
+    """One-based, end-inclusive genomic range"""
+
     def __init__(self, chrr: str, beg: int, end: int):
         self.chr = chrr
         if (end < beg):
@@ -40,13 +42,13 @@ class GInterval:
         self.end = end
         self.l = end - beg + 1
 
-    def convert2DSAInput(self):
-        # zero based and inclusive of end
-        return(GInterval(self.chr, self.beg - 1, self.end))
+    def to_bed(self) -> tuple[str, int, int]:
+        # Zero-based and end-exclusive range
+        return self.chr, self.beg - 1, self.end
 
     def write_bed(self, fh):
-        r = self.convert2DSAInput()
-        fh.write(f"{r.chr}\t{r.beg}\t{r.end}\n")
+        chr, beg, end = self.to_bed()
+        fh.write(f"{chr}\t{beg}\t{end}\n")
 
 
 def get_part_file(tmp_dir: str, fn: str) -> str:
