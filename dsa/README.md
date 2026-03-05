@@ -1,5 +1,28 @@
 # NanoSeq DSA
 
+## Install
+
+The project may be built with CMake, assuming you have the requisite dependencies
+```
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+./dsa
+```
+
+This project explicitly depends on:
+- htslib
+- OpenSSL
+- libdeflate
+- PkgConfig (for finding the other dependencies)
+
+A user-specified htslib install may be provided,
+otherwise CMake will attempt to find it automatically.
+
+This project requires >=C++23.
+
+See the CMakeLists.txt file for more details.
+
 ## Usage
 
 Minimal:
@@ -55,11 +78,15 @@ Migrating from NanoSeq 3:
 
 ## Development
 
-To generate `compile_commands.json`:
+The following options are available when calling `cmake ..` to set up
+the build for the project:
+- To generate `compile_commands.json` add the `-DCOMPILE_COMMANDS=ON` flag to
+your `cmake ..` call.
+- To compile with full debug information use `-DCMAKE_BUILD_TYPE=Debug -DENABLE_DEBUG_FLAGS=ON`.
+- To compile tests use `-DMAKE_TEST=ON`. After building with `cmake --build <...>`, tests
+may be ran with `./test-dsa`.
 
-```sh
-bear -- ./build.sh
-```
+These options may be combined as needed
 
 To build the Docker and Singularity image:
 

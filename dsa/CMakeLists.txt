@@ -8,10 +8,14 @@ project(dsa
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(COMPILE_COMMANDS "Export compile_commands.json" OFF)
 option(ENABLE_DEBUG_FLAGS "Enable extra debug compile options" OFF)
 option(MAKE_TEST "Enable compilation of test binary" OFF)
+
+if(COMPILE_COMMANDS)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
 
 # user paths to htslib if needed
 set(HTSLIB_INCLUDE_DIR "" CACHE PATH "Path to directory that contains htslib/hts.h")
