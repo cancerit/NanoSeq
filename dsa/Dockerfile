@@ -71,4 +71,3 @@ WORKDIR /workspace
 COPY --from=builder /workspace/build ./dsa
 USER ubuntu
 ENTRYPOINT ["/workspace/dsa"]
-# TODO test this dockerfile with my cmake!
