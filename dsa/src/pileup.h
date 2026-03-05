@@ -34,23 +34,16 @@
 #define PILEUP_H_
 
 #include <limits.h>
-#include <array>
 #include <string>
 #include <vector>
-#include <memory>
-#include <map>
-#include <iostream>
 #include <string>
-#include "htslib/faidx.h"
 #include "htslib/sam.h"
-#include "mask.h"
 #include "mask_loader.h"
 #include "options.h"
 #include "constants.h"
 #include "range.h"
 #include "ref.h"
 #include "aux.h"
-#include "pileup_state.h"
 
 class Pileup {
   private:
@@ -64,7 +57,7 @@ class Pileup {
     MaskLoader masks[MASK_COUNT];
 
     aux_t data[BUNDLE_TYPES_COUNT];
-    std::vector<range_tid_t> ranges;
+    std::vector<genomic_region_t> ranges;
     int GetTID(const char *contig);
     const char *GetContig(const int32_t tid);
     void LoadRanges();
@@ -77,7 +70,7 @@ class Pileup {
     Pileup();
     void DestroyIterators();
     void Initiate(Options *options);
-    void InitIterators(const range_tid_t *r);
+    void InitIterators(const genomic_region_t *r);
     std::string Header();
     void MultiplePileup();
 };

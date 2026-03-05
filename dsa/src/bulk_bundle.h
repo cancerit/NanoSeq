@@ -6,7 +6,7 @@
 
 typedef bundle_t bulk_bundle_t;
 
-static inline void bulk_bundle_update(bulk_bundle_t *bundle, const read_info_t *r, const base_t *base, const uint8_t min_qual) {
+inline void bulk_bundle_update(bulk_bundle_t *bundle, const read_info_t *r, const base_t *base, const uint8_t min_qual) {
     if (base->base == ALLELE_DEL || base->qual >= min_qual) {
         bundle_update(bundle, r, r->strand);
         if (base->base != ALLELE_INVALID) {
@@ -15,7 +15,7 @@ static inline void bulk_bundle_update(bulk_bundle_t *bundle, const read_info_t *
     }
 }
 
-static inline void bulk_bundle_finalise(bulk_bundle_t *b, pos_final_stats_t *s) {
+inline void bulk_bundle_finalise(bulk_bundle_t *b, pos_final_stats_t *s) {
     const bool has_a = b->read_counts[RTYPE_A] != 0;
     const bool has_b = b->read_counts[RTYPE_B] != 0;
     pos_stats_set_common(s, b);

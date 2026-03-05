@@ -1,61 +1,51 @@
 #ifndef RANGE_H_
 #define RANGE_H_
 
+#include <algorithm>
+#include <cassert>
 #include <stdint.h>
 
+// 0-indexed end-exclusive aka half-open
+// (as BED spec)
 typedef struct {
-    int32_t start;
+    int32_t start;  // signed ints per htslib
     int32_t end;
-} range_t;
+} range_t ;
 
-static inline void range_validate(const range_t *r) {
-    assert(r->end > r->start && r->end > 0);
+inline bool range_is_valid(const range_t *r) {
+    return r->start >= 0 && r->end > r->start;
 }
 
-static inline int32_t range_length(const range_t *r) {
+inline int32_t range_length(const range_t *r) {
+    assert (range_is_valid(r));
     return r->end - r->start;
 }
 
-static inline void range_regularise(range_t *r) {
-    if (r->end < r->start) {
-        const int32_t t = r->start;
-        r->start = r->end;
-        r->end = t;
-    }
-}
-
-static inline void range_clamp(range_t *r, const range_t *t) {
-    // ASSUMPTION: t is regularised
-    range_regularise(r);
-    if (r->start < t->start) {
-        r->start = t->start;
-    }
-    if (r->end > t->end) {
-        r->end = t->end;
-    }
+inline void range_clamp(range_t *r, const range_t *t) {
+    assert (range_is_valid(r));
+    assert (range_is_valid(t));
+    r->start = std::max(r->start, t->start);
+    r->end = std::min(r->end, t->end);
 }
 
 /// Grow range by two units either side to accommodate for triplet retrieval
-static inline const range_t range_grow(const range_t *r) {
+[[nodiscard]] inline range_t range_triplet_grow(const range_t *r) {
+    assert (range_is_valid(r));
     return {
         r->start <= 2 ? 0 : (r->start - 2),
         r->end + 2
     };
 }
 
+inline bool range_contains(const range_t *r, const int32_t pos) {
+    assert (range_is_valid(r));
+    return pos >= r->start && pos < r->end;  // for half-open range
+}
+
 typedef struct {
-    int32_t start;
-    int32_t end;
+    range_t grange;
     int32_t tid;
-} range_tid_t;
+} genomic_region_t;
 
-static range_t range_tid_to_range(const range_tid_t *r) {
-    return {r->start, r->end};
-}
-
-static inline bool range_tid_contains(const range_tid_t *r, const int32_t pos) {
-    // NOTE: check uniformity of convention when calling!
-    return pos >= r->start && pos <= r->end;
-}
 
 #endif

@@ -6,7 +6,6 @@
 #include "pos_stats.h"
 #include "read_info.h"
 #include "utils.h"
-#include <filesystem>
 #include <iostream>
 #include <unordered_map>
 #include <assert.h>
@@ -23,7 +22,7 @@ static inline bool is_valid_read(const bam1_t *b) {
 }
 
 static inline bool is_usable_read(const aux_t *aux, const bam1_t *b) {
-    return ((int)b->core.qual >= aux->min_mapQ);
+    return (static_cast<int> (b->core.qual) >= aux->min_mapQ);
 }
 
 static inline bool is_usable_bulk_read(const aux_t *aux, const bam1_t *b) {
@@ -34,12 +33,12 @@ static inline bool is_usable_duplex_read(const aux_t *aux, const bam1_t *b) {
     return is_usable_read(aux, b) && read_has_tag(b, "RB");
 }
 
-void PileupBatch::Update(const char *contig, const range_tid_t range, MaskLoader mls[2], Ref *ref) {
-    this->range = range_tid_to_range(&range);
+void PileupBatch::Update(const char *_contig, const genomic_region_t r, MaskLoader mls[2], Ref *ref) {
+    this->range = r.grange;
     assert(range_length(&this->range) > 0);
 
-    this->contig = contig;
-    this->tid = range.tid;
+    this->contig = _contig;
+    this->tid = r.tid;
 
     // Load masks
     this->mask.Reset(this->range);
@@ -53,7 +52,7 @@ void PileupBatch::Update(const char *contig, const range_tid_t range, MaskLoader
     assert(mask.CountBytesSet() <= max_masked_positions);
 
     // Load reference sequence
-    const range_t ref_range = range_grow(&this->range);
+    const range_t ref_range = range_triplet_grow(&this->range);
     std::cerr << std::format("SLICE: {}:{}-{}\n", contig, range.start, range.end);
     std::cerr << std::format("REF: {}:{}-{}\n", contig, ref_range.start, ref_range.end);
     ref->Fetch(contig, ref_range);
@@ -113,7 +112,7 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
         // NOTE: duplex bundle finalisation does not affect the duplex depth
         //  the bundle type is based on, and can therefore be safely postponed.
         // TODO: prune the pileup by bundle type before bulk is processed?
-        const uint8_t bundle_type = duplex_base_get_bundle_type(duplex_bundle, min_dplx_depth);
+        const auto bundle_type = duplex_base_get_bundle_type(duplex_bundle, min_dplx_depth);
 
         if (opts->debug_mode) {
             fprintf(state->debug_pos_duplexes_f, "%d\t", pos);
@@ -129,7 +128,7 @@ void PileupBatch::PileupDumpPosition(const Options *opts, pileup_state_t *state,
             // BEWARE: the argument gets modified!
             // TODO: check all attributes get overridden!
 
-            dsa_push_row(state->dsa_uncompressed_stream, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, bundle_type);
+            dsa_push_row(state->dsa_uncompressed_stream, duplex_tag_info, duplex_bundle, &duplex_stats, &bulk_stats, pos_prefix, static_cast<uint8_t>(bundle_type));
         }
 
         state->dsa_row_count++;
@@ -189,10 +188,10 @@ void PileupBatch::PileupBulk(const Options *opts, pileup_state_t *state) {
                 bulk_positions++;
                 bi = &state->base_buffer.bases[i];
 
-                if (range_tid_contains(&state->range, bi->aln_pos)) {
+                if (range_contains(&state->range.grange, bi->aln_pos)) {
                     bulk_positions_in_range++;
                 	bbx = &state->pos_bundles[bi->aln_pos].bulk;
-                    bulk_bundle_update(bbx, &read_info, bi, opts->min_base_quality);
+                    bulk_bundle_update(bbx, &read_info, bi, static_cast<uint8_t>(opts->min_base_quality));
                 }
             }
         }
@@ -212,9 +211,8 @@ void PileupBatch::Pileup(pileup_state_t *state) {
     const Options *opts = state->opts;
 
     {
-        const range_tid_t range_ = {
-            .start = this->range.start,
-            .end = this->range.end,
+        const genomic_region_t range_ = {
+            .grange = {this->range.start, this->range.end},
             .tid = this->tid
         };
         pileup_state_reset(state, &range_);
@@ -310,7 +308,7 @@ void PileupBatch::Pileup(pileup_state_t *state) {
 
                         bi = &state->base_buffer.bases[i];
                         if (
-                            range_tid_contains(&state->range, bi->aln_pos) &&
+                            range_contains(&state->range.grange, bi->aln_pos) &&
                             duplex_tag_info_is_pos_in_template(
                                 &duplex_info->tag,
                                 bi->aln_pos + opts->offset)

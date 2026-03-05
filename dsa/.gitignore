@@ -7,3 +7,5 @@ compile_commands.json
 .cache/
 *.dSYM/
 *.swp
+build/
+*.sif

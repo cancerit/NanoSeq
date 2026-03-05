@@ -4,7 +4,6 @@
 #include <charconv>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 
 typedef struct duplex_tag_info_t {
     int32_t beg;
@@ -13,14 +12,14 @@ typedef struct duplex_tag_info_t {
     std::string rev_bc;
 } duplex_tag_info_t;
 
-static bool duplex_tag_info_is_pos_in_template(const duplex_tag_info_t *info, const int32_t pos) {
+inline bool duplex_tag_info_is_pos_in_template(const duplex_tag_info_t *info, const int32_t pos) {
     // ASSUMPTION: offset correction (based on the convention used for the position)
     //  has been applied to the input position.
     return (pos >= info->beg) && (pos <= info->end);
 }
 
 // Format: token0,beg,end,fwd_bc,rev_bc
-static duplex_tag_info_t duplex_tag_info_parse(const std::string& s) {
+inline duplex_tag_info_t duplex_tag_info_parse(const std::string& s) {
     // Skip token0
     const size_t p0 = s.find(',');
 

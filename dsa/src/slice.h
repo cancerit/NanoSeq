@@ -1,12 +1,13 @@
 #ifndef SLICE_H_
 #define SLICE_H_
 
-#include <vector>
-#include <algorithm>  // fill
 #include <assert.h>
-#include "range.h"
-#include <iostream>
 #include <cstring>  // memset
+#include <string>
+#include <cstdlib>
+#include <stdexcept>
+
+#include "range.h"
 
 template<typename T>
 class Slice {
@@ -54,8 +55,8 @@ inline uint64_t Slice<T>::CountBytesSet() {
 }
 
 template <typename T>
-inline void Slice<T>::Set(const range_t range, T *new_values) {
-  this->range = range;
+inline void Slice<T>::Set(const range_t r, T *new_values) {
+  this->range = r;
   if (this->values != nullptr) {
     free(this->values);
   }
@@ -93,10 +94,10 @@ inline T *Slice<T>::Data() {
 }
 
 template<typename T>
-void Slice<T>::Reset(const range_t range, const bool zero) {
-  const int32_t new_range_length = range_length(&range);
+void Slice<T>::Reset(const range_t r, const bool zero) {
+  const int32_t new_range_length = range_length(&r);
   assert(new_range_length > 0);
-  this->range = range;
+  this->range = r;
 
   /*
   if (this->values) {
@@ -116,9 +117,9 @@ void Slice<T>::Reset(const range_t range, const bool zero) {
   const size_t new_size = this->capacity * sizeof(T);
 
   if (this->values == nullptr) {
-    this->values = (T*)malloc(new_size);
+    this->values = static_cast<T*>(malloc(new_size));
   } else if (m > n) {
-    this->values = (T*)realloc(this->values, new_size);
+    this->values = static_cast<T*>(realloc(this->values, new_size));
   }
 
   if (this->values == nullptr) {
@@ -132,11 +133,11 @@ void Slice<T>::Reset(const range_t range, const bool zero) {
 }
 
 template<typename T>
-void Slice<T>::Update(const range_t range, const T value) {
-  range_validate(&range);
-  const int32_t a = range.start - this->range.start;
+void Slice<T>::Update(const range_t r, const T value) {
+  assert(range_is_valid(&r));
+  const int32_t a = r.start - this->range.start;
   assert(a >= 0 && a < range_length(&this->range));
-  for (int i = a; i < a + range_length(&range); ++i) {
+  for (int i = a; i < a + range_length(&r); ++i) {
     this->values[i] |= value;
   }
 }

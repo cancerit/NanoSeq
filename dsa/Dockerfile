@@ -36,18 +36,13 @@ RUN apt-get update && apt-get install -y \
     cmake \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
-ENV CC=clang-20
-ENV CXX=clang++-20
-# -fexperimental-library is still needed for <flat_map> in libc++20.
-# On Debian/Ubuntu apt packages clang does NOT auto-add /usr/lib/llvm-N/lib
-# to the linker search path, so libc++experimental.a is never found.
-# The -L flag below fixes that.
-ENV CXXFLAGS="-std=c++23 -stdlib=libc++ -fexperimental-library"
-ENV LDFLAGS="-stdlib=libc++ -fexperimental-library -L/usr/lib/llvm-20/lib"
 WORKDIR /workspace
-COPY build.sh ./
+COPY CMakeLists.txt ./
 COPY src/ ./src
-RUN ./build.sh
+RUN mkdir build \
+    && cd build \
+    && cmake .. -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build .
 
 # Runtime stage
 FROM ubuntu:24.04 AS runtime
@@ -73,7 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /workspace
-COPY --from=builder /workspace/dsa ./dsa
+COPY --from=builder /workspace/build/dsa ./dsa
 USER ubuntu
 ENTRYPOINT ["/workspace/dsa"]
 

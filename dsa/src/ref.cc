@@ -31,7 +31,7 @@ void Ref::Fetch(const char *contig, const range_t range_) {
   // Validate reference sequence
   {
     const char *ref_seq = this->seq.Data();
-    if (memchr(ref_seq, '\n', seq_length) != nullptr) {
+    if (memchr(ref_seq, '\n', static_cast<size_t>(seq_length)) != nullptr) {
       throw std::runtime_error(
         "New line characters in reference sequence! "
         "Check for FASTA vs. FAI mismatch!");

@@ -1,5 +1,7 @@
-#include "pileup_custom.h"
 #include <assert.h>
+
+#include "pileup_custom.h"
+#include "constants.h"
 
 #define count_bits(x) __builtin_popcount(x)
 
@@ -74,7 +76,7 @@ int base_array_update(base_array_t *ba, bam1_t *read) {
     // Expand output array if necessary
     const int32_t read_length = c->l_qseq;
     // NOTE: verify soft-clipping implications on read start...
-    if (base_info_array_reset(ba, (uint64_t)read_length, c->pos)) {
+    if (base_info_array_reset(ba, static_cast<uint64_t>(read_length), c->pos)) {
         fprintf(stderr, "Failed to allocate base info array!\n");
         return 1;
     }
@@ -141,8 +143,8 @@ int base_array_update(base_array_t *ba, bam1_t *read) {
 
         } else {
             // TODO: consider behaviour with soft-clipped bases!
-            query_pos  += (int32_t)cigar_consumes_query[op] * len;
-            ref_offset += (int32_t)cigar_consumes_ref[op]   * len;
+            query_pos  += static_cast<int32_t>(cigar_consumes_query[op]) * len;
+            ref_offset += static_cast<int32_t>(cigar_consumes_ref[op])   * len;
         }
     }
 

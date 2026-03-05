@@ -3,6 +3,7 @@
 
 #include "data_stats.h"
 
+#include <cassert>
 #include <libdeflate.h>
 
 #include <cstdint>
