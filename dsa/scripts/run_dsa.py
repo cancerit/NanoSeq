@@ -3,7 +3,7 @@
 __version__ = '0.4.0'
 
 from argparse import ArgumentParser
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 import glob
 import json
 import logging
@@ -265,14 +265,16 @@ if __name__ == '__main__':
     if not os.path.isdir(args.out):
         p.error("Specified out directory %s is not accessible!" % args.out)
 
+    out_abs = os.path.abspath(args.out)
+
     if not args.dry:
         try:
-            testfile = tempfile.TemporaryFile(dir=args.out)
+            testfile = tempfile.TemporaryFile(dir=out_abs)
             testfile.close()
         except OSError:
-            sys.exit("\nCan't write to out directory %s\n" % args.out)
+            sys.exit("\nCan't write to out directory %s\n" % out_abs)
 
-    tmp_dir = os.path.join(args.out, 'tmpNanoSeq')
+    tmp_dir = os.path.join(out_abs, 'tmpNanoSeq')
 
     # Validate preceding 'part' step
     part_args_fp = get_part_file(tmp_dir, 'args.json')
@@ -343,14 +345,23 @@ if __name__ == '__main__':
         os.makedirs(dsa_dir, exist_ok=True)
 
     if args.index is None or args.index == 1:
-        fp = "%s/dsa/nfiles" % tmp_dir
+        # Write nfiles 
+        nfiles_fp = "%s/dsa/nfiles" % tmp_dir
         if not a.dry:
-            with open(fp, "w") as iofile:
+            with open(nfiles_fp, "w") as iofile:
                 iofile.write(str(njobs))
         else:
-            logging.info("Would be writing to %s" % fp)
+            logging.info("Would be writing to %s" % nfiles_fp)
 
-    # execute dsa commans
+        # Write args
+        args_fp = "s%/dsa/args.json" % tmp_dir
+        if not a.dry:
+            with open(args_fp, "w") as iofile:
+                json.dump(asdict(a) , iofile)
+        else:
+            logging.info("Would be writing to %s" % args_fp)
+
+    # Execute dsa commands
     print("Starting dsa calculation\n")
 
     if (args.index is None):
