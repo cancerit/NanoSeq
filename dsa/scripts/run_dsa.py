@@ -354,7 +354,7 @@ if __name__ == '__main__':
             logging.info("Would be writing to %s" % nfiles_fp)
 
         # Write args
-        args_fp = "s%/dsa/args.json" % tmp_dir
+        args_fp = "%s/dsa/args.json" % tmp_dir
         if not a.dry:
             with open(args_fp, "w") as iofile:
                 json.dump(asdict(a) , iofile)
