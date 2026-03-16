@@ -226,6 +226,9 @@ def prepare_dsa_job(args: DSAArgs, job: JobInfo) -> Cmd | None:
     # Create symlink for the dsa.bed.gz file as <INDEX>.dsa.bed.gz in the dsa directory
     cmd.push_and(get_symlink_cmd(job.dsa_fp, job.dsa_ln))
 
+    # Run validation
+    cmd.push_and(f"validate_dsa_dir.sh {job.dir}")
+
     # Create the done file in the dsa directory
     cmd.push_and(f"touch {job.done_fp}")
     return cmd
@@ -364,7 +367,7 @@ if __name__ == '__main__':
     # Execute dsa commands
     print("Starting dsa calculation\n")
 
-    if (args.index is None):
+    if args.index is None:
         commands: list[Cmd] = []
         for i in range(njobs):
             cmd = prepare_dsa_job(a, JobInfo(dsa_dir, i + 1))
@@ -377,7 +380,6 @@ if __name__ == '__main__':
                 p.starmap(cmd_run_in_thread, zip(commands, [args.dry] * len(commands)))
             except CmdFail as ex:
                 sys.exit(str(ex))
-
     else:
         # array execution
         cmd = prepare_dsa_job(a, JobInfo(dsa_dir, args.index))
