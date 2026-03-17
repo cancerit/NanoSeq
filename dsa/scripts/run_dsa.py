@@ -179,7 +179,7 @@ def main():
 
 
 def get_symlink_cmd(src: str, dest: str) -> str:
-    return f"ln -s {src} {dest}"
+    return f"ln -sf {src} {dest}"
 
 
 def prepare_dsa_job(args: DSAArgs, job: JobInfo) -> Cmd | None:
