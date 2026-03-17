@@ -227,7 +227,7 @@ def prepare_dsa_job(args: DSAArgs, job: JobInfo) -> Cmd | None:
     cmd.push_and(get_symlink_cmd(job.dsa_fp, job.dsa_ln))
 
     # Run validation
-    cmd.push_and(f"validate_dsa_dir.sh {job.dir}")
+    cmd.push_and(f"validate_dsa_dir.sh {job.work_dir}")
 
     # Create the done file in the dsa directory
     cmd.push_and(f"touch {job.done_fp}")
