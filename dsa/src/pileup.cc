@@ -426,13 +426,4 @@ void Pileup::MultiplePileup() {
 
     // TODO: handle the empty output case better
     compressor.finalise();
-
-    return;
-
-    // fai_destroy(this->fai);
-    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        sam_close(this->data[i].fp);
-        sam_hdr_destroy(this->data[i].head);
-    }
-    free(this->data);
 }
