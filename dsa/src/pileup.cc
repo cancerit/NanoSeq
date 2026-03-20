@@ -356,7 +356,7 @@ void Pileup::LoadRanges() {
     const char *fp = this->opts->ranges_bed;
     htsFile *f = hts_open(fp, "r");
     if (fp == nullptr) {
-        std::runtime_error(std::format(
+        throw std::runtime_error(std::format(
             "Failed to open {}!", fp));
     }
 
@@ -369,11 +369,11 @@ void Pileup::LoadRanges() {
         std::string line(ks.s, ks.l);
         std::stringstream ss(line);
         if (!(ss >> contig_s >> gr.start >> gr.end)) {
-            std::runtime_error(std::format(
+            throw std::runtime_error(std::format(
                 "Failed to parse line {} in {}!", ln, fp));
         }
         if (!range_is_valid(&gr)) {
-            std::runtime_error(std::format(
+            throw std::runtime_error(std::format(
                 "Invalid range {}:{}-{} (end must be greater than start) in {}!",
                 contig, gr.start, gr.end, fp));
         }
