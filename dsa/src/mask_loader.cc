@@ -59,9 +59,9 @@ uint64_t MaskLoader::LoadMask(const char *contig, const int start, const int end
     }
 
     kstring_t str = {};
-    int32_t field_count = 0;
-    int32_t *fields = NULL;
-    int32_t max_fields = 0;
+    int field_count = 0;
+    int *fields = nullptr;
+    int max_fields = 0;
     uint64_t variant_count = 0;
     uint64_t position_count = 0;
     while (tbx_itr_next(this->f, this->tbx, itr, &str) >= 0) {
