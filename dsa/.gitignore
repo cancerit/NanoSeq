@@ -2,3 +2,10 @@
 *.o
 dsa
 .DS_Store
+compile_commands.json
+*.a
+.cache/
+*.dSYM/
+*.swp
+build/
+*.sif

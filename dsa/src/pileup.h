@@ -1,23 +1,23 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
-# 
+# Copyright (c) 2022, 2025 Genome Research Ltd
+#
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
-# 
+#
 # This file is part of NanoSeq.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# 
+#
 # 1. The usage of a range of years within a copyright statement contained within
 # this distribution should be interpreted as being equivalent to a list of years
 # including the first and last year specified and all consecutive years between
@@ -34,55 +34,44 @@
 #define PILEUP_H_
 
 #include <limits.h>
-#include <array>
 #include <string>
 #include <vector>
-#include <memory>
-#include <map>
-#include <iostream>
 #include <string>
-#include "gzstream.h"
-#include "htslib/faidx.h"
 #include "htslib/sam.h"
-#include "bed_reader.h"
+#include "mask_loader.h"
 #include "options.h"
-#include "read_bundler.h"
-#include "writeout.h"
-
-
-typedef struct {
-  htsFile* fp;
-  hts_itr_t* iter;
-  int min_mapQ;
-  int duplex;
-  sam_hdr_t* head;
-} aux_t;
-
+#include "constants.h"
+#include "range.h"
+#include "ref.h"
+#include "aux.h"
 
 class Pileup {
- private:
+  private:
     Options *opts;
-    faidx_t* fai;
-    Bed mask;
-    Bed snp;
-    int n;
-    int tid;
-    aux_t **data;
-    bam_mplp_t mplp;
-    int *n_plp;
-    const bam_pileup1_t **plp;
-    ogzstream  gzout;
+    Ref ref;
 
+    // BAI/CRAI indices for sample and normal
+    hts_idx_t *indices[BAM_COUNT];
 
- public:
+    const char *regions;  // Regions to process
+    MaskLoader masks[MASK_COUNT];
+
+    aux_t data[BUNDLE_TYPES_COUNT];
+    std::vector<genomic_region_t> ranges;
+    int GetTID(const char *contig);
+    const char *GetContig(const int32_t tid);
+    void LoadRanges();
+
+    sam_hdr_t *GetHeader(const int i);
+    sam_hdr_t *GetBulkHeader();
+    sam_hdr_t *GetDuplexHeader();
+
+  public:
+    Pileup();
+    void DestroyIterators();
     void Initiate(Options *options);
-
+    void InitIterators(const genomic_region_t *r);
     std::string Header();
-
-    std::string PositionString(int pos);
-
-    char* GetTrinucleotideContext(int pos);
-
     void MultiplePileup();
 };
 
