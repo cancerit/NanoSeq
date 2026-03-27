@@ -1,5 +1,5 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022, 2025 Genome Research Ltd
+# Copyright (c) 2022, 2025, 2026 Genome Research Ltd
 #
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
 #
@@ -30,41 +30,45 @@
 ##########################*/
 
 
-#include "./pileup.h"
-#include "./options.h"
-char buffer[400];
+#include <unistd.h>
+#include "pileup.h"
+#include "options.h"
+
+#define MIN_MAPQ 0
+#define MIN_BASE_QUALITY 30
+#define MIN_DEPTH_DEFAULT 2
+#define COMPRESSION_LEVEL_DEFAULT 2  // as in the current bgzip call
 
 void Usage() {
   fprintf(stderr, "\nUsage:\n");
-  fprintf(stderr, "\t-A\tBulk BAM/CRAM file name\n");
-  fprintf(stderr, "\t-B\tDuplex BAM/CRAM file name\n");
-  fprintf(stderr, "\t-C\tSNP BED file name\n");
-  fprintf(stderr, "\t-D\tMask BED file name\n");
-  fprintf(stderr, "\t-R\tReference sequence file (faidx indexed)\n");
-  fprintf(stderr, "\t-Q\tMinimum base quality for bulk sequencing (def 30)\n");
-  fprintf(stderr, "\t-M\tRemove duplex reads w/ MAPQ smaller than this (def 0)\n");
-  fprintf(stderr, "\t-r\tReference or contig name\n");
-  fprintf(stderr, "\t-b\tStart coordinate\n");
-  fprintf(stderr, "\t-e\tEnd coordinate\n");
-  fprintf(stderr, "\t-d\tMinimum duplex depth (default 2)\n");
-  fprintf(stderr, "\t-O\tOutput file\n");
-  fprintf(stderr, "\t-h\tHelp\n");
+  fprintf(stderr, "  -A\tBulk BAM/CRAM file name\n");
+  fprintf(stderr, "  -B\tDuplex BAM/CRAM file name\n");
+  fprintf(stderr, "  -I\tRegions BED file name\n");
+  fprintf(stderr, "  -C\tSNP BED file name\n");
+  fprintf(stderr, "  -D\tMask BED file name\n");
+  fprintf(stderr, "  -R\tReference sequence file (faidx indexed)\n");
+  fprintf(stderr, "  -Q\tMinimum base quality for bulk sequencing (default %d)\n", MIN_BASE_QUALITY);
+  fprintf(stderr, "  -M\tRemove duplex reads with MAPQ smaller than this (default %d)\n", MIN_MAPQ);
+  fprintf(stderr, "  -d\tMinimum duplex depth (default %d)\n", MIN_DEPTH_DEFAULT);
+  fprintf(stderr, "  -O\tOutput file\n");
+  fprintf(stderr, "  -x\tCompression level (default %d)\n", COMPRESSION_LEVEL_DEFAULT);
+  fprintf(stderr, "  -h\tHelp\n");
 }
 
-
-static void SetupOptions(int argc, char **argv, Options *opts) {
+static int SetupOptions(int argc, char **argv, Options *opts) {
   opts->max_plp_depth    = 20000000;
-  opts->min_dplx_depth   = 2;
-  opts->offset           = 1;
-  opts->min_base_quality = 30;
-  opts->min_mapQ         = 0;
-  opts->out2stdout       = true;
+  opts->min_dplx_depth   = MIN_DEPTH_DEFAULT;
+  opts->offset           = 1;  // Used to correct genomic positions when comparing to duplex boundaries
+  opts->min_base_quality = MIN_BASE_QUALITY;
+  opts->min_mapQ         = MIN_MAPQ;
   opts->doTests          = true;
-  opts->beds[0]          = "\0";
-  opts->beds[1]          = "\0";
-  char suffix[] = ".gz";
+  opts->compression_level = COMPRESSION_LEVEL_DEFAULT;
+  opts->debug_mode = false;
   int opt = 0;
-  while ((opt = getopt(argc, argv, "A:B:C:D:R:Q:M:r:b:e:d:O:th")) >= 0) {
+
+  // TODO: make output file mandatory for now?
+
+  while ((opt = getopt(argc, argv, "A:B:I:C:D:R:Q:M:d:O:x:thv")) >= 0) {
     switch (opt) {
       case 'A':
         opts->bams[0] = optarg;
@@ -72,11 +76,14 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
       case 'B':
         opts->bams[1] = optarg;
         break;
+      case 'I':
+        opts->ranges_bed = optarg;
+        break;
       case 'C':
-        opts->beds[0] = optarg;
+        opts->beds[MASK_INDEX_SNP] = optarg;
         break;
       case 'D':
-        opts->beds[1] = optarg;
+        opts->beds[MASK_INDEX_NOISE] = optarg;
         break;
       case 'R':
         opts->fasta = optarg;
@@ -87,27 +94,21 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
       case 'M':
         opts->min_mapQ = std::stoi(optarg);
         break;
-      case 'r':
-        opts->rname = optarg;
-        break;
-      case 'b':
-        opts->beg = std::stoi(optarg);
-        break;
-      case 'e':
-        opts->end = std::stoi(optarg);
-        break;
       case 'd':
         opts->min_dplx_depth = std::stoi(optarg);
         break;
       case 'O':
-        strcpy(buffer,optarg);
-        strcat(buffer,suffix);
-        opts->oname = buffer;
-        opts->out2stdout = false;
+        opts->oname = optarg;
+        break;
+      case 'x':
+        opts->compression_level = std::stoi(optarg);
         break;
       case 't':
         opts->doTests = false;
         break;
+      case 'v':
+          opts->debug_mode = true;
+          break;
       case 'h':
         Usage();
         exit(0);
@@ -115,12 +116,20 @@ static void SetupOptions(int argc, char **argv, Options *opts) {
         break;
     }
   }
+
+  const int rc = options_validate(opts);
+  if (rc) {
+    Usage();
+  }
+  return rc;
 }
 
-
 int main(int argc, char **argv) {
-  Options opts;
-  SetupOptions(argc, argv, &opts);
+  Options opts = {};
+  if (SetupOptions(argc, argv, &opts)) {
+      return 1;
+  }
+
   Pileup pileup;
   pileup.Initiate(&opts);
   pileup.MultiplePileup();
