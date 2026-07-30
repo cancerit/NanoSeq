@@ -59,12 +59,13 @@ uint64_t MaskLoader::LoadMask(const char *contig, const int start, const int end
     }
 
     kstring_t str = {};
-    int32_t field_count = 0;
-    int32_t *fields;
+    int field_count = 0;
+    int *fields = nullptr;
+    int max_fields = 0;
     uint64_t variant_count = 0;
     uint64_t position_count = 0;
     while (tbx_itr_next(this->f, this->tbx, itr, &str) >= 0) {
-        fields = ksplit(&str, 0, &field_count);
+        field_count = ksplit_core(str.s, 0, &max_fields, &fields);
         if (fields == nullptr || field_count < 3) {
             throw std::runtime_error(std::format(
                 "Invalid entry in mask {}!", this->mask_fp));
@@ -104,6 +105,9 @@ uint64_t MaskLoader::LoadMask(const char *contig, const int start, const int end
         mask.Update(r, this->flag);
     }
     tbx_itr_destroy(itr);
+
+    free(fields);
+    ks_free(&str);
 
     std::cerr << std::format(
         "Loaded {} variants ({}/{} positions covered).\n",
