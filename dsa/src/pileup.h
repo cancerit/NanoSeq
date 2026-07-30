@@ -1,7 +1,7 @@
 /*########## LICENCE ##########
-# Copyright (c) 2022, 2025 Genome Research Ltd
+# Copyright (c) 2022, 2026 Genome Research Ltd
 #
-# Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
+# Author: Luca Barbon <lb29@sanger.ac.uk>
 #
 # This file is part of NanoSeq.
 #
