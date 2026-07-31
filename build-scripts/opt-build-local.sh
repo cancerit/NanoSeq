@@ -32,42 +32,27 @@
 ###########################
 
 
-INST_PATH=$1
+set -e
 
 # get current directory
-INIT_DIR=`pwd`
+INIT_DIR=$(pwd)
 
-set -e
-# cleanup inst_path
-mkdir -p $INST_PATH
-cd $INST_PATH
-INST_PATH=`pwd`
-mkdir -p $INST_PATH/bin
-cd $INIT_DIR
+. "$INIT_DIR/setup-fn.sh"
+
+require_install_path "$@"
+
+detect_cpu
+
+INST_PATH=$1
+
+prep_dirs "$INST_PATH"
 
 export PATH="$INST_PATH/bin:$PATH"
 
-#create a location to build dependencies
-SETUP_DIR=$INIT_DIR/install_tmp
-mkdir -p $SETUP_DIR
+build_repo -DNANOSEQ_FETCH_DEPS=OFF -DCMAKE_PREFIX_PATH="$INST_PATH"
 
-echo "Compiling code form this repository"
-if [ -e $SETUP_DIR/botseq.success ]; then
-  echo " previously compiled";
-else
-  export PREFIX="$INST_PATH"
-  cd $INIT_DIR
-  make
-  make install
-  make test
-  touch $SETUP_DIR/botseq.success
-fi
+install_repo_scripts
 
-cp $INIT_DIR/python/* $INST_PATH/bin
-cp $INIT_DIR/R/* $INST_PATH/bin/
-cp $INIT_DIR/perl/* $INST_PATH/bin/
-chmod a+x $INST_PATH/bin/*
-
-# cleanup all junk
-rm -rf $SETUP_DIR
+# cleanup intermediates
+rm -rf "$SETUP_DIR"
 

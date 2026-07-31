@@ -60,17 +60,43 @@ Execution of the scripts from this repository requires that these dependencies a
 
 * samtools
 * bcftools
-* R (>=3.5 )
+* R (>=3.5)
 * biobambam
 * bwa
+
+Building this repository's tools:
+
+* CMake (>=3.18)
+* a C++11 compiler (g++, clang both tested)
+* development headers/libraries for zlib, libcurl, OpenSSL, liblzma and libbz2 (usually from your system package manager)
+
+By default the build also downloads and compiles htslib and libdeflate itself, so no pre-installed copies of either are needed - this does require network access at configure time.
 
 ### Installation
 
 ```
-./setup.sh path_to_install                          #install code from this repository
-export PATH=$PATH:path_to_install/bin
-Rscript ./build/manualInstall.R <R libraries path>  #install all the required R libraries
+./setup.sh <path_to_install>                          #install code from this repository
+export PATH=$PATH:path_to_install/bin               # add to path if you want
+Rscript ./build-scripts/manualInstall.R <R libraries path>  #install all the required R libraries
 ```
+
+`setup.sh` runs a CMake build, test and install, forwarding any arguments after the install path to the `cmake` configure step. The extra arguments can be used to build offline against preinstalled htslib/libdeflate instead of downloading them:
+
+```
+./setup.sh <path_to_install> -DNANOSEQ_FETCH_DEPS=OFF -DCMAKE_PREFIX_PATH=/path/to/existing/prefix
+```
+
+Any CMake configure arg could also be passed to `setup.h`, but if you're thinking about doing so you'll probably want to look at the CMakeLists.txt directly anyway.
+
+### Docker
+
+A self-contained image can be built from the provided Dockerfile:
+
+```
+docker build --platform linux/amd64 -t nanoseq .
+```
+
+`--platform linux/amd64` will build the image with QEMU emulation on non-amd64 hosts, as the dockerfile fetches R packages from the CRAN Ubuntu repo. In an amd64 environment (Most HPC, the major target), this is a no-op, and the image will be safely built without emulation.
 
 ### Preprocessing of the sequencing data
 

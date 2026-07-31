@@ -10,6 +10,25 @@
 
 version: 2.1
 jobs:
+  native-build-test:
+    docker:
+      - image: cimg/base:2024.01
+    steps:
+      - checkout
+      - run:
+          name: Install build dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              cmake build-essential zlib1g-dev libbz2-dev liblzma-dev \
+              libcurl4-openssl-dev libssl-dev pkg-config git
+      - run:
+          name: Configure, build, test NanoSeq
+          command: |
+            cmake -S . -B build
+            cmake --build build -j"$(nproc)"
+            ctest --test-dir build --output-on-failure
+
   build:
     environment:
       IMAGE_NAME: quay.io/wtsicgp/nanoseq
@@ -58,6 +77,7 @@ workflows:
   version: 2.1
   build_test:
     jobs:
+      - native-build-test
       - build:
           context:
             - dockerhub-casmservice
