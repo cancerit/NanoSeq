@@ -1,5 +1,9 @@
 # CHANGES
 
+## 3.6.2
+
+* Move to CMake build process; add compiler optimisation; vendor gzstream dependency
+
 ## 3.6.1
 
 * Fixed an issue in snv_merge_and_vaf_calc.R where total_cov (used to calculate BAM_COV and BAM_VAF) was calculated incorrectly. 
