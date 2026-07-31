@@ -96,6 +96,7 @@ if(NANOSEQ_FETCH_DEPS)
     FetchContent_Populate(libdeflate)
     add_subdirectory(${libdeflate_SOURCE_DIR} ${libdeflate_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
+  set_target_properties(libdeflate_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
   # // --- htslib --- //
   # htslib has no CMake build of its own, so it's fetched and driven through
