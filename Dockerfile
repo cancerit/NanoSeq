@@ -2,13 +2,6 @@ FROM ubuntu:18.04 AS builder
 
 USER root
 
-# ALL tool versions used by opt-build.sh
-ENV VER_SAMTOOLS="1.18"
-ENV VER_HTSLIB="1.18"
-ENV VER_BCFTOOLS="1.18"
-ENV VER_VERIFYBAMID="2.0.1"
-ENV VER_LIBDEFLATE="v1.18"
-
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get -yq update
 RUN apt-get install -yq --no-install-recommends locales
@@ -55,18 +48,20 @@ RUN apt-get install -yq --no-install-recommends libpng-dev
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
 
-ENV OPT /opt/wtsi-cgp
-ENV PATH $OPT/bin:$PATH
-ENV R_LIBS $OPT/R-lib
-ENV R_LIBS_USER $R_LIBS
-ENV LD_LIBRARY_PATH $OPT/lib
-ENV LC_ALL en_US.UTF-8
-ENV LANG en_US.UTF-8
+ENV OPT=/opt/wtsi-cgp
+ENV PATH=$OPT/bin:$PATH
+ENV R_LIBS=$OPT/R-lib
+ENV R_LIBS_USER=$R_LIBS
+ENV LD_LIBRARY_PATH=$OPT/lib
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
 
 # build tools from other repos
-ADD build/libInstall.R build/
-ADD build/opt-build.sh build/
-RUN bash build/opt-build.sh $OPT
+ADD versions.sh ./
+ADD setup-fn.sh ./
+ADD build-scripts/libInstall.R build-scripts/
+ADD build-scripts/opt-build.sh build-scripts/
+RUN bash build-scripts/opt-build.sh $OPT
 
 # Install deepSNV
 RUN mkdir -p "/opt/wtsi-cgp/R-lib"
@@ -87,8 +82,8 @@ RUN Rscript -e 'library("BiocManager"); BiocManager::install("vcfR", version = "
 
 # build the tools in this repo, separate to reduce build time on errors
 COPY . .
-ADD build/opt-build-local.sh build/
-RUN bash build/opt-build-local.sh $OPT
+ADD build-scripts/opt-build-local.sh build-scripts/
+RUN bash build-scripts/opt-build-local.sh $OPT
 
 FROM ubuntu:18.04
 
@@ -136,19 +131,19 @@ RUN apt-get install -yq --no-install-recommends r-cran-mass=7.3-51.5-2bionic0 r-
 RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
 RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
 RUN apt-mark hold r-base r-recommended
-ADD build/libInstall2.R build/
-RUN Rscript build/libInstall2.R
+ADD build-scripts/libInstall2.R build-scripts/
+RUN Rscript build-scripts/libInstall2.R
 
 RUN locale-gen en_US.UTF-8
 RUN update-locale LANG=en_US.UTF-8
 
-ENV OPT /opt/wtsi-cgp
-ENV PATH $OPT/bin:$PATH
-ENV R_LIBS $OPT/R-lib
-ENV R_LIBS_USER $R_LIBS
-ENV LD_LIBRARY_PATH $OPT/lib
-ENV LC_ALL en_US.UTF-8
-ENV LANG en_US.UTF-8
+ENV OPT=/opt/wtsi-cgp
+ENV PATH=$OPT/bin:$PATH
+ENV R_LIBS=$OPT/R-lib
+ENV R_LIBS_USER=$R_LIBS
+ENV LD_LIBRARY_PATH=$OPT/lib
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
 
 RUN mkdir -p $OPT
 COPY --from=builder $OPT $OPT

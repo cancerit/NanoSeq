@@ -6,3 +6,5 @@ notes/
 **/.nextflow.log
 **/.nextflow.log.*
 .DS_Store
+/build/
+scratch/

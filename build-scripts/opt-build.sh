@@ -63,39 +63,25 @@ get_file () {
   fi
 }
 
-if [ "$#" -ne "1" ] ; then
-  echo "Please provide an installation path  such as /opt/ICGC"
-  exit 0
-fi
+# get current directory
+INIT_DIR=`pwd`
 
-CPU=`grep -c ^processor /proc/cpuinfo`
-if [ $? -eq 0 ]; then
-  if [ "$CPU" -gt "6" ]; then
-    CPU=6
-  fi
-else
-  CPU=1
-fi
+. "$INIT_DIR/setup-fn.sh"
+
+require_install_path "$@"
+
+detect_cpu
 echo "Max compilation CPUs set to $CPU"
 
 INST_PATH=$1
 
-# get current directory
-INIT_DIR=`pwd`
+. "$INIT_DIR/versions.sh"  # VER_SAMTOOLS, VER_HTSLIB, VER_BCFTOOLS, VER_VERIFYBAMID, VER_LIBDEFLATE
 
 set -e
-# cleanup inst_path
-mkdir -p $INST_PATH
-cd $INST_PATH
-INST_PATH=`pwd`
-mkdir -p $INST_PATH/bin
-cd $INIT_DIR
+
+prep_dirs "$INST_PATH"
 
 export PATH="$INST_PATH/bin:$PATH"
-
-#create a location to build dependencies
-SETUP_DIR=$INIT_DIR/install_tmp
-mkdir -p $SETUP_DIR
 
 echo -n "Building libdeflate ..."
 if [ -e $SETUP_DIR/libdeflate.success ]; then
@@ -201,24 +187,5 @@ else
   cd $SETUP_DIR
   rm -f VerifyBamID.tar.gz
   touch $SETUP_DIR/verifyBAMID.success
-fi
-
-echo -n "Building gzstream ..."
-if [ -e $SETUP_DIR/gzstream.success ]; then
-  echo " previously built ...";
-else
-  echo
-  cd $SETUP_DIR
-  rm -rf gzstream
-  get_distro "gzstream" "https://www.cs.unc.edu/Research/compgeom/gzstream/gzstream.tgz"
-  mkdir -p gzstream
-  tar --strip-components 1 -C gzstream -xzf gzstream.tgz
-  cd gzstream
-  cp *.h $INST_PATH/include
-  make
-  cp libgzstream.a $INST_PATH/lib
-  cd $SETUP_DIR
-  rm -f gzstream.tgz
-  touch $SETUP_DIR/gzstream.success
 fi
 

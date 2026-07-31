@@ -30,7 +30,7 @@
 ##########################*/
 
 #ifndef VARIANTCALLER_H_
-#define VARIANTCALLE_H_
+#define VARIANTCALLER_H_
 
 #include <algorithm>
 #include <map>
