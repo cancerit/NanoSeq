@@ -131,6 +131,13 @@ RUN apt-get install -yq --no-install-recommends r-cran-mass=7.3-51.5-2bionic0 r-
 RUN apt-get install -yq --no-install-recommends r-recommended=4.1.3-1.1804.0
 RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
 RUN apt-mark hold r-base r-recommended
+
+# Some CRAN packages installed below (e.g. RcppArmadillo, a seqinr dependency)
+# require gcc >= 8.1 to compile; libgfortran-8-dev is needed to link against
+# once gcc-8 is the active compiler (also required at runtime by VGAM).
+RUN apt-get install -yq --no-install-recommends gcc-8 g++-8 libgfortran-8-dev
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+
 ADD build-scripts/libInstall2.R build-scripts/
 RUN Rscript build-scripts/libInstall2.R
 
@@ -147,9 +154,6 @@ ENV LANG=en_US.UTF-8
 
 RUN mkdir -p $OPT
 COPY --from=builder $OPT $OPT
-
-# Shared library required by VGAM
-RUN apt install -yq --no-install-recommends libgfortran-8-dev
 
 ## USER CONFIGURATION
 RUN adduser --disabled-password --gecos '' ubuntu && chsh -s /bin/bash && mkdir -p /home/ubuntu
