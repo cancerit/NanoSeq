@@ -33,11 +33,11 @@ jobs:
     environment:
       IMAGE_NAME: quay.io/wtsicgp/nanoseq
     docker:
-      - image: circleci/buildpack-deps:stretch
+      - image: cimg/base:2024.01
     steps:
       - checkout
       - setup_remote_docker:
-          version: 20.10.11
+          version: default
       - run:
           name: Build Docker image
           command: |
