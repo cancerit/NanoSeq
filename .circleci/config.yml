@@ -16,11 +16,26 @@ jobs:
     steps:
       - checkout
       - run:
+          # cimg/base:2024.01 is Ubuntu 22.04, whose apt cmake (3.22.1) is
+          # below this project's cmake_minimum_required floor (3.28) - install
+          # upstream's official release directly instead. Not using Kitware's
+          # apt repo here as they explicitly ask it not be used from CI.
+          name: Install cmake >= 3.28
+          command: |
+            CMAKE_VERSION=3.28.6
+            CMAKE_ARCH=$(uname -m)
+            wget -nv -O /tmp/cmake.tar.gz \
+              "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}.tar.gz"
+            sudo mkdir -p /opt/cmake
+            sudo tar -xzf /tmp/cmake.tar.gz -C /opt/cmake --strip-components=1
+            rm /tmp/cmake.tar.gz
+            echo 'export PATH=/opt/cmake/bin:$PATH' >> "$BASH_ENV"
+      - run:
           name: Install build dependencies
           command: |
             sudo apt-get update
             sudo apt-get install -y --no-install-recommends \
-              cmake build-essential zlib1g-dev libbz2-dev liblzma-dev \
+              build-essential zlib1g-dev libbz2-dev liblzma-dev \
               libcurl4-openssl-dev libssl-dev pkg-config git
       - run:
           name: Configure, build, test NanoSeq
