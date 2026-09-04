@@ -29,6 +29,62 @@
 # 2009, 2010, 2011, 2012’.
 ##########################*/
 #include "bamaddreadbundles.h"
+#include <htslib/sam.h>
+
+// NOTE: tag case is important
+#define TAG_OPT_DUP "od"
+#define TAG_BARCODE_BUNDLE "RB"
+#define TAG_READ_BARCODE "rb"
+#define TAG_MATE_BARCODE "mb"
+#define TAG_READ_COORD "rc"
+#define TAG_MATE_COORD "mc"
+#define TAG_MATE_MAPQ "MQ"
+#define TAG_MATE_SCORE "ms"
+#define TAG_MATE_CIGAR "MC"
+
+
+static bool ReadHasAux (bam1_t* b, const char* tag) {
+  // does not check if not present, or error.
+  return bam_aux_get(b, tag) != NULL;
+}
+static bool ReadHasAux (bam1_t* b, const std::vector<std::string_view>& tags) {
+  for (const auto& t : tags) {
+    if (bam_aux_get(b, t.data()) == NULL) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool ReadIsUsable(bam1_t* b) {
+  constexpr auto fail_bits = BAM_FSUPPLEMENTARY | BAM_FQCFAIL | BAM_FUNMAP | BAM_FSECONDARY;
+
+  bool out = false;
+
+  const auto has_requisite_tags = ReadHasAux (b, {TAG_READ_COORD, TAG_MATE_COORD, TAG_READ_BARCODE, TAG_MATE_BARCODE});
+
+  if (b->core.flag & fail_bits || ReadHasAux(b, TAG_OPT_DUP)) {
+    out = false;
+  }
+  else if ((b->core.flag & BAM_FPROPER_PAIR) && has_requisite_tags) {
+    out = true;
+  }
+  return out;
+}
+
+static bool ReadIsWritable(bam1_t* b) {
+  bool out = false;
+  if (ReadHasAux(b, TAG_READ_BARCODE)) {
+    out = true;
+  }
+  else if (b->core.flag & BAM_FQCFAIL || ReadHasAux(b, TAG_OPT_DUP)) {
+    out = false;
+  }
+  else if (ReadHasAux(b, {TAG_READ_BARCODE, TAG_MATE_BARCODE})) {
+    out = true;
+  }
+  return out;
+}
 
 
 void BamAddReadBundles::LoadFiles() {
@@ -97,49 +153,11 @@ void BamAddReadBundles::UpdateHeader(int argc, char **argv) {
 }
 
 
-bool BamAddReadBundles::HasAux(bam1_t* b, const char* tag) {
-  return (bam_aux_get(b, tag))? true : false;
-}
-
-
-bool BamAddReadBundles::ReadIsUsable(bam1_t* b) {
-  int suppl     = (b->core.flag & BAM_FSUPPLEMENTARY)? 1 : 0;
-  int qcfail    = (b->core.flag & BAM_FQCFAIL)? 1 : 0;
-  int unmapped  = (b->core.flag & BAM_FUNMAP)? 1 : 0;
-  int secondary = (b->core.flag & BAM_FSECONDARY)? 1 : 0;
-  int has_od    = (BamAddReadBundles::HasAux(b, "od"))? 1 : 0;
-  int paired    = (b->core.flag & BAM_FPROPER_PAIR)? 1 : 0;
-  int has_rc    = (BamAddReadBundles::HasAux(b, "rc"))? 1 : 0;
-  int has_mc    = (BamAddReadBundles::HasAux(b, "mc"))? 1 : 0;
-  int has_rb    = (BamAddReadBundles::HasAux(b, "rb"))? 1 : 0;
-  int has_mb    = (BamAddReadBundles::HasAux(b, "mb"))? 1 : 0;
-  if (((suppl + qcfail + unmapped + secondary + has_od) == 0) &&
-      ((paired  + has_rc + has_mc + has_rb + has_mb) == 5)) {
-    return true;
-  }
-  return false;
-}
-
-bool BamAddReadBundles::ReadIsWritable(bam1_t* b) {
-  int qcfail    = (b->core.flag & BAM_FQCFAIL)? 1 : 0;
-  int has_RB    = (BamAddReadBundles::HasAux(b, "RB"))? 1 : 0;
-  int has_od    = (BamAddReadBundles::HasAux(b, "od"))? 1 : 0;
-  int has_rb    = (BamAddReadBundles::HasAux(b, "rb"))? 1 : 0;
-  int has_mb    = (BamAddReadBundles::HasAux(b, "mb"))? 1 : 0;
-  if ( has_RB == 1) {
-    return true;
-  }
-  if ((( has_rb + has_mb) == 2) && ((qcfail + has_od) == 0 )) {
-    return true;
-  }
-  return false;
-}
-
-void BamAddReadBundles::AddAuxTags(bam1_t* b) {
-  int rc     = bam_aux2i(bam_aux_get(b, "rc"));
-  int mc     = bam_aux2i(bam_aux_get(b, "mc"));
-  char* rb   = bam_aux2Z(bam_aux_get(b, "rb"));
-  char* mb   = bam_aux2Z(bam_aux_get(b, "mb"));
+void BamAddReadBundles::AddBarcodeBundleAuxTag(bam1_t* b) {
+  int rc     = bam_aux2i(bam_aux_get(b, TAG_READ_COORD));
+  int mc     = bam_aux2i(bam_aux_get(b, TAG_MATE_COORD));
+  char* rb   = bam_aux2Z(bam_aux_get(b, TAG_READ_BARCODE));
+  char* mb   = bam_aux2Z(bam_aux_get(b, TAG_MATE_BARCODE));
   int strand = (b->core.flag & BAM_FREVERSE)? 1: 0;
   std::stringstream ss;
   ss << this->head->target_name[b->core.tid];
@@ -161,43 +179,31 @@ void BamAddReadBundles::AddAuxTags(bam1_t* b) {
   const char* cstr = str.c_str();
   int len = str.length() + 1;
   uint8_t *data = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(cstr));
-  int rco = bam_aux_append(b, "RB", 'Z', len, data);
+  int rco = bam_aux_append(b, TAG_BARCODE_BUNDLE, 'Z', len, data);
   if ( rco < 0 ) exit(1);
 }
 
 
-void BamAddReadBundles::DelAuxTags(bam1_t* b) {
-  uint8_t* t_tag;
-  if (( t_tag = bam_aux_get(b, "mc")) != NULL  ) {
-    bam_aux_del(b, t_tag);
+static void DelSupersededTags(bam1_t* b) {
+  uint8_t* tag;
+  if (( tag = bam_aux_get(b, TAG_MATE_COORD)) != NULL  ) {
+    bam_aux_del(b, tag);
   }
-  if (( t_tag = bam_aux_get(b, "rc")) != NULL  ) {
-    bam_aux_del(b, t_tag);
+  if (( tag = bam_aux_get(b, TAG_READ_COORD)) != NULL  ) {
+    bam_aux_del(b, tag);
   }
-  if (( t_tag = bam_aux_get(b, "mb")) != NULL  ) {
-    bam_aux_del(b, t_tag);
+  if (( tag = bam_aux_get(b, TAG_MATE_BARCODE)) != NULL  ) {
+    bam_aux_del(b, tag);
   }
-  if (( t_tag = bam_aux_get(b, "rb")) != NULL  ) {
-    bam_aux_del(b, t_tag);
-  }
-  if (( t_tag = bam_aux_get(b, "MQ")) != NULL  ) {
-    bam_aux_del(b, t_tag);
-  }
-  if (( t_tag = bam_aux_get(b, "ms")) != NULL  ) {
-    bam_aux_del(b, t_tag);
-  }
-  if (( t_tag = bam_aux_get(b, "MC")) != NULL  ) {
-    bam_aux_del(b, t_tag);
+  if (( tag = bam_aux_get(b, TAG_READ_BARCODE)) != NULL  ) {
+    bam_aux_del(b, tag);
   }
 }
 
 
 void BamAddReadBundles::WriteOut(bam1_t* b) {
   if ((sam_write1(this->out, this->head, b) < 0)) {
-    std::stringstream er;
-    er << "Error: failed to write record.";
-    er << std::endl;
-    throw std::runtime_error(er.str());
+    throw std::runtime_error("Error: failed to write record.");
   }
 }
 
@@ -214,11 +220,11 @@ void BamAddReadBundles::FilterAndTagReads() {
       er << std::endl;
       throw std::runtime_error(er.str());
     }
-    if (BamAddReadBundles::ReadIsUsable(b) == true) {
-      BamAddReadBundles::AddAuxTags(b);
-      BamAddReadBundles::DelAuxTags(b);
+    if (ReadIsUsable(b)) {
+      BamAddReadBundles::AddBarcodeBundleAuxTag(b);
+      DelSupersededTags(b);
     }
-    if ( BamAddReadBundles::ReadIsWritable(b) == true ) {
+    if (ReadIsWritable(b)) {
       BamAddReadBundles::WriteOut(b);
     }
   }
@@ -238,7 +244,7 @@ void BamAddReadBundles::CleanUp() {
 }
 
 
-void Usage() {
+static void Usage() {
   fprintf(stderr, "\nUsage:\n");
   fprintf(stderr, "\t-I\tInput BAM/CRAM file name\n");
   fprintf(stderr, "\t-O\tOutput BAM/CRAM file name\n");

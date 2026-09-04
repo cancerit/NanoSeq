@@ -69,17 +69,9 @@ class BamAddReadBundles {
 
    void UpdateHeader(int argc, char **argv);
 
-   bool HasAux(bam1_t* b, const char* tag);
-
    bool MapsToRname(bam1_t* b);
 
-   bool ReadIsUsable(bam1_t* b);
-
-   bool ReadIsWritable(bam1_t* b);  
-
-   void AddAuxTags(bam1_t* b);
-
-   void DelAuxTags(bam1_t* b);
+   void AddBarcodeBundleAuxTag(bam1_t* b);
 
    void WriteOut(bam1_t* b);
 
