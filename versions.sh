@@ -1,5 +1,5 @@
 # Single source of truth for third-party tool versions, shared by:
-#   - build-scripts/opt-build.sh (sources this file directly)
+#   - build-scripts/build-external-tools.sh (sources this file directly)
 #   - CMakeLists.txt (parses VER_HTSLIB/VER_LIBDEFLATE out of this file)
 VER_SAMTOOLS=1.18
 VER_HTSLIB=1.18

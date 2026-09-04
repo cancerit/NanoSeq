@@ -1,11 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
-
-# Set handling of downloaded content.
-# Fetched archives should get extraction-time timestamps, not the archive's
-# original ones, so a changed URL is correctly seen as new content.
-if(POLICY CMP0135)
-  cmake_policy(SET CMP0135 NEW)
-endif()
+cmake_minimum_required(VERSION 3.28)
 
 # ==============================================================================
 # Version
@@ -32,10 +25,10 @@ project(NanoSeq LANGUAGES C CXX)
 # ==============================================================================
 # Options
 # ==============================================================================
-option(NANOSEQ_TESTS "Register NanoSeq's ctest suite" ON)
+option(NANOSEQ_TESTS "Register NanoSeq ctest suite" ON)
 option(NANOSEQ_INSTALL "Install NanoSeq binaries via 'cmake --install'" OFF)
 option(NANOSEQ_FETCH_DEPS
-  "Fetch and build htslib/libdeflate ourselves; turn OFF to use pre-installed copies found via CMAKE_PREFIX_PATH instead (e.g. on network-restricted build hosts)"
+  "Fetch and build htslib/libdeflate; turn OFF to use pre-installed copies found via CMAKE_PREFIX_PATH instead (e.g. on network-restricted build hosts)"
   ON)
 
 # ==============================================================================
@@ -44,6 +37,7 @@ option(NANOSEQ_FETCH_DEPS
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
@@ -67,8 +61,8 @@ find_package(CURL REQUIRED)
 find_package(OpenSSL REQUIRED)   # provides OpenSSL::Crypto
 
 # versions.sh is the single source of truth for these two version numbers,
-# also read directly by build-scripts/opt-build.sh's own htslib/libdeflate
-# build (for samtools, which needs its own copy).
+# also read directly by build-scripts/build-external-tools.sh's own
+# htslib/libdeflate build (for samtools, which needs its own copy).
 file(STRINGS ${CMAKE_SOURCE_DIR}/versions.sh NANOSEQ_VERSIONS_RAW)
 foreach(_nanoseq_version_line ${NANOSEQ_VERSIONS_RAW})
   if(_nanoseq_version_line MATCHES "^VER_HTSLIB=(.*)$")
@@ -82,27 +76,18 @@ string(REGEX REPLACE "^v" "" NANOSEQ_LIBDEFLATE_VERSION_NUM "${NANOSEQ_LIBDEFLAT
 
 if(NANOSEQ_FETCH_DEPS)
   # // --- libdeflate --- //
-  # Fetched and built as part of this project's own build, statically, with
-  # its CLI/test targets disabled - only the libdeflate::libdeflate_static
-  # target is needed here. htslib (below) links against this same copy.
+  # libdeflate::libdeflate_static target
+  # needed to link against for htslib.
   include(FetchContent)
   set(LIBDEFLATE_BUILD_SHARED_LIB OFF CACHE BOOL "" FORCE)
   set(LIBDEFLATE_BUILD_GZIP OFF CACHE BOOL "" FORCE)
   set(LIBDEFLATE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
   FetchContent_Declare(libdeflate
-    URL https://github.com/ebiggers/libdeflate/archive/${NANOSEQ_LIBDEFLATE_VERSION}.tar.gz)
-  FetchContent_GetProperties(libdeflate)
-  if(NOT libdeflate_POPULATED)
-    FetchContent_Populate(libdeflate)
-    add_subdirectory(${libdeflate_SOURCE_DIR} ${libdeflate_BINARY_DIR} EXCLUDE_FROM_ALL)
-  endif()
+    URL https://github.com/ebiggers/libdeflate/archive/${NANOSEQ_LIBDEFLATE_VERSION}.tar.gz
+    EXCLUDE_FROM_ALL)
+  FetchContent_MakeAvailable(libdeflate)
   set_target_properties(libdeflate_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-  # // --- htslib --- //
-  # htslib has no CMake build of its own, so it's fetched and driven through
-  # its autotools ./configure via ExternalProject, statically linked against
-  # the libdeflate fetched above. Built by the project since nanoseq uses
-  # private headers not usually made available by make install.
   include(ExternalProject)
   include(ProcessorCount)
   ProcessorCount(NANOSEQ_NPROC)
@@ -110,6 +95,8 @@ if(NANOSEQ_FETCH_DEPS)
     set(NANOSEQ_NPROC 1)
   endif()
 
+  # // --- htslib --- //
+  # htslib built directly as project uses private cram.h header.
   set(HTSLIB_INSTALL_DIR ${CMAKE_BINARY_DIR}/htslib-prefix/install)
   file(MAKE_DIRECTORY ${HTSLIB_INSTALL_DIR}/include)
   ExternalProject_Add(htslib_ext
@@ -139,8 +126,8 @@ if(NANOSEQ_FETCH_DEPS)
 else()
   # NANOSEQ_FETCH_DEPS=OFF: look for pre-installed copies instead, e.g. via
   # -DCMAKE_PREFIX_PATH=/path/to/prefix pointing at a prefix built the way
-  # build-scripts/opt-build.sh builds one (its --with-libdeflate htslib
-  # configure needs the same libdeflate found here).
+  # build-scripts/build-external-tools.sh builds one (its
+  # --with-libdeflate htslib configure needs the same libdeflate found here).
   include(FindPackageHandleStandardArgs)
 
   # find preinstalled libdeflate, matching to specified version

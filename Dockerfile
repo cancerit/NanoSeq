@@ -8,11 +8,17 @@ RUN apt-get install -yq --no-install-recommends locales
 RUN apt-get install -yq --no-install-recommends ca-certificates
 RUN apt-get install -yq --no-install-recommends wget curl
 
-# install latest cmake so opt-build.sh works - the initial installs will also help install R
+# software-properties-common/lsb-release are needed below for the R apt repo
 RUN apt-get install -yq --no-install-recommends software-properties-common lsb-release
-RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
-RUN apt-add-repository "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
-RUN apt-get install -yq --no-install-recommends cmake=3.25.2-0kitware1ubuntu18.04.1
+
+# install cmake from the official upstream binary tarball for 3.28 on bionic
+ENV CMAKE_VERSION=3.28.6
+RUN wget -nv -O /tmp/cmake.tar.gz \
+      https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz \
+ && mkdir -p /opt/cmake \
+ && tar -xzf /tmp/cmake.tar.gz -C /opt/cmake --strip-components=1 \
+ && rm /tmp/cmake.tar.gz
+ENV PATH=/opt/cmake/bin:$PATH
 
 RUN apt-get install -yq --no-install-recommends make
 RUN apt-get install -yq --no-install-recommends pkg-config
@@ -60,8 +66,8 @@ ENV LANG=en_US.UTF-8
 ADD versions.sh ./
 ADD setup-fn.sh ./
 ADD build-scripts/libInstall.R build-scripts/
-ADD build-scripts/opt-build.sh build-scripts/
-RUN bash build-scripts/opt-build.sh $OPT
+ADD build-scripts/build-external-tools.sh build-scripts/
+RUN bash build-scripts/build-external-tools.sh $OPT
 
 # Install deepSNV
 RUN mkdir -p "/opt/wtsi-cgp/R-lib"
@@ -82,8 +88,8 @@ RUN Rscript -e 'library("BiocManager"); BiocManager::install("vcfR", version = "
 
 # build the tools in this repo, separate to reduce build time on errors
 COPY . .
-ADD build-scripts/opt-build-local.sh build-scripts/
-RUN bash build-scripts/opt-build-local.sh $OPT
+ADD build-scripts/build-local.sh build-scripts/
+RUN bash build-scripts/build-local.sh $OPT
 
 FROM ubuntu:18.04
 
@@ -133,7 +139,7 @@ RUN apt-get install -yq --no-install-recommends r-base=4.1.3-1.1804.0
 RUN apt-mark hold r-base r-recommended
 
 # Some CRAN packages installed below (e.g. RcppArmadillo, a seqinr dependency)
-# require gcc >= 8.1 to compile; libgfortran-8-dev is needed to link against
+# require gcc 8.1 to compile; libgfortran-8-dev is needed to link against
 # once gcc-8 is the active compiler (also required at runtime by VGAM).
 RUN apt-get install -yq --no-install-recommends gcc-8 g++-8 libgfortran-8-dev
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
@@ -154,11 +160,5 @@ ENV LANG=en_US.UTF-8
 
 RUN mkdir -p $OPT
 COPY --from=builder $OPT $OPT
-
-## USER CONFIGURATION
-RUN adduser --disabled-password --gecos '' ubuntu && chsh -s /bin/bash && mkdir -p /home/ubuntu
-
-USER    ubuntu
-WORKDIR /home/ubuntu
 
 CMD ["/bin/bash"]
