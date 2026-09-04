@@ -1027,9 +1027,10 @@ void Options(int argc, char **argv, VariantCaller *vc) {
   vc->vaf               = 0.01;          // 1 to 0
   vc->outfile           = NULL;
   vc->outfile_discarded = NULL;
+  vc->outfile_coverage  = NULL;
   int opt = 0;
   char suffix[] = ".gz";
-  char buffer[600];
+  static char buffer[600];
   while ((opt = getopt(argc, argv, "B:a:b:z:c:d:f:i:m:n:p:q:r:v:x:O:D:U:h")) >= 0) {
     switch (opt) {
       case 'B':
