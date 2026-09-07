@@ -44,7 +44,7 @@
 
 
 static bool ReadHasAux (bam1_t* b, const char* tag) {
-  // does not check if not present, or error.
+  // does not check if absent, or error.
   return bam_aux_get(b, tag) != NULL;
 }
 static bool ReadHasAux (bam1_t* b, const std::vector<const char*>& tags) {
@@ -72,7 +72,7 @@ static bool ReadIsUsable(bam1_t* b) {
   return out;
 }
 
-static bool ReadIsWritable(bam1_t* b) {
+static bool CheckWriteFilters(bam1_t* b) {
   bool out = false;
   if (ReadHasAux(b, TAG_READ_BARCODE)) {
     out = true;
@@ -224,7 +224,7 @@ void BamAddReadBundles::FilterAndTagReads() {
       BamAddReadBundles::AddBarcodeBundleAuxTag(b);
       DelSupersededTags(b);
     }
-    if (ReadIsWritable(b)) {
+    if (write_all_reads || CheckWriteFilters(b)) {
       BamAddReadBundles::WriteOut(b);
     }
   }
@@ -248,16 +248,19 @@ static void Usage() {
   fprintf(stderr, "\nUsage:\n");
   fprintf(stderr, "\t-I\tInput BAM/CRAM file name\n");
   fprintf(stderr, "\t-O\tOutput BAM/CRAM file name\n");
+  fprintf(stderr, "\t-n\tDo not filter any reads from output."
+                  "\t\t  Defaults False, excluding reads marked"
+                  "\t\t  QC fail or with od Optical duplicate tag.");
   fprintf(stderr, "\t-h\tHelp\n");
 }
-
 
 int main(int argc, char **argv) {
   BamAddReadBundles barb;
   barb.infile = NULL;
   barb.outfile = NULL;
+  barb.write_all_reads = false;
   int opt = 0;
-  while ((opt = getopt(argc, argv, "I:O:h")) >= 0) {
+  while ((opt = getopt(argc, argv, "I:O:n:h")) >= 0) {
     switch (opt) {
       case 'I':
         barb.infile = optarg;
@@ -265,6 +268,8 @@ int main(int argc, char **argv) {
       case 'O':
         barb.outfile = optarg;
         break;
+      case 'n':
+        barb.write_all_reads = true;
       case 'h':
         Usage();
         exit(0);

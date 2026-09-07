@@ -65,6 +65,8 @@ class BamAddReadBundles {
 
    bam_hdr_t *head;
 
+   bool write_all_reads = false;
+
    void LoadFiles();
 
    void UpdateHeader(int argc, char **argv);
