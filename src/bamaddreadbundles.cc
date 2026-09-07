@@ -47,9 +47,9 @@ static bool ReadHasAux (bam1_t* b, const char* tag) {
   // does not check if not present, or error.
   return bam_aux_get(b, tag) != NULL;
 }
-static bool ReadHasAux (bam1_t* b, const std::vector<std::string_view>& tags) {
+static bool ReadHasAux (bam1_t* b, const std::vector<const char*>& tags) {
   for (const auto& t : tags) {
-    if (bam_aux_get(b, t.data()) == NULL) {
+    if (bam_aux_get(b, t) == NULL) {
       return false;
     }
   }
