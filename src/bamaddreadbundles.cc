@@ -28,14 +28,21 @@
 # identical to a statement that reads ‘Copyright (c) 2005, 2006, 2007, 2008,
 # 2009, 2010, 2011, 2012’.
 ##########################*/
-#include "bamaddreadbundles.h"
-
+#include <header.h>
 #include <htslib/hts.h>
 #include <htslib/sam.h>
+#include <unistd.h>
 
+#include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <functional>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 #define PROG_NAME "bamaddreadbundles"
 #define PROG_VERSION "1.1"
@@ -47,160 +54,6 @@
 #define TAG_MATE_BARCODE "mb"
 #define TAG_READ_COORD "rc"
 #define TAG_MATE_COORD "mc"
-#define TAG_MATE_MAPQ "MQ"
-#define TAG_MATE_SCORE "ms"
-#define TAG_MATE_CIGAR "MC"
-
-
-static bool ReadHasAux(const bam1_t* b, const char* tag)
-{
-  // does not check if absent, or error.
-  return bam_aux_get(b, tag) != NULL;
-}
-static bool ReadHasAux(const bam1_t* b, const std::vector<const char*>& tags)
-{
-  for (const auto& t : tags) {
-    if (bam_aux_get(b, t) == NULL) {
-      return false;
-    }
-  }
-  return true;
-}
-
-static bool ReadIsUsable(bam1_t* b)
-{
-  constexpr auto fail_bits = BAM_FSUPPLEMENTARY | BAM_FQCFAIL | BAM_FUNMAP | BAM_FSECONDARY;
-
-  bool out = false;
-
-  const auto has_requisite_tags =
-      ReadHasAux(b, {TAG_READ_COORD, TAG_MATE_COORD, TAG_READ_BARCODE, TAG_MATE_BARCODE});
-
-  if (b->core.flag & fail_bits || ReadHasAux(b, TAG_OPT_DUP)) {
-    out = false;
-  }
-  else if ((b->core.flag & BAM_FPROPER_PAIR) && has_requisite_tags) {
-    out = true;
-  }
-  return out;
-}
-
-static void DelSupersededTags(bam1_t* b)
-{
-  uint8_t* tag;
-  if ((tag = bam_aux_get(b, TAG_MATE_COORD)) != NULL) {
-    bam_aux_del(b, tag);
-  }
-  if ((tag = bam_aux_get(b, TAG_READ_COORD)) != NULL) {
-    bam_aux_del(b, tag);
-  }
-  if ((tag = bam_aux_get(b, TAG_MATE_BARCODE)) != NULL) {
-    bam_aux_del(b, tag);
-  }
-  if ((tag = bam_aux_get(b, TAG_READ_BARCODE)) != NULL) {
-    bam_aux_del(b, tag);
-  }
-}
-
-static bool CheckWriteFilters(bam1_t* b)
-{
-  bool out = false;
-  if (ReadHasAux(b, TAG_BARCODE_BUNDLE)) {
-    out = true;
-  }
-  else if (b->core.flag & BAM_FQCFAIL || ReadHasAux(b, TAG_OPT_DUP)) {
-    out = false;
-  }
-  else if (ReadHasAux(b, {TAG_READ_BARCODE, TAG_MATE_BARCODE})) {
-    out = true;
-  }
-  return out;
-}
-
-
-void BamAddReadBundles::AddBarcodeBundleAuxTag(bam1_t* b)
-{
-  int rc = bam_aux2i(bam_aux_get(b, TAG_READ_COORD));
-  int mc = bam_aux2i(bam_aux_get(b, TAG_MATE_COORD));
-  char* rb = bam_aux2Z(bam_aux_get(b, TAG_READ_BARCODE));
-  char* mb = bam_aux2Z(bam_aux_get(b, TAG_MATE_BARCODE));
-  int strand = (b->core.flag & BAM_FREVERSE) ? 1 : 0;
-  std::stringstream ss;
-  ss << this->head->target_name[b->core.tid];
-  ss << ",";
-  ss << std::min(mc, rc);
-  ss << ",";
-  ss << std::max(mc, rc);
-  ss << ",";
-  if (strand == 0) {
-    ss << rb;
-    ss << ",";
-    ss << mb;
-  }
-  else {
-    ss << mb;
-    ss << ",";
-    ss << rb;
-  }
-  std::string str = ss.str();
-  const char* cstr = str.c_str();
-  int len = str.length() + 1;
-  uint8_t* data = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(cstr));
-  int rco = bam_aux_append(b, TAG_BARCODE_BUNDLE, 'Z', len, data);
-  if (rco < 0) {
-    exit(1);
-  }
-}
-
-
-void BamAddReadBundles::WriteOut(bam1_t* b)
-{
-  if ((sam_write1(this->out, this->head, b) < 0)) {
-    throw std::runtime_error("Error: failed to write record.");
-  }
-}
-
-
-void BamAddReadBundles::FilterAndTagReads()
-{
-  bam1_t* b = bam_init1();
-  int ret;
-  while (1) {
-    ret = sam_read1(this->in, this->head, b);
-    if (ret == -1) {
-      break;
-    }
-    if (ret < -1) {
-      std::stringstream er;
-      er << "Error: failure while reading input BAM";
-      er << std::endl;
-      throw std::runtime_error(er.str());
-    }
-    if (ReadIsUsable(b)) {
-      BamAddReadBundles::AddBarcodeBundleAuxTag(b);
-      DelSupersededTags(b);
-    }
-    if (write_all_reads || CheckWriteFilters(b)) {
-      BamAddReadBundles::WriteOut(b);
-    }
-  }
-  bam_destroy1(b);
-}
-
-
-static void Usage()
-{
-  fprintf(stderr, "\nUsage:\n");
-  fprintf(stderr, "\t-I\tInput BAM/CRAM file name\n");
-  fprintf(stderr, "\t-O\tOutput BAM/CRAM file name\n");
-  fprintf(
-      stderr,
-      "\t-n\tDo not filter any reads from output."
-      "\t\t  Defaults False, excluding reads marked"
-      "\t\t  QC fail or with od Optical duplicate tag."
-  );
-  fprintf(stderr, "\t-h\tHelp\n");
-}
 
 
 bool has_crbam_ext(const char* filepath)
@@ -217,33 +70,19 @@ bool has_crbam_ext(const char* filepath)
   return false;
 }
 
-enum class FilterMode : uint8_t { off, on };
-struct CLIArgs {
-  const char* alnInPath = nullptr;
-  const char* bamOutPath = nullptr;
-  FilterMode inputFilter = FilterMode::on;
-};
-
-struct MemArenas {
-  constexpr static uint16_t arenaMaxSz = 10000;
-  static bam1_t recArena[arenaMaxSz];
-  static int64_t readCoordArena[arenaMaxSz];
-  static int64_t mateCoordArena[arenaMaxSz];
-  static const char* readBarcdArena[arenaMaxSz];
-  static const char* mateBarcdArena[arenaMaxSz];
-};
-
 struct AlnFile {
   htsFile* fh_o = nullptr;
   sam_hdr_t* hdr_o = nullptr;
 
-  ~AlnFile () {
+  ~AlnFile()
+  {
     if (hdr_o != nullptr) {
       sam_hdr_destroy(hdr_o);
     }
     if (fh_o != nullptr) {
-      // BUG/TODO/NOTE: destructor can't return error...
-      // Deferred cleanup would be better
+      // may fail, but destructor should
+      // only be relied upon for error path
+      // anyway.
       sam_close(fh_o);
     }
   }
@@ -253,44 +92,215 @@ struct AlnFile {
   AlnFile& operator=(const AlnFile&) = delete;
   AlnFile(AlnFile&&) = delete;
   AlnFile& operator=(AlnFile&&) = delete;
+
+  [[nodiscard]] int close() noexcept
+  {
+    if (hdr_o != nullptr) {
+      sam_hdr_destroy(hdr_o);
+      hdr_o = nullptr;
+    }
+    int closeRc = 0;
+    if (fh_o != nullptr) {
+      closeRc = sam_close(fh_o);
+      fh_o = nullptr;
+    }
+
+    return closeRc;
+  }
 };
 
-static int load_arenas (AlnFile& aln, FilterMode mode) {
-  uint16_t arenaI = 0;
-  for (; arenaI < MemArenas::arenaMaxSz;) {
-    auto& rec = MemArenas::recArena[arenaI];
-    const auto read1Rc = sam_read1(aln.fh_o, aln.hdr_o, &rec);
-    if (read1Rc == -1) {
-      break;  // EOF
-    }
-    if (read1Rc < -1) {
-      return read1Rc;
-    }
+struct MemArenas {
+  constexpr static uint16_t arenaMaxSz = 10000;
+  static bam1_t recArena[arenaMaxSz];
+  static uint8_t* readCoordArena[arenaMaxSz];
+  static uint8_t* mateCoordArena[arenaMaxSz];
+  static uint8_t* readBarcdArena[arenaMaxSz];
+  static uint8_t* mateBarcdArena[arenaMaxSz];
 
-    MemArenas::readCoordArena[arenaI] = bam_aux2i(bam_aux_get(&rec, TAG_READ_COORD));
-    MemArenas::mateCoordArena[arenaI] = bam_aux2i(bam_aux_get(&rec, TAG_MATE_COORD));
-    MemArenas::readBarcdArena[arenaI] = bam_aux2Z(bam_aux_get(&rec, TAG_READ_BARCODE));
-    MemArenas::mateBarcdArena[arenaI] = bam_aux2Z(bam_aux_get(&rec, TAG_MATE_BARCODE));
-    if (mode == FilterMode::off) {
+  static uint16_t arenaI;
+  static uint16_t arenaN;
+  static bool everSeenTags;
+
+  enum class LoadRetCode : uint8_t { fullLoad, eofLoad, readFail, corruptTag };
+  static LoadRetCode load_batch(AlnFile& aln, bool applyInputFilter) noexcept
+  {
+    errno = 0;
+    arenaI = 0;
+    arenaN = 0;
+    for (; arenaI < arenaMaxSz;) {
+      auto& rec = recArena[arenaI];
+      const auto read1Rc = sam_read1(aln.fh_o, aln.hdr_o, &rec);
+      if (read1Rc == -1) [[unlikely]] {
+        arenaN = arenaI;
+        return LoadRetCode::eofLoad;
+      }
+      if (read1Rc < -1) [[unlikely]] {
+        return LoadRetCode::readFail;
+      }
+
+      readCoordArena[arenaI] = bam_aux_get(&rec, TAG_READ_COORD);
+      mateCoordArena[arenaI] = bam_aux_get(&rec, TAG_MATE_COORD);
+      readBarcdArena[arenaI] = bam_aux_get(&rec, TAG_READ_BARCODE);
+      mateBarcdArena[arenaI] = bam_aux_get(&rec, TAG_MATE_BARCODE);
+      if (readCoordArena[arenaI] || mateCoordArena[arenaI] || readBarcdArena[arenaI] ||
+          mateBarcdArena[arenaI]) {
+        everSeenTags = true;
+      }
+      if (errno == EINVAL) [[unlikely]] {
+        return LoadRetCode::corruptTag;
+      }
+      if (applyInputFilter) {
+        if (rec.core.flag & BAM_FQCFAIL || bam_aux_get(&rec, TAG_OPT_DUP) != nullptr ||
+            readBarcdArena[arenaI] == nullptr || mateBarcdArena[arenaI] == nullptr) {
+          continue;  // overwrite
+        }
+      }
       ++arenaI;
-      continue;
     }
-    else {
-      if (rec.core.flag & BAM_FQCFAIL || bam_aux_get(&rec, TAG_OPT_DUP) != nullptr ||
-          (MemArenas::readBarcdArena[arenaI] == nullptr && MemArenas::mateBarcdArena[arenaI] == nullptr)) {
-        continue;  // overwrite
+    arenaN = arenaI;
+    return LoadRetCode::fullLoad;
+  }
+
+  /* Add barcode bundle RB tag */
+  enum class ProcessRetCode : int8_t { success = 0, tagWriteErr = -1, noTid = -2, tagBadType = -3 };
+  static ProcessRetCode modify_tags_batch(sam_hdr_t* hdr_br)
+  {
+    constexpr static auto flagFailBits =
+        BAM_FSUPPLEMENTARY | BAM_FQCFAIL | BAM_FSECONDARY | BAM_FUNMAP;
+
+    errno = 0;
+    ProcessRetCode rc = ProcessRetCode::success;
+    std::string tagBuf;
+    std::array<int64_t, 2> coBuf;
+    std::array<uint8_t*, 4> tagDelBuf;
+    arenaI = 0;
+    for (; arenaI < arenaN; ++arenaI) {
+      auto& rec = recArena[arenaI];
+      auto& readCoordTag = readCoordArena[arenaI];
+      auto& mateCoordTag = mateCoordArena[arenaI];
+      auto& readBarcdTag = readBarcdArena[arenaI];
+      auto& mateBarcdTag = mateBarcdArena[arenaI];
+
+      if (!(rec.core.flag & BAM_FPROPER_PAIR)) {
+        continue;
+      }
+      if (rec.core.flag & flagFailBits || bam_aux_get(&rec, TAG_OPT_DUP)) {
+        continue;
+      }
+      if (readCoordTag == nullptr || mateCoordTag == nullptr || readBarcdTag == nullptr ||
+          mateBarcdTag == nullptr) {
+        continue;
+      }
+
+      tagBuf.clear();
+
+      const auto* tidName = sam_hdr_tid2name(hdr_br, rec.core.tid);
+      if (tidName == nullptr) [[unlikely]] {
+        rc = ProcessRetCode::noTid;
+        break;
+      }
+      tagBuf += tidName;
+      tagBuf += ",";
+
+      coBuf[0] = bam_aux2i(readCoordTag);
+      coBuf[1] = bam_aux2i(mateCoordTag);
+      std::sort(begin(coBuf), end(coBuf));
+      tagBuf += std::to_string(coBuf[0]);
+      tagBuf += ",";
+      tagBuf += std::to_string(coBuf[1]);
+      tagBuf += ",";
+
+      if (rec.core.flag & BAM_FREVERSE) {
+        tagBuf += bam_aux2Z(mateBarcdTag);
+        tagBuf += ",";
+        tagBuf += bam_aux2Z(readBarcdTag);
+      }
+      else {
+        tagBuf += bam_aux2Z(readBarcdTag);
+        tagBuf += ",";
+        tagBuf += bam_aux2Z(mateBarcdTag);
+      };
+
+      if (errno == EINVAL) [[unlikely]] {
+        // bad tag type
+        rc = ProcessRetCode::tagBadType;
+        break;
+      }
+
+      // Deleting a tag shifts every *subsequent* byte in rec.data, which
+      // invalidates any other cached pointer into rec aux blob.
+      // Deleting in descending address order means each delete only ever
+      // shifts bytes above any unprocessed pointers.
+      tagDelBuf[0] = readCoordTag;
+      tagDelBuf[1] = mateCoordTag;
+      tagDelBuf[2] = readBarcdTag;
+      tagDelBuf[3] = mateBarcdTag;
+      std::sort(tagDelBuf.begin(), tagDelBuf.end(), std::greater<uint8_t*>());
+      for (auto* tag : tagDelBuf) {
+        if (bam_aux_del(&rec, tag) < 0) [[unlikely]] {
+          rc = ProcessRetCode::tagWriteErr;
+          break;
+        }
+      }
+      if (rc != ProcessRetCode::success) [[unlikely]] {
+        break;
+      }
+
+      rc = static_cast<ProcessRetCode>(bam_aux_append(
+          &rec, TAG_BARCODE_BUNDLE, 'Z', tagBuf.length() + 1,
+          reinterpret_cast<const uint8_t*>(tagBuf.c_str())
+      ));
+      if (rc != ProcessRetCode::success) [[unlikely]] {
+        break;
       }
     }
+    return rc;
   }
-  return arenaI;
-}
 
+  static bool write_batch(AlnFile& out)
+  {
+    arenaI = 0;
+    for (; arenaI < arenaN; ++arenaI) {
+      if (sam_write1(out.fh_o, out.hdr_o, &recArena[arenaI]) < 0) {
+        return false;
+      }
+    }
+    arenaI = 0;
+    arenaN = 0; // reset
+    return true;
+  }
+};
+// C++11 mandates that static
+// member init is out-of-line...
+uint16_t MemArenas::arenaI = 0;
+uint16_t MemArenas::arenaN = 0;
+bool MemArenas::everSeenTags = false;
+bam1_t MemArenas::recArena[MemArenas::arenaMaxSz];
+uint8_t* MemArenas::readCoordArena[MemArenas::arenaMaxSz];
+uint8_t* MemArenas::mateCoordArena[MemArenas::arenaMaxSz];
+uint8_t* MemArenas::readBarcdArena[MemArenas::arenaMaxSz];
+uint8_t* MemArenas::mateBarcdArena[MemArenas::arenaMaxSz];
+
+struct CLIArgs {
+  const char* alnInPath = nullptr;
+  const char* bamOutPath = nullptr;
+  bool inputFilter = true;
+};
+static constexpr const char* usage{
+    "\nUsage:\n"
+    "\t-I\tInput BAM/CRAM file name\n"
+    "\t-O\tOutput BAM/CRAM file name\n"
+    "\t-n\tDisable output filter.\n"
+    "\t\tInclude reads flagged QC fail or with\n"
+    "\t\tod optical duplicate tag in output.\n"
+    "\t-h\tHelp\n"
+};
 int main(int argc, char** argv)
 {
   CLIArgs args;
 
   int opt = 0;
-  while ((opt = getopt(argc, argv, "I:O:n:h")) >= 0) {
+  while ((opt = getopt(argc, argv, "I:O:nh")) >= 0) {
     switch (opt) {
       case 'I':
         args.alnInPath = optarg;
@@ -299,25 +309,26 @@ int main(int argc, char** argv)
         args.bamOutPath = optarg;
         break;
       case 'n':
-        args.inputFilter = FilterMode::off;
-      case 'h':
-        Usage();
-        exit(EXIT_SUCCESS);
-      default:
+        args.inputFilter = false;
         break;
+      case 'h':
+        std::cerr << usage << std::endl;
+        return EXIT_SUCCESS;
+      default:
+        std::cerr << "Unknown option" << std::endl;
+        return EXIT_FAILURE;
     }
   }
-
   if (args.alnInPath == nullptr) {
-    std::cerr << "Error: no input file specified";
+    std::cerr << "Usage error: no input file specified" << std::endl;
     return EXIT_FAILURE;
   }
   if (args.bamOutPath == nullptr) {
-    std::cerr << "Error: no output file specified";
+    std::cerr << "Usage error: no output file specified" << std::endl;
     return EXIT_FAILURE;
   }
   if (!has_crbam_ext(args.bamOutPath)) {
-    std::cerr << "Error: output extension must be .bam or .cram";
+    std::cerr << "Usage error: output extension must be .bam or .cram" << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -325,16 +336,16 @@ int main(int argc, char** argv)
   AlnFile alnIn;
   alnIn.fh_o = hts_open(args.alnInPath, "r");
   if (alnIn.fh_o == nullptr) {
-    std::cerr << "Error: failed to open input alignment file at" << args.alnInPath;
+    std::cerr << "Error: failed to open input alignment file at" << args.alnInPath << std::endl;
     return EXIT_FAILURE;
   }
   alnIn.hdr_o = sam_hdr_read(alnIn.fh_o);
-  if (alnIn.hdr_o) {
-    std::cerr << "Error: failed to read header from input alignment";
+  if (alnIn.hdr_o == nullptr) {
+    std::cerr << "Error: failed to read header from input alignment" << std::endl;
     return EXIT_FAILURE;
   }
-  if (alnIn.hdr_o ->n_targets) {
-    std::cerr << "Error: input alignment header contains no contigs";
+  if (alnIn.hdr_o->n_targets < 1) {
+    std::cerr << "Error: input alignment header contains no contigs" << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -342,53 +353,90 @@ int main(int argc, char** argv)
   AlnFile alnOut;
   alnOut.fh_o = hts_open(args.bamOutPath, "w");
   if (alnOut.fh_o == nullptr) {
-    std::cerr << "Error: failed to open output alignment file at " << args.bamOutPath;
+    std::cerr << "Error: failed to open output alignment file at " << args.bamOutPath << std::endl;
     return EXIT_FAILURE;
   }
 
   // create output header
+  alnOut.hdr_o = sam_hdr_dup(alnIn.hdr_o);
   std::stringstream cmdLineCall;
   for (uint16_t i = 0; i < argc; ++i) {
     cmdLineCall << argv[i];
     cmdLineCall << " ";
   }
-
-  alnOut.hdr_o = sam_hdr_dup(alnIn.hdr_o);
-  if (sam_hdr_add_pg(alnOut.hdr_o, PROG_NAME, "VN", PROG_VERSION, "CL", cmdLineCall.str().c_str(), NULL) <
-      0) {
-    std::cerr << "Error: failed to update header";
+  if (sam_hdr_add_pg(
+          alnOut.hdr_o, PROG_NAME, "VN", PROG_VERSION, "CL", cmdLineCall.str().c_str(), NULL
+      ) < 0) {
+    std::cerr << "Error: failed to update header" << std::endl;
     return EXIT_FAILURE;
   }
   if (sam_hdr_rebuild(alnOut.hdr_o) < 0) {
-    std::cerr << "Error: failed to rebuild header";
+    std::cerr << "Error: failed to rebuild header" << std::endl;
     return EXIT_FAILURE;
   }
   if (sam_hdr_write(alnOut.fh_o, alnOut.hdr_o) < 0) {
-    std::cerr << "Error: failed to write header to output alignment file";
+    std::cerr << "Error: failed to write header to output alignment file" << std::endl;
     return EXIT_FAILURE;
   }
 
+  std::cerr << PROG_NAME << ": begin processing" << std::endl;
+  errno = 0;
   while (true) {
-    errno = 0;
-    const auto arenaN = load_arenas(alnIn, args.inputFilter);
-    if (arenaN < 0) {
-      std::cerr << "Error: failure while reading input alignment file";
-      return EXIT_FAILURE;
-    }
-    if (arenaN < MemArenas::arenaMaxSz) {
-      // EOF, last batch
-      break;
-    }
-    if (errno == EINVAL) {
-      // aux_get or _aux2* encountered a corrupt tag
-      std::cerr << "Error: input alignment contains corrupt tag data";
-      return EXIT_FAILURE;
+    const auto loadRc = MemArenas::load_batch(alnIn, args.inputFilter);
+    switch (loadRc) {
+      case MemArenas::LoadRetCode::fullLoad:
+      case MemArenas::LoadRetCode::eofLoad:
+        break;
+      case MemArenas::LoadRetCode::readFail:
+        std::cerr << "Error: failure while reading input alignment file" << std::endl;
+        return EXIT_FAILURE;
+      case MemArenas::LoadRetCode::corruptTag:
+        std::cerr << "Error: input alignment contains corrupt tag data at read "
+                  << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI]) << std::endl;
+        return EXIT_FAILURE;
     }
 
     // modify tags
-    
+    switch (MemArenas::modify_tags_batch(alnIn.hdr_o)) {
+      case MemArenas::ProcessRetCode::success:
+        break;
+      case MemArenas::ProcessRetCode::tagWriteErr:
+        std::cerr << "Error: failed to write tag to record." << std::endl;
+        return EXIT_FAILURE;
+      case MemArenas::ProcessRetCode::noTid:
+        std::cerr << "Error: read " << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI])
+                  << "has invalid tid" << std::endl;
+        return EXIT_FAILURE;
+      case MemArenas::ProcessRetCode::tagBadType:
+        std::cerr << "Error: read " << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI])
+                  << "has corrupt or incorrectly typed tag" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (!MemArenas::write_batch(alnOut)) {
+      std::cerr << "Error: failure while writing record" << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    if (loadRc == MemArenas::LoadRetCode::eofLoad) {
+      // was last batch
+      break;
+    }
   }
 
+  if (alnOut.close() != 0) {
+    std::cerr
+        << "Error: error while closing output alignment file; check file data integrity before use"
+        << std::endl;
+    return EXIT_FAILURE;
+  };
 
-  return EXIT_FAILURE;
+  if (!MemArenas::everSeenTags) {
+    std::cerr << "Warning: no reads in the input carried rc/mc/rb/mb tags; check the input has "
+                 "been through the upstream barcode-tagging step."
+              << std::endl;
+  }
+
+  std::cerr << PROG_NAME << ": complete" << std::endl;
+  return EXIT_SUCCESS;
 }
