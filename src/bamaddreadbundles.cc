@@ -28,6 +28,7 @@
 # identical to a statement that reads ‘Copyright (c) 2005, 2006, 2007, 2008,
 # 2009, 2010, 2011, 2012’.
 ##########################*/
+#include <getopt.h>
 #include <header.h>
 #include <htslib/hts.h>
 #include <htslib/sam.h>
@@ -109,6 +110,7 @@ struct AlnFile {
   }
 };
 
+// NOTE: compiler hints may or may not have any impact.
 struct MemArenas {
   constexpr static uint16_t arenaMaxSz = 10000;
   static bam1_t recArena[arenaMaxSz];
@@ -121,8 +123,11 @@ struct MemArenas {
   static uint16_t arenaN;
   static bool everSeenTags;
 
-  enum class LoadRetCode : uint8_t { fullLoad, eofLoad, readFail, corruptTag };
-  static LoadRetCode load_batch(AlnFile& aln, bool applyInputFilter) noexcept
+  enum class LoadRetCode : uint8_t { fullLoad, eofLoad, readFail, corruptTag, existingRB };
+  static LoadRetCode load_batch(
+      AlnFile& aln, bool applyInputFilter, const std::array<char, 2>* filterTags,
+      uint8_t nFilterTags
+  ) noexcept
   {
     errno = 0;
     arenaI = 0;
@@ -146,12 +151,22 @@ struct MemArenas {
           mateBarcdArena[arenaI]) {
         everSeenTags = true;
       }
+      if (bam_aux_get(&rec, TAG_BARCODE_BUNDLE) != nullptr) {
+        return LoadRetCode::existingRB;
+      }
       if (errno == EINVAL) [[unlikely]] {
         return LoadRetCode::corruptTag;
       }
       if (applyInputFilter) {
-        if (rec.core.flag & BAM_FQCFAIL || bam_aux_get(&rec, TAG_OPT_DUP) != nullptr ||
-            readBarcdArena[arenaI] == nullptr || mateBarcdArena[arenaI] == nullptr) {
+        bool tagFilterHit = false;
+        for (uint8_t tagI = 0; tagI < nFilterTags; ++tagI) {
+          if (bam_aux_get(&rec, filterTags[tagI].data()) != nullptr) {
+            tagFilterHit = true;
+            break;
+          }
+        }
+        if (rec.core.flag & BAM_FQCFAIL || tagFilterHit || readBarcdArena[arenaI] == nullptr ||
+            mateBarcdArena[arenaI] == nullptr) {
           continue;  // overwrite
         }
       }
@@ -163,7 +178,9 @@ struct MemArenas {
 
   /* Add barcode bundle RB tag */
   enum class ProcessRetCode : int8_t { success = 0, tagWriteErr = -1, noTid = -2, tagBadType = -3 };
-  static ProcessRetCode modify_tags_batch(sam_hdr_t* hdr_br)
+  static ProcessRetCode modify_tags_batch(
+      sam_hdr_t* hdr_br, const std::array<char, 2>* filterTags, uint8_t nFilterTags
+  )
   {
     constexpr static auto flagFailBits =
         BAM_FSUPPLEMENTARY | BAM_FQCFAIL | BAM_FSECONDARY | BAM_FUNMAP;
@@ -184,7 +201,14 @@ struct MemArenas {
       if (!(rec.core.flag & BAM_FPROPER_PAIR)) {
         continue;
       }
-      if (rec.core.flag & flagFailBits || bam_aux_get(&rec, TAG_OPT_DUP)) {
+      bool tagFilterHit = false;
+      for (uint8_t tagI = 0; tagI < nFilterTags; ++tagI) {
+        if (bam_aux_get(&rec, filterTags[tagI].data()) != nullptr) {
+          tagFilterHit = true;
+          break;
+        }
+      }
+      if (rec.core.flag & flagFailBits || tagFilterHit) {
         continue;
       }
       if (readCoordTag == nullptr || mateCoordTag == nullptr || readBarcdTag == nullptr ||
@@ -282,25 +306,39 @@ uint8_t* MemArenas::readBarcdArena[MemArenas::arenaMaxSz];
 uint8_t* MemArenas::mateBarcdArena[MemArenas::arenaMaxSz];
 
 struct CLIArgs {
+  static constexpr uint8_t maxFilterTags = 8;
+
   const char* alnInPath = nullptr;
   const char* bamOutPath = nullptr;
   bool inputFilter = true;
+  std::array<std::array<char, 2>, maxFilterTags> filterTags{};
+  uint8_t nFilterTags = 0;
 };
 static constexpr const char* usage{
     "\nUsage:\n"
-    "\t-I\tInput BAM/CRAM file name\n"
-    "\t-O\tOutput BAM/CRAM file name\n"
-    "\t-n\tDisable output filter.\n"
+    "\t-I, --input\tInput BAM/CRAM file name\n"
+    "\t-O, --output\tOutput BAM/CRAM file name\n"
+    "\t-n, --no-filter\tDisable output filter.\n"
     "\t\tInclude reads flagged QC fail or with\n"
-    "\t\tod optical duplicate tag in output.\n"
-    "\t-h\tHelp\n"
+    "\t\tany -t/--filter-tag tag in output.\n"
+    "\t-t, --filter-tag\tAux tag whose presence marks a read for\n"
+    "\t\texclusion from output (e.g. optical duplicates).\n"
+    "\t\tMay be given multiple times. Defaults to \"od\".\n"
+    "\t-h, --help\tHelp\n"
 };
+static const struct option longOpts[] = {
+    {"input", required_argument, nullptr, 'I'}, {"output", required_argument, nullptr, 'O'},
+    {"no-filter", no_argument, nullptr, 'n'},   {"filter-tag", required_argument, nullptr, 't'},
+    {"help", no_argument, nullptr, 'h'},        {nullptr, 0, nullptr, 0},
+};
+// NOTE: chunk/phase-separated approach
+// should make multi-threading very easy.
 int main(int argc, char** argv)
 {
   CLIArgs args;
 
   int opt = 0;
-  while ((opt = getopt(argc, argv, "I:O:nh")) >= 0) {
+  while ((opt = getopt_long(argc, argv, "I:O:nt:h", longOpts, nullptr)) >= 0) {
     switch (opt) {
       case 'I':
         args.alnInPath = optarg;
@@ -311,6 +349,29 @@ int main(int argc, char** argv)
       case 'n':
         args.inputFilter = false;
         break;
+      case 't':
+        if (std::strlen(optarg) != 2) {
+          std::cerr << "Usage error: -t/--filter-tag must be exactly 2 characters, got \"" << optarg
+                    << "\"" << std::endl;
+          return EXIT_FAILURE;
+        }
+        if (std::strncmp(optarg, TAG_READ_COORD, 2) == 0 ||
+            std::strncmp(optarg, TAG_MATE_COORD, 2) == 0 ||
+            std::strncmp(optarg, TAG_READ_BARCODE, 2) == 0 ||
+            std::strncmp(optarg, TAG_MATE_BARCODE, 2) == 0 ||
+            std::strncmp(optarg, TAG_BARCODE_BUNDLE, 2) == 0) {
+          std::cerr << "Usage error: -t/--filter-tag \"" << optarg
+                    << "\" is a tag reserved for internal use by " << PROG_NAME << std::endl;
+          return EXIT_FAILURE;
+        }
+        if (args.nFilterTags >= CLIArgs::maxFilterTags) {
+          std::cerr << "Usage error: too many -t/--filter-tag options (max "
+                    << static_cast<int>(CLIArgs::maxFilterTags) << ")" << std::endl;
+          return EXIT_FAILURE;
+        }
+        args.filterTags[args.nFilterTags] = {optarg[0], optarg[1]};
+        ++args.nFilterTags;
+        break;
       case 'h':
         std::cerr << usage << std::endl;
         return EXIT_SUCCESS;
@@ -318,6 +379,10 @@ int main(int argc, char** argv)
         std::cerr << "Unknown option" << std::endl;
         return EXIT_FAILURE;
     }
+  }
+  if (args.nFilterTags == 0) {
+    args.filterTags[0] = {TAG_OPT_DUP[0], TAG_OPT_DUP[1]};
+    args.nFilterTags = 1;
   }
   if (args.alnInPath == nullptr) {
     std::cerr << "Usage error: no input file specified" << std::endl;
@@ -359,8 +424,12 @@ int main(int argc, char** argv)
 
   // create output header
   alnOut.hdr_o = sam_hdr_dup(alnIn.hdr_o);
+  if (alnOut.hdr_o == nullptr) {
+    std::cerr << "Error: failed to duplicate input header" << std::endl;
+    return EXIT_FAILURE;
+  }
   std::stringstream cmdLineCall;
-  for (uint16_t i = 0; i < argc; ++i) {
+  for (int i = 0; i < argc; ++i) {
     cmdLineCall << argv[i];
     cmdLineCall << " ";
   }
@@ -382,7 +451,8 @@ int main(int argc, char** argv)
   std::cerr << PROG_NAME << ": begin processing" << std::endl;
   errno = 0;
   while (true) {
-    const auto loadRc = MemArenas::load_batch(alnIn, args.inputFilter);
+    const auto loadRc =
+        MemArenas::load_batch(alnIn, args.inputFilter, args.filterTags.data(), args.nFilterTags);
     switch (loadRc) {
       case MemArenas::LoadRetCode::fullLoad:
       case MemArenas::LoadRetCode::eofLoad:
@@ -394,10 +464,15 @@ int main(int argc, char** argv)
         std::cerr << "Error: input alignment contains corrupt tag data at read "
                   << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI]) << std::endl;
         return EXIT_FAILURE;
+      case MemArenas::LoadRetCode::existingRB:
+        std::cerr << "Error: input alignment already carries an RB tag at read "
+                  << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI])
+                  << "; has bamaddreadbundles already been run on this input?" << std::endl;
+        return EXIT_FAILURE;
     }
 
     // modify tags
-    switch (MemArenas::modify_tags_batch(alnIn.hdr_o)) {
+    switch (MemArenas::modify_tags_batch(alnIn.hdr_o, args.filterTags.data(), args.nFilterTags)) {
       case MemArenas::ProcessRetCode::success:
         break;
       case MemArenas::ProcessRetCode::tagWriteErr:
