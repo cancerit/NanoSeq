@@ -58,19 +58,33 @@
 #define TAG_MATE_COORD "mc"
 
 
-const char* crbam_open_mode(const char* filepath)
+enum class AlnFormat { Bam, Cram, Unknown };
+AlnFormat aln_format_from_path(const char* filepath)
 {
-  static const char* allowedExt[] = {".bam", ".cram"};
-  static const char* allowedMode[] = {"wb", "wc"};
+  static const std::pair<const char*, AlnFormat> formats[] = {
+      {".bam", AlnFormat::Bam},
+      {".cram", AlnFormat::Cram},
+  };
 
   const size_t flen = std::strlen(filepath);
-  for (size_t i = 0; i < 2; ++i) {
-    const size_t elen = std::strlen(allowedExt[i]);
-    if (flen >= elen && std::strcmp(filepath + flen - elen, allowedExt[i]) == 0) {
-      return allowedMode[i];
+  for (const auto& format : formats) {
+    const size_t elen = std::strlen(format.first);
+    if (flen >= elen && std::strcmp(filepath + flen - elen, format.first) == 0) {
+      return format.second;
     }
   }
-  return nullptr;
+  return AlnFormat::Unknown;
+}
+std::string hts_write_mode(AlnFormat format, bool uncompressed)
+{
+  switch (format) {
+    case AlnFormat::Bam:
+      return uncompressed ? "wbu" : "wb";
+    case AlnFormat::Cram:
+      return "wc";
+    default:
+      return "";
+  }
 }
 
 struct AlnFile {
@@ -397,20 +411,15 @@ int main(int argc, char** argv)
     std::cerr << "Usage error: no output file specified" << std::endl;
     return EXIT_FAILURE;
   }
-  const char* outMode = crbam_open_mode(args.bamOutPath);
-  if (outMode == nullptr) {
+  const AlnFormat outFormat = aln_format_from_path(args.bamOutPath);
+  if (outFormat == AlnFormat::Unknown) {
     std::cerr << "Usage error: output extension must be .bam or .cram" << std::endl;
     return EXIT_FAILURE;
   }
-  std::string outModeStr = outMode;
-  if (args.uncompressed) {
-    if (outModeStr == "wc") {
-      std::cerr << "Warning: -u/--uncompressed has no effect on CRAM output" << std::endl;
-    }
-    else {
-      outModeStr += 'u';
-    }
+  if (args.uncompressed && outFormat == AlnFormat::Cram) {
+    std::cerr << "Warning: -u/--uncompressed has no effect on CRAM output" << std::endl;
   }
+  const std::string outModeStr = hts_write_mode(outFormat, args.uncompressed);
 
   // open input handle
   AlnFile alnIn;
