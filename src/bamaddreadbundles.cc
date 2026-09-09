@@ -58,18 +58,19 @@
 #define TAG_MATE_COORD "mc"
 
 
-bool has_crbam_ext(const char* filepath)
+const char* crbam_open_mode(const char* filepath)
 {
-  static const char* allowed[] = {".bam", ".cram"};
+  static const char* allowedExt[] = {".bam", ".cram"};
+  static const char* allowedMode[] = {"wb", "wc"};
 
-  const uint16_t flen = std::strlen(filepath);
-  for (const char* ext : allowed) {
-    const uint16_t elen = std::strlen(ext);
-    if (flen >= elen && std::strcmp(filepath + flen - elen, ext) == 0) {
-      return true;
+  const size_t flen = std::strlen(filepath);
+  for (size_t i = 0; i < 2; ++i) {
+    const size_t elen = std::strlen(allowedExt[i]);
+    if (flen >= elen && std::strcmp(filepath + flen - elen, allowedExt[i]) == 0) {
+      return allowedMode[i];
     }
   }
-  return false;
+  return nullptr;
 }
 
 struct AlnFile {
@@ -309,6 +310,7 @@ bool MemArenas::tagFilterHitArena[MemArenas::arenaMaxSz];
 struct CLIArgs {
   const char* alnInPath = nullptr;
   const char* bamOutPath = nullptr;
+  bool uncompressed = false;
 };
 static constexpr const char* usage{
     "\nUsage:\n"
@@ -320,12 +322,14 @@ static constexpr const char* usage{
     "\t-t, --filter-tag\tAux tag whose presence marks a read for\n"
     "\t\texclusion from output (e.g. optical duplicates).\n"
     "\t\tMay be given multiple times. Defaults to \"od\".\n"
+    "\t-u, --uncompressed\tWrite uncompressed output.\n"
     "\t-h, --help\tHelp\n"
 };
 static const struct option longOpts[] = {
     {"input", required_argument, nullptr, 'I'}, {"output", required_argument, nullptr, 'O'},
     {"no-filter", no_argument, nullptr, 'n'},   {"filter-tag", required_argument, nullptr, 't'},
-    {"help", no_argument, nullptr, 'h'},        {nullptr, 0, nullptr, 0},
+    {"uncompressed", no_argument, nullptr, 'u'}, {"help", no_argument, nullptr, 'h'},
+    {nullptr, 0, nullptr, 0},
 };
 // NOTE: chunk/phase-separated approach
 // should make multi-threading very easy.
@@ -334,7 +338,7 @@ int main(int argc, char** argv)
   CLIArgs args;
 
   int opt = 0;
-  while ((opt = getopt_long(argc, argv, "I:O:nt:h", longOpts, nullptr)) >= 0) {
+  while ((opt = getopt_long(argc, argv, "I:O:nt:uh", longOpts, nullptr)) >= 0) {
     switch (opt) {
       case 'I':
         args.alnInPath = optarg;
@@ -367,6 +371,9 @@ int main(int argc, char** argv)
         }
         MemArenas::filterTags.insert({optarg[0], optarg[1]});
         break;
+      case 'u':
+        args.uncompressed = true;
+        break;
       case 'h':
         std::cerr << usage << std::endl;
         return EXIT_SUCCESS;
@@ -386,9 +393,19 @@ int main(int argc, char** argv)
     std::cerr << "Usage error: no output file specified" << std::endl;
     return EXIT_FAILURE;
   }
-  if (!has_crbam_ext(args.bamOutPath)) {
+  const char* outMode = crbam_open_mode(args.bamOutPath);
+  if (outMode == nullptr) {
     std::cerr << "Usage error: output extension must be .bam or .cram" << std::endl;
     return EXIT_FAILURE;
+  }
+  std::string outModeStr = outMode;
+  if (args.uncompressed) {
+    if (outModeStr == "wc") {
+      std::cerr << "Warning: -u/--uncompressed has no effect on CRAM output" << std::endl;
+    }
+    else {
+      outModeStr += 'u';
+    }
   }
 
   // open input handle
@@ -410,7 +427,7 @@ int main(int argc, char** argv)
 
   // open output handle
   AlnFile alnOut;
-  alnOut.fh_o = hts_open(args.bamOutPath, "w");
+  alnOut.fh_o = hts_open(args.bamOutPath, outModeStr.c_str());
   if (alnOut.fh_o == nullptr) {
     std::cerr << "Error: failed to open output alignment file at " << args.bamOutPath << std::endl;
     return EXIT_FAILURE;
