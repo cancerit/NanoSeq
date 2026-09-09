@@ -314,16 +314,20 @@ struct CLIArgs {
 };
 static constexpr const char* usage{
     "\nUsage:\n"
-    "\t-I, --input\tInput BAM/CRAM file name\n"
-    "\t-O, --output\tOutput BAM/CRAM file name\n"
-    "\t-n, --no-filter\tDisable output filter.\n"
+    "\t-I, --input\n"
+    "\t\tInput BAM/CRAM file name\n"
+    "\t-O, --output\n"
+    "\t\tOutput BAM/CRAM file name\n"
+    "\t-n, --no-filter\n"
+    "\t\tDisable output filter.\n"
     "\t\tInclude reads flagged QC fail or with\n"
     "\t\tany -t/--filter-tag tag in output.\n"
-    "\t-t, --filter-tag\tAux tag whose presence marks a read for\n"
+    "\t-t, --filter-tag\n"
+    "\t\tAux tag marking read for\n"
     "\t\texclusion from output (e.g. optical duplicates).\n"
     "\t\tMay be given multiple times. Defaults to \"od\".\n"
-    "\t-u, --uncompressed\tWrite uncompressed output.\n"
-    "\t-h, --help\tHelp\n"
+    "\t-h, --help\n"
+    "\t\tDisplay help"
 };
 static const struct option longOpts[] = {
     {"input", required_argument, nullptr, 'I'}, {"output", required_argument, nullptr, 'O'},
