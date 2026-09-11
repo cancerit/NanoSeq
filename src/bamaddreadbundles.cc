@@ -218,6 +218,7 @@ struct MemArenas {
       auto& readBarcdTag = readBarcdArena[arenaI];
       auto& mateBarcdTag = mateBarcdArena[arenaI];
 
+      // write out, but without modifying tags
       if (!(rec.core.flag & BAM_FPROPER_PAIR)) {
         continue;
       }
