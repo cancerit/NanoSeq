@@ -134,7 +134,7 @@ struct MemArenas {
   static uint8_t* mateCoordArena[arenaMaxSz];
   static uint8_t* readBarcdArena[arenaMaxSz];
   static uint8_t* mateBarcdArena[arenaMaxSz];
-  static bool tagFilterHitArena[arenaMaxSz];
+  static bool filterHitArena[arenaMaxSz];
 
   static uint16_t arenaI;
   static uint16_t arenaN;
@@ -178,16 +178,16 @@ struct MemArenas {
           mateBarcdArena[arenaI]) {
         everSeenTags = true;
       }
-      if (bam_aux_get(&rec, TAG_BARCODE_BUNDLE) != nullptr) {
+      if (bam_aux_get(&rec, TAG_BARCODE_BUNDLE) != nullptr) [[unlikely]] {
         return LoadRetCode::existingRB;
       }
       if (errno == EINVAL) [[unlikely]] {
         return LoadRetCode::corruptTag;
       }
       const bool qcFail = rec.core.flag & BAM_FQCFAIL;
-      tagFilterHitArena[arenaI] = !qcFail && matches_any_filter_tag(rec);
+      filterHitArena[arenaI] = !qcFail && matches_any_filter_tag(rec);
       if (applyInputFilter) {
-        if (qcFail || tagFilterHitArena[arenaI] || readBarcdArena[arenaI] == nullptr ||
+        if (qcFail || filterHitArena[arenaI] || readBarcdArena[arenaI] == nullptr ||
             mateBarcdArena[arenaI] == nullptr) {
           continue;  // overwrite
         }
@@ -199,7 +199,7 @@ struct MemArenas {
   }
 
   /* Add barcode bundle RB tag */
-  enum class ProcessRetCode : int8_t { success = 0, tagWriteErr = -1, noTid = -2, tagBadType = -3 };
+  enum class ProcessRetCode : uint8_t { success, tagWriteErr, noTid, tagBadType, tagDelErr };
   static ProcessRetCode modify_tags_batch(sam_hdr_t* hdr_br)
   {
     constexpr static auto flagFailBits =
@@ -221,7 +221,7 @@ struct MemArenas {
       if (!(rec.core.flag & BAM_FPROPER_PAIR)) {
         continue;
       }
-      if (rec.core.flag & flagFailBits || tagFilterHitArena[arenaI]) {
+      if (rec.core.flag & flagFailBits || filterHitArena[arenaI]) {
         continue;
       }
       if (readCoordTag == nullptr || mateCoordTag == nullptr || readBarcdTag == nullptr ||
@@ -275,7 +275,7 @@ struct MemArenas {
       std::sort(tagDelBuf.begin(), tagDelBuf.end(), std::greater<uint8_t*>());
       for (auto* tag : tagDelBuf) {
         if (bam_aux_del(&rec, tag) < 0) [[unlikely]] {
-          rc = ProcessRetCode::tagWriteErr;
+          rc = ProcessRetCode::tagDelErr;
           break;
         }
       }
@@ -283,11 +283,11 @@ struct MemArenas {
         break;
       }
 
-      rc = static_cast<ProcessRetCode>(bam_aux_append(
-          &rec, TAG_BARCODE_BUNDLE, 'Z', tagBuf.length() + 1,
-          reinterpret_cast<const uint8_t*>(tagBuf.c_str())
-      ));
-      if (rc != ProcessRetCode::success) [[unlikely]] {
+      if (bam_aux_append(
+              &rec, TAG_BARCODE_BUNDLE, 'Z', tagBuf.length() + 1,
+              reinterpret_cast<const uint8_t*>(tagBuf.c_str())
+          ) != 0) [[unlikely]] {
+        rc = ProcessRetCode::tagWriteErr;
         break;
       }
     }
@@ -319,7 +319,7 @@ uint8_t* MemArenas::readCoordArena[MemArenas::arenaMaxSz];
 uint8_t* MemArenas::mateCoordArena[MemArenas::arenaMaxSz];
 uint8_t* MemArenas::readBarcdArena[MemArenas::arenaMaxSz];
 uint8_t* MemArenas::mateBarcdArena[MemArenas::arenaMaxSz];
-bool MemArenas::tagFilterHitArena[MemArenas::arenaMaxSz];
+bool MemArenas::filterHitArena[MemArenas::arenaMaxSz];
 
 struct CLIArgs {
   const char* alnInPath = nullptr;
@@ -344,9 +344,12 @@ static constexpr const char* usage{
     "\t\tDisplay help"
 };
 static const struct option longOpts[] = {
-    {"input", required_argument, nullptr, 'I'}, {"output", required_argument, nullptr, 'O'},
-    {"no-filter", no_argument, nullptr, 'n'},   {"filter-tag", required_argument, nullptr, 't'},
-    {"uncompressed", no_argument, nullptr, 'u'}, {"help", no_argument, nullptr, 'h'},
+    {"input", required_argument, nullptr, 'I'},
+    {"output", required_argument, nullptr, 'O'},
+    {"no-filter", no_argument, nullptr, 'n'},
+    {"filter-tag", required_argument, nullptr, 't'},
+    {"uncompressed", no_argument, nullptr, 'u'},
+    {"help", no_argument, nullptr, 'h'},
     {nullptr, 0, nullptr, 0},
 };
 // NOTE: chunk/phase-separated approach
@@ -494,12 +497,15 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    // modify tags
     switch (MemArenas::modify_tags_batch(alnIn.hdr_o)) {
       case MemArenas::ProcessRetCode::success:
         break;
+      case MemArenas::ProcessRetCode::tagDelErr:
+        std::cerr << "Error: failed to modify record tags (" << strerror(errno) << ")" << std::endl;
+        return EXIT_FAILURE;
       case MemArenas::ProcessRetCode::tagWriteErr:
-        std::cerr << "Error: failed to write tag to record." << std::endl;
+        std::cerr << "Error: failed to write tag to record (" << strerror(errno) << ")"
+                  << std::endl;
         return EXIT_FAILURE;
       case MemArenas::ProcessRetCode::noTid:
         std::cerr << "Error: read " << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI])
