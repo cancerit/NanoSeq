@@ -40,7 +40,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
 #include <iostream>
 #include <set>
 #include <sstream>
@@ -127,17 +126,20 @@ struct AlnFile {
 };
 
 // NOTE: compiler hints may or may not have any impact.
-struct MemArenas {
-  constexpr static uint16_t arenaMaxSz = 10000;
-  static bam1_t recArena[arenaMaxSz];
-  static uint8_t* readCoordArena[arenaMaxSz];
-  static uint8_t* mateCoordArena[arenaMaxSz];
-  static uint8_t* readBarcdArena[arenaMaxSz];
-  static uint8_t* mateBarcdArena[arenaMaxSz];
-  static bool filterHitArena[arenaMaxSz];
+struct BatchProcessor {
+  struct BufferRecord {
+    bam1_t b;
+    const uint8_t* readCoordTag;
+    const uint8_t* mateCoordTag;
+    const uint8_t* readBarcdTag;
+    const uint8_t* mateBarcdTag;
+    bool filterFail = false;
+  };
+  constexpr static uint16_t bufferMaxSz = 10000;
+  static BufferRecord recBuf[bufferMaxSz];
 
-  static uint16_t arenaI;
-  static uint16_t arenaN;
+  static uint16_t bufI;
+  static uint16_t bufN;
   static bool everSeenTags;
   static bool applyInputFilter;
   constexpr static size_t maxFilterTags = 64;
@@ -157,44 +159,47 @@ struct MemArenas {
   static LoadRetCode load_batch(AlnFile& aln) noexcept
   {
     errno = 0;
-    arenaI = 0;
-    arenaN = 0;
-    for (; arenaI < arenaMaxSz;) {
-      auto& rec = recArena[arenaI];
-      const auto read1Rc = sam_read1(aln.fh_o, aln.hdr_o, &rec);
+    bufI = 0;
+    bufN = 0;
+    for (; bufI < bufferMaxSz;) {
+      auto& rec = recBuf[bufI];
+      const auto read1Rc = sam_read1(aln.fh_o, aln.hdr_o, &rec.b);
       if (read1Rc == -1) [[unlikely]] {
-        arenaN = arenaI;
+        bufN = bufI;
         return LoadRetCode::eofLoad;
       }
       if (read1Rc < -1) [[unlikely]] {
         return LoadRetCode::readFail;
       }
 
-      readCoordArena[arenaI] = bam_aux_get(&rec, TAG_READ_COORD);
-      mateCoordArena[arenaI] = bam_aux_get(&rec, TAG_MATE_COORD);
-      readBarcdArena[arenaI] = bam_aux_get(&rec, TAG_READ_BARCODE);
-      mateBarcdArena[arenaI] = bam_aux_get(&rec, TAG_MATE_BARCODE);
-      if (readCoordArena[arenaI] || mateCoordArena[arenaI] || readBarcdArena[arenaI] ||
-          mateBarcdArena[arenaI]) {
-        everSeenTags = true;
-      }
-      if (bam_aux_get(&rec, TAG_BARCODE_BUNDLE) != nullptr) [[unlikely]] {
+      if (bam_aux_get(&rec.b, TAG_BARCODE_BUNDLE) != nullptr) [[unlikely]] {
         return LoadRetCode::existingRB;
       }
+
+      rec.readCoordTag = bam_aux_get(&rec.b, TAG_READ_COORD);
+      rec.mateCoordTag = bam_aux_get(&rec.b, TAG_MATE_COORD);
+      rec.readBarcdTag = bam_aux_get(&rec.b, TAG_READ_BARCODE);
+      rec.mateBarcdTag = bam_aux_get(&rec.b, TAG_MATE_BARCODE);
+
+      const bool qcFail = rec.b.core.flag & BAM_FQCFAIL;
+      rec.filterFail = !qcFail && matches_any_filter_tag(rec.b);
+
       if (errno == EINVAL) [[unlikely]] {
         return LoadRetCode::corruptTag;
       }
-      const bool qcFail = rec.core.flag & BAM_FQCFAIL;
-      filterHitArena[arenaI] = !qcFail && matches_any_filter_tag(rec);
+
+      if (rec.readCoordTag || rec.mateCoordTag || rec.readBarcdTag || rec.mateBarcdTag) {
+        everSeenTags = true;
+      }
+
       if (applyInputFilter) {
-        if (qcFail || filterHitArena[arenaI] || readBarcdArena[arenaI] == nullptr ||
-            mateBarcdArena[arenaI] == nullptr) {
+        if (qcFail || rec.filterFail || rec.readBarcdTag == nullptr || rec.mateBarcdTag == nullptr) {
           continue;  // overwrite
         }
       }
-      ++arenaI;
+      ++bufI;
     }
-    arenaN = arenaI;
+    bufN = bufI;
     return LoadRetCode::fullLoad;
   }
 
@@ -209,30 +214,27 @@ struct MemArenas {
     ProcessRetCode rc = ProcessRetCode::success;
     std::string tagBuf;
     std::array<int64_t, 2> coBuf;
-    std::array<uint8_t*, 4> tagDelBuf;
-    arenaI = 0;
-    for (; arenaI < arenaN; ++arenaI) {
-      auto& rec = recArena[arenaI];
-      auto& readCoordTag = readCoordArena[arenaI];
-      auto& mateCoordTag = mateCoordArena[arenaI];
-      auto& readBarcdTag = readBarcdArena[arenaI];
-      auto& mateBarcdTag = mateBarcdArena[arenaI];
+    std::array<const char[3], 4> tagsForDel{TAG_READ_COORD, TAG_MATE_COORD, TAG_READ_BARCODE, TAG_MATE_BARCODE};
+    bufI = 0;
+    for (; bufI < bufN; ++bufI) {
+      auto& rec = recBuf[bufI];
+      
 
       // write out, but without modifying tags
-      if (!(rec.core.flag & BAM_FPROPER_PAIR)) {
+      if (!(rec.b.core.flag & BAM_FPROPER_PAIR)) {
         continue;
       }
-      if (rec.core.flag & flagFailBits || filterHitArena[arenaI]) {
+      if (rec.b.core.flag & flagFailBits || rec.filterFail) {
         continue;
       }
-      if (readCoordTag == nullptr || mateCoordTag == nullptr || readBarcdTag == nullptr ||
-          mateBarcdTag == nullptr) {
+      if (rec.readCoordTag == nullptr || rec.mateCoordTag == nullptr || rec.readBarcdTag == nullptr ||
+          rec.mateBarcdTag == nullptr) {
         continue;
       }
 
       tagBuf.clear();
 
-      const auto* tidName = sam_hdr_tid2name(hdr_br, rec.core.tid);
+      const auto* tidName = sam_hdr_tid2name(hdr_br, rec.b.core.tid);
       if (tidName == nullptr) [[unlikely]] {
         rc = ProcessRetCode::noTid;
         break;
@@ -240,23 +242,23 @@ struct MemArenas {
       tagBuf += tidName;
       tagBuf += ",";
 
-      coBuf[0] = bam_aux2i(readCoordTag);
-      coBuf[1] = bam_aux2i(mateCoordTag);
+      coBuf[0] = bam_aux2i(rec.readCoordTag);
+      coBuf[1] = bam_aux2i(rec.mateCoordTag);
       std::sort(begin(coBuf), end(coBuf));
       tagBuf += std::to_string(coBuf[0]);
       tagBuf += ",";
       tagBuf += std::to_string(coBuf[1]);
       tagBuf += ",";
 
-      if (rec.core.flag & BAM_FREVERSE) {
-        tagBuf += bam_aux2Z(mateBarcdTag);
+      if (rec.b.core.flag & BAM_FREVERSE) {
+        tagBuf += bam_aux2Z(rec.mateBarcdTag);
         tagBuf += ",";
-        tagBuf += bam_aux2Z(readBarcdTag);
+        tagBuf += bam_aux2Z(rec.readBarcdTag);
       }
       else {
-        tagBuf += bam_aux2Z(readBarcdTag);
+        tagBuf += bam_aux2Z(rec.readBarcdTag);
         tagBuf += ",";
-        tagBuf += bam_aux2Z(mateBarcdTag);
+        tagBuf += bam_aux2Z(rec.mateBarcdTag);
       };
 
       if (errno == EINVAL) [[unlikely]] {
@@ -265,17 +267,8 @@ struct MemArenas {
         break;
       }
 
-      // Deleting a tag shifts every *subsequent* byte in rec.data, which
-      // invalidates any other cached pointer into rec aux blob.
-      // Deleting in descending address order means each delete only ever
-      // shifts bytes above any unprocessed pointers.
-      tagDelBuf[0] = readCoordTag;
-      tagDelBuf[1] = mateCoordTag;
-      tagDelBuf[2] = readBarcdTag;
-      tagDelBuf[3] = mateBarcdTag;
-      std::sort(tagDelBuf.begin(), tagDelBuf.end(), std::greater<uint8_t*>());
-      for (auto* tag : tagDelBuf) {
-        if (bam_aux_del(&rec, tag) < 0) [[unlikely]] {
+      for (auto* tag : tagsForDel) {
+        if (bam_aux_del(&rec.b, bam_aux_get(&rec.b, tag)) < 0) [[unlikely]] {
           rc = ProcessRetCode::tagDelErr;
           break;
         }
@@ -285,7 +278,7 @@ struct MemArenas {
       }
 
       if (bam_aux_append(
-              &rec, TAG_BARCODE_BUNDLE, 'Z', tagBuf.length() + 1,
+              &rec.b, TAG_BARCODE_BUNDLE, 'Z', tagBuf.length() + 1,
               reinterpret_cast<const uint8_t*>(tagBuf.c_str())
           ) != 0) [[unlikely]] {
         rc = ProcessRetCode::tagWriteErr;
@@ -297,30 +290,25 @@ struct MemArenas {
 
   static bool write_batch(AlnFile& out)
   {
-    arenaI = 0;
-    for (; arenaI < arenaN; ++arenaI) {
-      if (sam_write1(out.fh_o, out.hdr_o, &recArena[arenaI]) < 0) {
+    bufI = 0;
+    for (; bufI < bufN; ++bufI) {
+      if (sam_write1(out.fh_o, out.hdr_o, &recBuf[bufI].b) < 0) {
         return false;
       }
     }
-    arenaI = 0;
-    arenaN = 0; // reset
+    bufI = 0;
+    bufN = 0; // reset
     return true;
   }
 };
 // C++11 mandates that static
 // member init is out-of-line...
-uint16_t MemArenas::arenaI = 0;
-uint16_t MemArenas::arenaN = 0;
-bool MemArenas::everSeenTags = false;
-bool MemArenas::applyInputFilter = true;
-std::set<std::array<char, 2>> MemArenas::filterTags;
-bam1_t MemArenas::recArena[MemArenas::arenaMaxSz];
-uint8_t* MemArenas::readCoordArena[MemArenas::arenaMaxSz];
-uint8_t* MemArenas::mateCoordArena[MemArenas::arenaMaxSz];
-uint8_t* MemArenas::readBarcdArena[MemArenas::arenaMaxSz];
-uint8_t* MemArenas::mateBarcdArena[MemArenas::arenaMaxSz];
-bool MemArenas::filterHitArena[MemArenas::arenaMaxSz];
+uint16_t BatchProcessor::bufI = 0;
+uint16_t BatchProcessor::bufN = 0;
+bool BatchProcessor::everSeenTags = false;
+bool BatchProcessor::applyInputFilter = true;
+std::set<std::array<char, 2>> BatchProcessor::filterTags;
+BatchProcessor::BufferRecord BatchProcessor::recBuf[BatchProcessor::bufferMaxSz];
 
 struct CLIArgs {
   const char* alnInPath = nullptr;
@@ -369,7 +357,7 @@ int main(int argc, char** argv)
         args.bamOutPath = optarg;
         break;
       case 'n':
-        MemArenas::applyInputFilter = false;
+        BatchProcessor::applyInputFilter = false;
         break;
       case 't':
         if (std::strlen(optarg) != 2) {
@@ -386,12 +374,12 @@ int main(int argc, char** argv)
                     << "\" is a tag reserved for internal use by " << PROG_NAME << std::endl;
           return EXIT_FAILURE;
         }
-        if (MemArenas::filterTags.size() >= MemArenas::maxFilterTags) {
+        if (BatchProcessor::filterTags.size() >= BatchProcessor::maxFilterTags) {
           std::cerr << "Usage error: too many -t/--filter-tag options (max "
-                    << MemArenas::maxFilterTags << ")" << std::endl;
+                    << BatchProcessor::maxFilterTags << ")" << std::endl;
           return EXIT_FAILURE;
         }
-        MemArenas::filterTags.insert({optarg[0], optarg[1]});
+        BatchProcessor::filterTags.insert({optarg[0], optarg[1]});
         break;
       case 'u':
         args.uncompressed = true;
@@ -404,8 +392,8 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
   }
-  if (MemArenas::filterTags.empty()) {
-    MemArenas::filterTags.insert({TAG_OPT_DUP[0], TAG_OPT_DUP[1]});
+  if (BatchProcessor::filterTags.empty()) {
+    BatchProcessor::filterTags.insert({TAG_OPT_DUP[0], TAG_OPT_DUP[1]});
   }
   if (args.alnInPath == nullptr) {
     std::cerr << "Usage error: no input file specified" << std::endl;
@@ -479,51 +467,51 @@ int main(int argc, char** argv)
   std::cerr << PROG_NAME << ": begin processing" << std::endl;
   errno = 0;
   while (true) {
-    const auto loadRc = MemArenas::load_batch(alnIn);
+    const auto loadRc = BatchProcessor::load_batch(alnIn);
     switch (loadRc) {
-      case MemArenas::LoadRetCode::fullLoad:
-      case MemArenas::LoadRetCode::eofLoad:
+      case BatchProcessor::LoadRetCode::fullLoad:
+      case BatchProcessor::LoadRetCode::eofLoad:
         break;
-      case MemArenas::LoadRetCode::readFail:
+      case BatchProcessor::LoadRetCode::readFail:
         std::cerr << "Error: failure while reading input alignment file" << std::endl;
         return EXIT_FAILURE;
-      case MemArenas::LoadRetCode::corruptTag:
+      case BatchProcessor::LoadRetCode::corruptTag:
         std::cerr << "Error: input alignment contains corrupt tag data at read "
-                  << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI]) << std::endl;
+                  << bam_get_qname(&BatchProcessor::recBuf[BatchProcessor::bufI].b) << std::endl;
         return EXIT_FAILURE;
-      case MemArenas::LoadRetCode::existingRB:
+      case BatchProcessor::LoadRetCode::existingRB:
         std::cerr << "Error: input alignment already carries an RB tag at read "
-                  << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI])
+                  << bam_get_qname(&BatchProcessor::recBuf[BatchProcessor::bufI].b)
                   << "; has bamaddreadbundles already been run on this input?" << std::endl;
         return EXIT_FAILURE;
     }
 
-    switch (MemArenas::modify_tags_batch(alnIn.hdr_o)) {
-      case MemArenas::ProcessRetCode::success:
+    switch (BatchProcessor::modify_tags_batch(alnIn.hdr_o)) {
+      case BatchProcessor::ProcessRetCode::success:
         break;
-      case MemArenas::ProcessRetCode::tagDelErr:
+      case BatchProcessor::ProcessRetCode::tagDelErr:
         std::cerr << "Error: failed to modify record tags (" << strerror(errno) << ")" << std::endl;
         return EXIT_FAILURE;
-      case MemArenas::ProcessRetCode::tagWriteErr:
+      case BatchProcessor::ProcessRetCode::tagWriteErr:
         std::cerr << "Error: failed to write tag to record (" << strerror(errno) << ")"
                   << std::endl;
         return EXIT_FAILURE;
-      case MemArenas::ProcessRetCode::noTid:
-        std::cerr << "Error: read " << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI])
+      case BatchProcessor::ProcessRetCode::noTid:
+        std::cerr << "Error: read " << bam_get_qname(&BatchProcessor::recBuf[BatchProcessor::bufI].b)
                   << "has invalid tid" << std::endl;
         return EXIT_FAILURE;
-      case MemArenas::ProcessRetCode::tagBadType:
-        std::cerr << "Error: read " << bam_get_qname(&MemArenas::recArena[MemArenas::arenaI])
+      case BatchProcessor::ProcessRetCode::tagBadType:
+        std::cerr << "Error: read " << bam_get_qname(&BatchProcessor::recBuf[BatchProcessor::bufI].b)
                   << "has corrupt or incorrectly typed tag" << std::endl;
         return EXIT_FAILURE;
     }
 
-    if (!MemArenas::write_batch(alnOut)) {
+    if (!BatchProcessor::write_batch(alnOut)) {
       std::cerr << "Error: failure while writing record" << std::endl;
       return EXIT_FAILURE;
     }
 
-    if (loadRc == MemArenas::LoadRetCode::eofLoad) {
+    if (loadRc == BatchProcessor::LoadRetCode::eofLoad) {
       // was last batch
       break;
     }
@@ -536,7 +524,7 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   };
 
-  if (!MemArenas::everSeenTags) {
+  if (!BatchProcessor::everSeenTags) {
     std::cerr << "Warning: no reads in the input carried rc/mc/rb/mb tags; check the input has "
                  "been through the upstream barcode-tagging step."
               << std::endl;
