@@ -1,4 +1,20 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.22.1)
+
+# Set handling of downloaded content.
+# Fetched archives should get extraction-time timestamps, not the archive's
+# original ones, so a changed URL is correctly seen as new content.
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
+# Silence the CMake >=3.30 deprecation warning for the manual
+# FetchContent_Populate() pattern used below - kept for compatibility with
+# CMake 3.22.1, which predates FetchContent_Declare()'s EXCLUDE_FROM_ALL
+# option (added in 3.28) that the newer FetchContent_MakeAvailable() pattern
+# relies on.
+if(POLICY CMP0169)
+  cmake_policy(SET CMP0169 OLD)
+endif()
 
 # ==============================================================================
 # Version
@@ -83,9 +99,18 @@ if(NANOSEQ_FETCH_DEPS)
   set(LIBDEFLATE_BUILD_GZIP OFF CACHE BOOL "" FORCE)
   set(LIBDEFLATE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
   FetchContent_Declare(libdeflate
-    URL https://github.com/ebiggers/libdeflate/archive/${NANOSEQ_LIBDEFLATE_VERSION}.tar.gz
-    EXCLUDE_FROM_ALL)
-  FetchContent_MakeAvailable(libdeflate)
+    URL https://github.com/ebiggers/libdeflate/archive/${NANOSEQ_LIBDEFLATE_VERSION}.tar.gz)
+  FetchContent_GetProperties(libdeflate)
+  if(NOT libdeflate_POPULATED)
+    FetchContent_Populate(libdeflate)
+    # libdeflate_POPULATED is a global property, not a cache variable, so it
+    # doesn't survive a fresh cmake process even against an existing build
+    # dir - guard against re-adding the same source dir a second time (a
+    # hard configure error) with a TARGET check too.
+    if(NOT TARGET libdeflate_static)
+      add_subdirectory(${libdeflate_SOURCE_DIR} ${libdeflate_BINARY_DIR} EXCLUDE_FROM_ALL)
+    endif()
+  endif()
   set_target_properties(libdeflate_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
   include(ExternalProject)
