@@ -136,7 +136,7 @@ struct BatchProcessor {
     bool filterFail = false;
   };
   constexpr static uint16_t bufferMaxSz = 10000;
-  static BufferRecord recBuf[bufferMaxSz];
+  static BufferRecord recordBuf[bufferMaxSz];
 
   static uint16_t bufI;
   static uint16_t bufN;
@@ -162,7 +162,7 @@ struct BatchProcessor {
     bufI = 0;
     bufN = 0;
     for (; bufI < bufferMaxSz;) {
-      auto& rec = recBuf[bufI];
+      auto& rec = recordBuf[bufI];
       const auto read1Rc = sam_read1(aln.fh_o, aln.hdr_o, &rec.b);
       if (read1Rc == -1) [[unlikely]] {
         bufN = bufI;
@@ -188,12 +188,14 @@ struct BatchProcessor {
         return LoadRetCode::corruptTag;
       }
 
-      if (rec.readCoordTag || rec.mateCoordTag || rec.readBarcdTag || rec.mateBarcdTag) {
+      if (rec.readCoordTag != nullptr || rec.mateCoordTag != nullptr ||
+          rec.readBarcdTag != nullptr || rec.mateBarcdTag != nullptr) {
         everSeenTags = true;
       }
 
       if (applyInputFilter) {
-        if (qcFail || rec.filterFail || rec.readBarcdTag == nullptr || rec.mateBarcdTag == nullptr) {
+        if (qcFail || rec.filterFail || rec.readBarcdTag == nullptr ||
+            rec.mateBarcdTag == nullptr) {
           continue;  // overwrite
         }
       }
@@ -214,11 +216,13 @@ struct BatchProcessor {
     ProcessRetCode rc = ProcessRetCode::success;
     std::string tagBuf;
     std::array<int64_t, 2> coBuf;
-    std::array<const char[3], 4> tagsForDel{TAG_READ_COORD, TAG_MATE_COORD, TAG_READ_BARCODE, TAG_MATE_BARCODE};
+    std::array<const char[3], 4> tagsForDel{
+        TAG_READ_COORD, TAG_MATE_COORD, TAG_READ_BARCODE, TAG_MATE_BARCODE
+    };
     bufI = 0;
     for (; bufI < bufN; ++bufI) {
-      auto& rec = recBuf[bufI];
-      
+      auto& rec = recordBuf[bufI];
+
 
       // write out, but without modifying tags
       if (!(rec.b.core.flag & BAM_FPROPER_PAIR)) {
@@ -227,8 +231,8 @@ struct BatchProcessor {
       if (rec.b.core.flag & flagFailBits || rec.filterFail) {
         continue;
       }
-      if (rec.readCoordTag == nullptr || rec.mateCoordTag == nullptr || rec.readBarcdTag == nullptr ||
-          rec.mateBarcdTag == nullptr) {
+      if (rec.readCoordTag == nullptr || rec.mateCoordTag == nullptr ||
+          rec.readBarcdTag == nullptr || rec.mateBarcdTag == nullptr) {
         continue;
       }
 
@@ -292,7 +296,7 @@ struct BatchProcessor {
   {
     bufI = 0;
     for (; bufI < bufN; ++bufI) {
-      if (sam_write1(out.fh_o, out.hdr_o, &recBuf[bufI].b) < 0) {
+      if (sam_write1(out.fh_o, out.hdr_o, &recordBuf[bufI].b) < 0) {
         return false;
       }
     }
@@ -308,7 +312,7 @@ uint16_t BatchProcessor::bufN = 0;
 bool BatchProcessor::everSeenTags = false;
 bool BatchProcessor::applyInputFilter = true;
 std::set<std::array<char, 2>> BatchProcessor::filterTags;
-BatchProcessor::BufferRecord BatchProcessor::recBuf[BatchProcessor::bufferMaxSz];
+BatchProcessor::BufferRecord BatchProcessor::recordBuf[BatchProcessor::bufferMaxSz];
 
 struct CLIArgs {
   const char* alnInPath = nullptr;
@@ -477,11 +481,11 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
       case BatchProcessor::LoadRetCode::corruptTag:
         std::cerr << "Error: input alignment contains corrupt tag data at read "
-                  << bam_get_qname(&BatchProcessor::recBuf[BatchProcessor::bufI].b) << std::endl;
+                  << bam_get_qname(&BatchProcessor::recordBuf[BatchProcessor::bufI].b) << std::endl;
         return EXIT_FAILURE;
       case BatchProcessor::LoadRetCode::existingRB:
         std::cerr << "Error: input alignment already carries an RB tag at read "
-                  << bam_get_qname(&BatchProcessor::recBuf[BatchProcessor::bufI].b)
+                  << bam_get_qname(&BatchProcessor::recordBuf[BatchProcessor::bufI].b)
                   << "; has bamaddreadbundles already been run on this input?" << std::endl;
         return EXIT_FAILURE;
     }
@@ -497,11 +501,13 @@ int main(int argc, char** argv)
                   << std::endl;
         return EXIT_FAILURE;
       case BatchProcessor::ProcessRetCode::noTid:
-        std::cerr << "Error: read " << bam_get_qname(&BatchProcessor::recBuf[BatchProcessor::bufI].b)
+        std::cerr << "Error: read "
+                  << bam_get_qname(&BatchProcessor::recordBuf[BatchProcessor::bufI].b)
                   << "has invalid tid" << std::endl;
         return EXIT_FAILURE;
       case BatchProcessor::ProcessRetCode::tagBadType:
-        std::cerr << "Error: read " << bam_get_qname(&BatchProcessor::recBuf[BatchProcessor::bufI].b)
+        std::cerr << "Error: read "
+                  << bam_get_qname(&BatchProcessor::recordBuf[BatchProcessor::bufI].b)
                   << "has corrupt or incorrectly typed tag" << std::endl;
         return EXIT_FAILURE;
     }
