@@ -865,7 +865,7 @@ if (args.subcommand == 'dsa'):
                 % (args.normal, args.duplex, snpOpt, maskOpt, args.ref, args.d, args.q, mapQ, testOpt,
                    dsaInt.chr, dsaInt.beg, dsaInt.end, pipe, "%s/dsa/%s.dsa.bed" % (tmpDir, i + 1))
         # check number of fields in the last line it has to have 45 fields
-        cmd += "awk  \'END{  if (NF != 45)  print \"Truncated dsa output file for job %s !\" > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' %s/dsa/%s.dsa.bed;" % (i+1, tmpDir, i+1)
+        cmd += "awk  \'BEGIN{FS=\"\t\"}END{  if (NF != 45)  print \"Truncated dsa output file for job %s !\" > \"/dev/stderr\"}{ if (NF != 45) exit 1 }\' %s/dsa/%s.dsa.bed;" % (i+1, tmpDir, i+1)
         cmd += "bgzip -f -l 2 %s/dsa/%s.dsa.bed; sleep 2; bgzip -t %s/dsa/%s.dsa.bed.gz;" % (
             tmpDir, i+1, tmpDir, i+1)
         cmd += "touch %s/dsa/%s.done" % (tmpDir, i+1)
