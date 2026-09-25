@@ -17,9 +17,9 @@ RUN R -q -e 'install.packages("BiocManager", repos = "https://cloud.r-project.or
     && R -q -e 'BiocManager::install("deepSNV", ask = FALSE, update = FALSE)'
  
 # Make script available
-WORKDIR /workspace
-COPY R/snv_merge_and_vaf_calc.R /workspace
+WORKDIR /scripts
+COPY R/snv_merge_and_vaf_calc.R /scripts
 
-ENV PATH="/workspace/scripts:$PATH"
+ENV PATH="/scripts:$PATH"
 
 CMD ["/bin/bash"]
