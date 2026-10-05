@@ -239,12 +239,12 @@ if(M_LIBRARY)
 endif()
 
 if(NANOSEQ_BUILD_BAMADDREADBUNDLES)
-  add_executable(bamaddreadbundles src/bamaddreadbundles.cc)
+  add_executable(bamaddreadbundles src/bamaddreadbundles/bamaddreadbundles.cc)
   target_link_libraries(bamaddreadbundles PRIVATE nanoseq_common)
 endif()
 
 if(NANOSEQ_BUILD_GRIDSEARCH)
-  add_executable(gridsearch src/gridsearch.cc)
+  add_executable(gridsearch src/gridsearch/gridsearch.cc)
   target_link_libraries(gridsearch PRIVATE nanoseq_common)
 endif()
 
@@ -269,23 +269,23 @@ if(NANOSEQ_BUILD_DSA)
 endif()
 
 if(NANOSEQ_BUILD_STATISTICS)
-  add_executable(statistics src/statistics.cc)
+  add_executable(statistics src/statistics/statistics.cc)
   target_link_libraries(statistics PRIVATE nanoseq_common)
 endif()
 
 if(NANOSEQ_BUILD_VARIANTCALLER)
-  add_executable(variantcaller src/variantcaller.cc)
+  add_executable(variantcaller src/variantcaller/variantcaller.cc)
   target_link_libraries(variantcaller PRIVATE nanoseq_common)
 endif()
 
 if(NANOSEQ_BUILD_RANDOMREADINBUNDLE)
-  add_executable(randomreadinbundle src/randomreadinbundle.cc)
+  add_executable(randomreadinbundle src/randomreadinbundle/randomreadinbundle.cc)
   target_link_libraries(randomreadinbundle PRIVATE nanoseq_common)
 endif()
 
 if(NANOSEQ_BUILD_BAMCOV)
   # C executable
-  add_executable(bamcov src/bamcov.c src/sam_opts.c src/sam_utils.c)
+  add_executable(bamcov src/bamcov/bamcov.c src/bamcov/sam_opts.c src/bamcov/sam_utils.c)
   set_target_properties(bamcov PROPERTIES LINKER_LANGUAGE C)
   target_link_libraries(bamcov PRIVATE nanoseq_common)
 endif()
