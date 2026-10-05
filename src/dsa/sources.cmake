@@ -1,0 +1,9 @@
+set(DSA_SOURCES
+  ref.cc
+  mask.cc
+  mask_loader.cc
+  pileup_custom.cc
+  pileup.cc
+  pileup_batch.cc
+  dsa.cc
+)
