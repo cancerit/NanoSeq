@@ -12,7 +12,7 @@ version: 2.1
 jobs:
   native-build-test:
     docker:
-      - image: cimg/base:2024.01
+      - image: cimg/base:current-24.04
     steps:
       - checkout
       - run:
@@ -33,7 +33,7 @@ jobs:
     environment:
       IMAGE_NAME: quay.io/wtsicgp/nanoseq
     docker:
-      - image: cimg/base:2024.01
+      - image: cimg/base:current-24.04
     steps:
       - checkout
       - setup_remote_docker:

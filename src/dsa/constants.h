@@ -32,6 +32,7 @@
 #ifndef CONSTANTS_H_
 #define CONSTANTS_H_
 
+#include <array>
 #include <stdint.h>
 
 // DNA alphabet length
@@ -53,12 +54,14 @@
 #define ALLELE_INVALID 255
 
 // ASSUMPTION: the 4-bit base has been validated as canonical beforehand
-static const uint8_t canonical_nt16_minus_one_to_allele[8] = {
-  [BAM_NT_A - 1] = ALLELE_A,
-  [BAM_NT_C - 1] = ALLELE_C,
-  [BAM_NT_G - 1] = ALLELE_G,
-  [BAM_NT_T - 1] = ALLELE_T
-};
+static const std::array<uint8_t, 8> canonical_nt16_minus_one_to_allele = [] {
+  std::array<uint8_t, 8> a{};
+  a[BAM_NT_A - 1] = ALLELE_A;
+  a[BAM_NT_C - 1] = ALLELE_C;
+  a[BAM_NT_G - 1] = ALLELE_G;
+  a[BAM_NT_T - 1] = ALLELE_T;
+  return a;
+}();
 
 #define STRAND_COUNT 2
 #define READ_TYPE_COUNT 2

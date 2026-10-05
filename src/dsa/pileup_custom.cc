@@ -29,6 +29,7 @@
 # 2009, 2010, 2011, 2012’.
 ##########################*/
 
+#include <array>
 #include <assert.h>
 
 #include "pileup_custom.h"
@@ -38,27 +39,33 @@
 
 // Lookup tables for CIGAR operations (indexed by operation code)
 // cigar_consumes_query[op] = 1 if operation consumes query sequence
-static const uint8_t cigar_consumes_query[16] = {
-    [BAM_CMATCH] = 1,
-    [BAM_CINS] = 1,
-    [BAM_CSOFT_CLIP] = 1,
-    [BAM_CEQUAL] = 1,
-    [BAM_CDIFF] = 1
-};
+static const std::array<uint8_t, 16> cigar_consumes_query = [] {
+    std::array<uint8_t, 16> a{};
+    a[BAM_CMATCH] = 1;
+    a[BAM_CINS] = 1;
+    a[BAM_CSOFT_CLIP] = 1;
+    a[BAM_CEQUAL] = 1;
+    a[BAM_CDIFF] = 1;
+    return a;
+}();
 // cigar_consumes_ref[op] = 1 if operation consumes reference sequence
-static const uint8_t cigar_consumes_ref[16] = {
-    [BAM_CMATCH] = 1,
-    [BAM_CDEL] = 1,
-    [BAM_CREF_SKIP] = 1,
-    [BAM_CEQUAL] = 1,
-    [BAM_CDIFF] = 1
-};
+static const std::array<uint8_t, 16> cigar_consumes_ref = [] {
+    std::array<uint8_t, 16> a{};
+    a[BAM_CMATCH] = 1;
+    a[BAM_CDEL] = 1;
+    a[BAM_CREF_SKIP] = 1;
+    a[BAM_CEQUAL] = 1;
+    a[BAM_CDIFF] = 1;
+    return a;
+}();
 // cigar_maps_to_ref[op] = 1 if operation creates actual alignment to reference
-static const uint8_t cigar_maps_to_ref[16] = {
-    [BAM_CMATCH] = 1,
-    [BAM_CEQUAL] = 1,
-    [BAM_CDIFF] = 1
-};
+static const std::array<uint8_t, 16> cigar_maps_to_ref = [] {
+    std::array<uint8_t, 16> a{};
+    a[BAM_CMATCH] = 1;
+    a[BAM_CEQUAL] = 1;
+    a[BAM_CDIFF] = 1;
+    return a;
+}();
 
 static inline void base_mark_as_indel(base_t *b) {
     b->base = ALLELE_DEL;

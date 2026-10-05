@@ -1,0 +1,29 @@
+---
+BasedOnStyle: Google
+Language: Cpp
+Standard: c++20
+
+UseTab: Never
+ColumnLimit: 100
+
+MaxEmptyLinesToKeep: 2
+
+# SpaceBeforeParens: NonEmptyParentheses
+
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+AlignAfterOpenBracket: BlockIndent
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  BeforeCatch: true
+  BeforeElse: true
+
+InsertBraces: true
+
+ReflowComments: false
+AlignTrailingComments:
+  Kind: Leave
+
