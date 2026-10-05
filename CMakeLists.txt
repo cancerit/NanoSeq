@@ -320,11 +320,19 @@ if(NANOSEQ_TESTS)
   # CMAKE_RUNTIME_OUTPUT_DIRECTORY (set above) already puts binaries under
   # ${CMAKE_BINARY_DIR}/bin, so pointing PREFIX there lets these run directly
   # against build output with no install step required first.
-  set(_nanoseq_test_run2_requires variantcaller)
+  # run2 consumes table.test.bed.gz, which only run1 generates.
+  set(_nanoseq_test_run1_requires dsa)
+  set(_nanoseq_test_run2_requires dsa variantcaller)
   set(_nanoseq_test_run3_requires bamaddreadbundles)
   set(_nanoseq_test_run4_requires randomreadinbundle)
-  foreach(script run2 run3 run4)
-    if(TARGET ${_nanoseq_test_${script}_requires})
+  foreach(script run1 run2 run3 run4)
+    set(_nanoseq_test_${script}_ok TRUE)
+    foreach(_nanoseq_test_req ${_nanoseq_test_${script}_requires})
+      if(NOT TARGET ${_nanoseq_test_req})
+        set(_nanoseq_test_${script}_ok FALSE)
+      endif()
+    endforeach()
+    if(_nanoseq_test_${script}_ok)
       add_test(NAME ${script}
                COMMAND ${CMAKE_SOURCE_DIR}/test/${script}
                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
@@ -332,6 +340,9 @@ if(NANOSEQ_TESTS)
         ENVIRONMENT "PREFIX=${CMAKE_BINARY_DIR}")
     endif()
   endforeach()
+  if(_nanoseq_test_run1_ok AND _nanoseq_test_run2_ok)
+    set_tests_properties(run2 PROPERTIES DEPENDS run1)
+  endif()
 
   # smoke tests for binaries not tested above
   foreach(tool gridsearch bamcov statistics)
