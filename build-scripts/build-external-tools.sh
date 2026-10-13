@@ -1,25 +1,25 @@
 #!/bin/bash
 
 ########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
-# 
+# Copyright (c) 2022, 2025 Genome Research Ltd
+#
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
-# 
+#
 # This file is part of NanoSeq.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# 
+#
 # 1. The usage of a range of years within a copyright statement contained within
 # this distribution should be interpreted as being equivalent to a list of years
 # including the first and last year specified and all consecutive years between
@@ -63,39 +63,25 @@ get_file () {
   fi
 }
 
-if [ "$#" -ne "1" ] ; then
-  echo "Please provide an installation path  such as /opt/ICGC"
-  exit 0
-fi
+# get current directory
+INIT_DIR=`pwd`
 
-CPU=`grep -c ^processor /proc/cpuinfo`
-if [ $? -eq 0 ]; then
-  if [ "$CPU" -gt "6" ]; then
-    CPU=6
-  fi
-else
-  CPU=1
-fi
+. "$INIT_DIR/setup-fn.sh"
+
+require_install_path "$@"
+
+detect_cpu
 echo "Max compilation CPUs set to $CPU"
 
 INST_PATH=$1
 
-# get current directory
-INIT_DIR=`pwd`
+. "$INIT_DIR/versions.sh"  # VER_SAMTOOLS, VER_HTSLIB, VER_BCFTOOLS, VER_VERIFYBAMID, VER_LIBDEFLATE
 
 set -e
-# cleanup inst_path
-mkdir -p $INST_PATH
-cd $INST_PATH
-INST_PATH=`pwd`
-mkdir -p $INST_PATH/bin
-cd $INIT_DIR
+
+prep_dirs "$INST_PATH"
 
 export PATH="$INST_PATH/bin:$PATH"
-
-#create a location to build dependencies
-SETUP_DIR=$INIT_DIR/install_tmp
-mkdir -p $SETUP_DIR
 
 echo -n "Building libdeflate ..."
 if [ -e $SETUP_DIR/libdeflate.success ]; then
@@ -131,7 +117,7 @@ else
   ./configure --disable-plugins  --enable-libcurl --with-libdeflate --prefix=$INST_PATH
   make -j$CPU
   make install
-  mkdir $INST_PATH/include/cram
+  mkdir -p $INST_PATH/include/cram
   cp ./cram/*.h $INST_PATH/include/cram/
   cp header.h $INST_PATH/include
   cd $SETUP_DIR
@@ -201,38 +187,5 @@ else
   cd $SETUP_DIR
   rm -f VerifyBamID.tar.gz
   touch $SETUP_DIR/verifyBAMID.success
-fi
-
-echo -n "Installing R libraries..."
-mkdir -p $R_LIBS
-if [ -e $SETUP_DIR/Rlib.success ]; then
-  echo " previously installed ...";
-else
-  echo
-  export R_LIBS=$INST_PATH/R-lib
-  export R_LIBS_USER=$INST_PATH/R-lib
-  mkdir -p $R_LIBS_USER
-  Rscript $INIT_DIR/build/libInstall.R $R_LIBS_USER
-  cd $SETUP_DIR
-  touch $SETUP_DIR/Rlib.success
-fi
-
-echo -n "Building gzstream ..."
-if [ -e $SETUP_DIR/gzstream.success ]; then
-  echo " previously built ...";
-else
-  echo
-  cd $SETUP_DIR
-  rm -rf gzstream
-  get_distro "gzstream" "https://www.cs.unc.edu/Research/compgeom/gzstream/gzstream.tgz"
-  mkdir -p gzstream
-  tar --strip-components 1 -C gzstream -xzf gzstream.tgz
-  cd gzstream
-  cp *.h $INST_PATH/include
-  make
-  cp libgzstream.a $INST_PATH/lib
-  cd $SETUP_DIR
-  rm -f gzstream.tgz
-  touch $SETUP_DIR/gzstream.success
 fi
 

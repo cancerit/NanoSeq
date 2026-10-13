@@ -1,25 +1,25 @@
 #!/usr/bin/env perl
 
 ########## LICENCE ##########
-# Copyright (c) 2022 Genome Research Ltd
-# 
+# Copyright (c) 2022, 2025 Genome Research Ltd
+#
 # Author: CASM/Cancer IT <cgphelp@sanger.ac.uk>
-# 
+#
 # This file is part of NanoSeq.
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-# 
+#
 # 1. The usage of a range of years within a copyright statement contained within
 # this distribution should be interpreted as being equivalent to a list of years
 # including the first and last year specified and all consecutive years between
@@ -177,13 +177,14 @@ my $once = 1;
 print STDOUT "\ntmp dir : $tempdir\n\n";
 foreach my $rb_id (keys %indels) {
   my($chr,$start,$end) = (split(/,/,$rb_id))[0,1,2];
+  if($start <= 0) {	$start = 1;	}
   my(%good_sites,%bad_sites);
   foreach my $pos ( keys %{$indels{$rb_id}} ) {
     if($indels{$rb_id}->{$pos}->{"sw"} == 0 && $indels{$rb_id}->{$pos}->{"snp"} == 0) {
       $good_sites{$pos} = 1;
     } else {
       $bad_sites{$pos} = 0;
-    }  
+    }
   }
   if(scalar(keys(%good_sites)) == 0) {
     next; # all indels overlap noisy or common SNP sites
@@ -191,7 +192,7 @@ foreach my $rb_id (keys %indels) {
   $"=",";
   my @tmp = keys %{$indels{$rb_id}};
   my $positions = "@tmp";
-  print STDOUT "processing read bundle $rb_id ...\n"; 
+  print STDOUT "processing read bundle $rb_id ...\n";
   print STDOUT "Step 1...\n";
   open(BAM_OUT," | samtools view -bo $tempdir/$out_name.tmp.bam -") or die("\nError running: samtools view -bo $tempdir/$out_name.tmp.bam - :$!\n");
   open(BAM,"samtools view -h $botseq_bam_file \"$chr:$start-$end\" | ") or die( "\nError running : samtools view -h $botseq_bam_file $chr:$start-$end : $!\n");
@@ -202,7 +203,7 @@ foreach my $rb_id (keys %indels) {
     } else {
       my @fields = (split(/\t/,$_));
       $fields[1] = $fields[1] - 1024 if($fields[1] > 1024); #remove duplicate  flag
-      print BAM_OUT join "\t",@fields; 
+      print BAM_OUT join "\t",@fields;
     }
   }
   close( BAM_OUT);
@@ -213,16 +214,16 @@ foreach my $rb_id (keys %indels) {
   print STDOUT "Step 3...\n";
   #`samtools mpileup --no-BAQ  -d 250 -m 2 -F 0.5 -r $chr:$start-$end --BCF --output-tags DP,DV,DP4,SP -f $ref_genome -o $tempdir/$out_name.bcf $tempdir/$out_name.tmp.bam`;
   &runCmd("bcftools mpileup --no-BAQ --ignore-RG -L 250 -m 2 -F 0.5 -r \"$chr:$start-$end\" -O b -a DP,DV,DP4,SP -f $ref_genome -o $tempdir/$out_name.bcf $tempdir/$out_name.tmp.bam");
-  
+
   print STDOUT "Step 4...\n";
   &runCmd( "bcftools index -f $tempdir/$out_name.bcf $tempdir/$out_name.indexed.bcf");
 
   print STDOUT "Step 5...\n";
   #`bcftools call --skip-variants snps --multiallelic-caller --variants-only  -O v $tempdir/$out_name.bcf -o $tempdir/$out_name.tmp.vcf`;
-  &runCmd("bcftools call --ploidy 1 --skip-variants snps --multiallelic-caller --variants-only  -O v $tempdir/$out_name.bcf -o $tempdir/$out_name.tmp.vcf"); 
+  &runCmd("bcftools call --ploidy 1 --skip-variants snps --multiallelic-caller --variants-only  -O v $tempdir/$out_name.bcf -o $tempdir/$out_name.tmp.vcf");
 
   print STDOUT "Step 6...\n";
-  &runCmd("bcftools norm -f $ref_genome $tempdir/$out_name.tmp.vcf > $tempdir/$out_name.tmp2.vcf"); 
+  &runCmd("bcftools norm -f $ref_genome $tempdir/$out_name.tmp.vcf > $tempdir/$out_name.tmp2.vcf");
 
   #print "$rb_id:$positions:\n";
   my $get_header = 0;
@@ -339,7 +340,7 @@ foreach my $rb_id (keys %indels) {
 }
 print STDOUT "Step 8...\n";
 if (  $header eq "") { #minimal header for an empty vcf
-  print OUT "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$sample_name\n"; 
+  print OUT "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$sample_name\n";
   OUT->flush();
 }
 close OUT or die("Error closing output pipe to $tempdir/$out_name.vcf.gz\n");
@@ -357,7 +358,7 @@ if ( defined $opts{'t'}) {
   my $newHead = "";
   foreach my $ichr ( @sortedChr ) {
     $newHead.="##contig=<ID=".$ichr.",length=".$chrdic{$ichr}.">\n";
-  } 
+  }
   open(VCFI,"<$tempdir/$out_name.vcf") or die ("Couldn't open $tempdir/$out_name.vcf\n");
   open(VCFO,">$tempdir/$out_name.sorted.vcf") or die ("Couldn't write to $out_dir/$out_name.sorted.vcf\n");
   my $writeNewHead = 1;
@@ -411,7 +412,7 @@ indelCaller_step2.pl  [options] -r ref -b BAM -o prefix input.bed.gz
 
 =item B<-out>
 
-Output prefix. 
+Output prefix.
 Final ouptput is a fileterd bed file.
 
 =item B<-ref>

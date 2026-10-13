@@ -10,26 +10,34 @@
 
 version: 2.1
 jobs:
-  license_chk:
-    machine:
-      # need machine as want to mount a volume
-      image: ubuntu-2004:202107-02
+  native-build-test:
+    docker:
+      - image: cimg/base:2024.01
     steps:
       - checkout
       - run:
-          name: Execute skywalking-eyes check of licenses
-          # once 0.2.0 released change image
+          name: Install build dependencies
           command: |
-            docker run --rm -v $(pwd):/github/workspace ghcr.io/apache/skywalking-eyes/license-eye header check
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends \
+              build-essential cmake zlib1g-dev libbz2-dev liblzma-dev \
+              libcurl4-openssl-dev libssl-dev pkg-config git
+      - run:
+          name: Configure, build, test NanoSeq
+          command: |
+            cmake -S . -B build
+            cmake --build build -j"$(nproc)"
+            ctest --test-dir build --output-on-failure
+
   build:
     environment:
       IMAGE_NAME: quay.io/wtsicgp/nanoseq
     docker:
-      - image: circleci/buildpack-deps:stretch
+      - image: cimg/base:2024.01
     steps:
       - checkout
       - setup_remote_docker:
-          version: 20.10.11
+          version: default
       - run:
           name: Build Docker image
           command: |
@@ -69,16 +77,11 @@ workflows:
   version: 2.1
   build_test:
     jobs:
-      - license_chk:
-          filters:
-            tags:
-              only: /.+/
+      - native-build-test
       - build:
           context:
             - dockerhub-casmservice
             - quayio-casmservice
-          requires :
-            - license_chk
           filters:
             branches:
               ignore: /.+/

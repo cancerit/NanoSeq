@@ -2,3 +2,9 @@ bugfix-scratch/
 *.sif
 notes/
 .vscode/
+**/.nextflow/
+**/.nextflow.log
+**/.nextflow.log.*
+.DS_Store
+/build/
+scratch/
