@@ -8,3 +8,10 @@ notes/
 .DS_Store
 /build/
 scratch/
+.cache/
+test/table.test.bed
+test/table.test.bed.gz
+test/test.neat.bam
+test/test.post.bam
+test/variant.test
+test/variant.test.discarded

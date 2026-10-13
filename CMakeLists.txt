@@ -47,10 +47,18 @@ option(NANOSEQ_FETCH_DEPS
   "Fetch and build htslib/libdeflate; turn OFF to use pre-installed copies found via CMAKE_PREFIX_PATH instead (e.g. on network-restricted build hosts)"
   ON)
 
+option(NANOSEQ_BUILD_BAMADDREADBUNDLES  "Build bamaddreadbundles" ON)
+option(NANOSEQ_BUILD_GRIDSEARCH         "Build gridsearch" ON)
+option(NANOSEQ_BUILD_DSA                "Build dsa" ON)
+option(NANOSEQ_BUILD_STATISTICS         "Build statistics" ON)
+option(NANOSEQ_BUILD_VARIANTCALLER      "Build variantcaller" ON)
+option(NANOSEQ_BUILD_RANDOMREADINBUNDLE "Build randomreadinbundle" ON)
+option(NANOSEQ_BUILD_BAMCOV             "Build bamcov" ON)
+
 # ==============================================================================
 # Build settings
 # ==============================================================================
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -230,42 +238,76 @@ if(M_LIBRARY)
   target_link_libraries(nanoseq_common INTERFACE ${M_LIBRARY})
 endif()
 
-add_executable(bamaddreadbundles src/bamaddreadbundles.cc)
-target_link_libraries(bamaddreadbundles PRIVATE nanoseq_common)
+if(NANOSEQ_BUILD_BAMADDREADBUNDLES)
+  add_executable(bamaddreadbundles src/bamaddreadbundles/bamaddreadbundles.cc)
+  target_link_libraries(bamaddreadbundles PRIVATE nanoseq_common)
+endif()
 
-add_executable(gridsearch src/gridsearch.cc)
-target_link_libraries(gridsearch PRIVATE nanoseq_common)
+if(NANOSEQ_BUILD_GRIDSEARCH)
+  add_executable(gridsearch src/gridsearch/gridsearch.cc)
+  target_link_libraries(gridsearch PRIVATE nanoseq_common)
+endif()
 
-add_executable(dsa src/dsa.cc src/pileup.cc src/bed_reader.cc src/read_bundler.cc src/writeout.cc)
-target_link_libraries(dsa PRIVATE nanoseq_common)
+if(NANOSEQ_BUILD_DSA)
+  set(DSA_SRC_DIR ${CMAKE_SOURCE_DIR}/src/dsa)
+  include(${DSA_SRC_DIR}/sources.cmake)
+  list(TRANSFORM DSA_SOURCES PREPEND ${DSA_SRC_DIR}/)
 
-add_executable(statistics src/statistics.cc)
-target_link_libraries(statistics PRIVATE nanoseq_common)
+  add_executable(dsa ${DSA_SOURCES})
+  target_include_directories(dsa PRIVATE ${DSA_SRC_DIR})
+  target_compile_options(dsa PRIVATE
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wshadow
+    -Wfloat-equal
+    -Wnull-dereference
+    -Warray-bounds
+    -Wformat=2
+  )
+  target_link_libraries(dsa PRIVATE nanoseq_common OpenSSL::SSL)
+endif()
 
-add_executable(variantcaller src/variantcaller.cc)
-target_link_libraries(variantcaller PRIVATE nanoseq_common)
+if(NANOSEQ_BUILD_STATISTICS)
+  add_executable(statistics src/statistics/statistics.cc)
+  target_link_libraries(statistics PRIVATE nanoseq_common)
+endif()
 
-add_executable(randomreadinbundle src/randomreadinbundle.cc)
-target_link_libraries(randomreadinbundle PRIVATE nanoseq_common)
+if(NANOSEQ_BUILD_VARIANTCALLER)
+  add_executable(variantcaller src/variantcaller/variantcaller.cc)
+  target_link_libraries(variantcaller PRIVATE nanoseq_common)
+endif()
 
-# C executable
-add_executable(bamcov src/bamcov.c src/sam_opts.c src/sam_utils.c)
-set_target_properties(bamcov PROPERTIES LINKER_LANGUAGE C)
-target_link_libraries(bamcov PRIVATE nanoseq_common)
+if(NANOSEQ_BUILD_RANDOMREADINBUNDLE)
+  add_executable(randomreadinbundle src/randomreadinbundle/randomreadinbundle.cc)
+  target_link_libraries(randomreadinbundle PRIVATE nanoseq_common)
+endif()
+
+if(NANOSEQ_BUILD_BAMCOV)
+  # C executable
+  add_executable(bamcov src/bamcov/bamcov.c src/bamcov/sam_opts.c src/bamcov/sam_utils.c)
+  set_target_properties(bamcov PROPERTIES LINKER_LANGUAGE C)
+  target_link_libraries(bamcov PRIVATE nanoseq_common)
+endif()
 
 # ==============================================================================
 # Install
 # ==============================================================================
 if(NANOSEQ_INSTALL)
-  install(TARGETS
-    bamaddreadbundles
-    gridsearch
-    dsa
-    statistics
-    variantcaller
-    randomreadinbundle
-    bamcov
-    RUNTIME DESTINATION bin)
+  set(NANOSEQ_INSTALL_TARGETS "")
+  foreach(tool
+      bamaddreadbundles
+      gridsearch
+      dsa
+      statistics
+      variantcaller
+      randomreadinbundle
+      bamcov)
+    if(TARGET ${tool})
+      list(APPEND NANOSEQ_INSTALL_TARGETS ${tool})
+    endif()
+  endforeach()
+  install(TARGETS ${NANOSEQ_INSTALL_TARGETS} RUNTIME DESTINATION bin)
 endif()
 
 # ==============================================================================
@@ -278,16 +320,43 @@ if(NANOSEQ_TESTS)
   # CMAKE_RUNTIME_OUTPUT_DIRECTORY (set above) already puts binaries under
   # ${CMAKE_BINARY_DIR}/bin, so pointing PREFIX there lets these run directly
   # against build output with no install step required first.
+  # run2 consumes table.test.bed.gz, which only run1 generates.
+  set(_nanoseq_test_run1_requires dsa)
+  set(_nanoseq_test_run2_requires dsa variantcaller)
+  set(_nanoseq_test_run3_requires bamaddreadbundles)
+  set(_nanoseq_test_run4_requires randomreadinbundle)
   foreach(script run1 run2 run3 run4)
-    add_test(NAME ${script}
-             COMMAND ${CMAKE_SOURCE_DIR}/test/${script}
-             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
-    set_tests_properties(${script} PROPERTIES
-      ENVIRONMENT "PREFIX=${CMAKE_BINARY_DIR}")
+    set(_nanoseq_test_${script}_ok TRUE)
+    foreach(_nanoseq_test_req ${_nanoseq_test_${script}_requires})
+      if(NOT TARGET ${_nanoseq_test_req})
+        set(_nanoseq_test_${script}_ok FALSE)
+      endif()
+    endforeach()
+    if(_nanoseq_test_${script}_ok)
+      add_test(NAME ${script}
+               COMMAND ${CMAKE_SOURCE_DIR}/test/${script}
+               WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
+      set_tests_properties(${script} PROPERTIES
+        ENVIRONMENT "PREFIX=${CMAKE_BINARY_DIR}")
+    endif()
   endforeach()
+  if(_nanoseq_test_run1_ok AND _nanoseq_test_run2_ok)
+    set_tests_properties(run2 PROPERTIES DEPENDS run1)
+  endif()
 
   # smoke tests for binaries not tested above
   foreach(tool gridsearch bamcov statistics)
-    add_test(NAME ${tool}_smoke COMMAND $<TARGET_FILE:${tool}> -h)
+    if(TARGET ${tool})
+      add_test(NAME ${tool}_smoke COMMAND $<TARGET_FILE:${tool}> -h)
+    endif()
   endforeach()
+
+  if(TARGET dsa)
+    add_executable(test-dsa ${DSA_SRC_DIR}/tests/test.cc)
+    target_include_directories(test-dsa PRIVATE
+      ${DSA_SRC_DIR}
+      ${CMAKE_SOURCE_DIR}/vendor/doctest-2.4.11
+    )
+    add_test(NAME dsa_unit COMMAND test-dsa)
+  endif()
 endif()

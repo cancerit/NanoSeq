@@ -67,36 +67,21 @@ if(NOT HTSLIB_TARGET)
 endif()
 # //--- end deps ---//
 
+set(DSA_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+include(${DSA_SRC_DIR}/sources.cmake)
+list(TRANSFORM DSA_SOURCES PREPEND ${DSA_SRC_DIR}/)
+
 # //--- testing ---//
 if(MAKE_TEST)
-  message(STATUS "Finding catch2 for test binary")
-  Include(FetchContent)
-
-  FetchContent_Declare(
-    Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.8.1
-  )
-
-  FetchContent_MakeAvailable(Catch2)
-
-  add_executable(test-dsa tests/test.cc)
-  target_include_directories(test-dsa PRIVATE src)
-  target_link_libraries(test-dsa PRIVATE
-    Catch2::Catch2WithMain
+  add_executable(test-dsa ${DSA_SRC_DIR}/tests/test.cc)
+  target_include_directories(test-dsa PRIVATE
+    ${DSA_SRC_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../vendor/doctest-2.4.11
   )
 endif(MAKE_TEST)
 # //--- end testing ---//
 
-add_executable(dsa
-  src/ref.cc
-  src/mask.cc
-  src/mask_loader.cc
-  src/pileup_custom.cc
-  src/pileup.cc
-  src/pileup_batch.cc
-  src/dsa.cc
-)
+add_executable(dsa ${DSA_SOURCES})
 
 target_compile_options(dsa PRIVATE
     -Wall
@@ -125,7 +110,7 @@ if(ENABLE_DEBUG_FLAGS)
 endif()
 
 target_include_directories(
-  dsa PRIVATE src
+  dsa PRIVATE ${DSA_SRC_DIR}
 )
 
 target_link_libraries(dsa

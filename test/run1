@@ -29,8 +29,11 @@ BIN_DIR="${PREFIX:-../opt}"
 
 gunzip -fk ./hs37d5.fa.gz
 set -e
-$BIN_DIR/bin/dsa -A ./normal.bam -B ./duplex.bam -C ./SNP.sorted.bed.gz -R ./hs37d5.fa -D ./NOISE.sorted.bed.gz -r 1 -b 1000000 -e 1005000 -Q 30 -O table.test.bed
+OUT_DIR=$(mktemp -d ./dsa_test_out.XXXXXX)
+$BIN_DIR/bin/dsa -A ./normal.bam -B ./duplex.bam -I ./ranges.bed -C ./SNP.sorted.bed.gz -R ./hs37d5.fa -D ./NOISE.sorted.bed.gz -Q 30 -O "$OUT_DIR"
 rm ./hs37d5.fa
+cp "$OUT_DIR/dsa.bed.gz" ./table.test.bed.gz
+rm -rf "$OUT_DIR"
 if zdiff ./table.test.bed.gz ./table.control.bed.gz >/dev/null ; then
   echo Ok
 else
