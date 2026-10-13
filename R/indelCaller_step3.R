@@ -104,7 +104,16 @@ if (nrow(vcf@fix) != 0) {
     cat(chr, pos, len, n_bases, n_indels, "\n");
     cat(n_bases, "/", n_indels, "\n")
     cat(i, "\n")
-    max_per_site = max(apply(kk[, c("-", "INS", "_", "ins")],1,sum) / (apply(kk[, c("-", "INS", "_", "ins")],1,sum) + apply(kk[, c("A", "C", "G", "T", "a", "c", "g", "t")],1,sum)),na.rm=T)
+    max_per_site = if (n_bases == 0) {
+     NA_real_
+     } else {
+      max(
+      apply(kk[, c("-", "INS", "_", "ins")], 1, sum) /
+        (apply(kk[, c("-", "INS", "_", "ins")], 1, sum) +
+         apply(kk[, c("A", "C", "G", "T", "a", "c", "g", "t")], 1, sum)),
+        na.rm = TRUE
+    )
+    }
     if (n_bases == 0) {
       vcf@fix[i, "FILTER"] = "MISSINGBULK"
       vcf@fix[i, "INFO"] = paste(vcf@fix[i, "INFO"], ";NN=[", n_indels, ":", n_bases, ":", max_per_site,"]", sep = "")
