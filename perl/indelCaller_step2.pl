@@ -314,14 +314,16 @@ foreach my $rb_id (keys %indels) {
     if($overlapping_mask > 0.25 * length($fields[3])) {
 	    $fields[6] = "MASKED";
     }
-    $info[$count] = join "\t",@fields;
-    print STDERR "$count: @fields\n";
     # fa8: check if it's in the list of ignore_indels_at{chr}->{pos}
     for(my $i=$fields[1]; $i<= ($fields[1] + length($fields[3])); $i++) {
       if(exists($ignore_indels_at{$fields[0]}->{$i})) {
 	      $fields[6] = "BULK_SEEN";
 	    }
     }
+	# fa8: moving this, bug spotted by chatgpt
+	$info[$count] = join "\t",@fields;
+    print STDERR "$count: @fields\n";
+	
     # Only pick PASS:
     if($fields[6] eq "PASS") {
       if($fields[5] > $best_qual) {
