@@ -202,7 +202,8 @@ foreach my $rb_id (keys %indels) {
       print BAM_OUT $_;
     } else {
       my @fields = (split(/\t/,$_));
-      $fields[1] = $fields[1] - 1024 if($fields[1] > 1024); #remove duplicate  flag
+      # $fields[1] = $fields[1] - 1024 if($fields[1] > 1024); #remove duplicate  flag
+	  $fields[1] &= ~1024;
       print BAM_OUT join "\t",@fields;
     }
   }
