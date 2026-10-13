@@ -356,7 +356,7 @@ void Pileup::LoadRanges() {
     const char *fp = this->opts->ranges_bed;
     htsFile *f = hts_open(fp, "r");
     if (fp == nullptr) {
-        std::runtime_error(std::format(
+        throw std::runtime_error(std::format(
             "Failed to open {}!", fp));
     }
 
@@ -369,11 +369,11 @@ void Pileup::LoadRanges() {
         std::string line(ks.s, ks.l);
         std::stringstream ss(line);
         if (!(ss >> contig_s >> gr.start >> gr.end)) {
-            std::runtime_error(std::format(
+            throw std::runtime_error(std::format(
                 "Failed to parse line {} in {}!", ln, fp));
         }
         if (!range_is_valid(&gr)) {
-            std::runtime_error(std::format(
+            throw std::runtime_error(std::format(
                 "Invalid range {}:{}-{} (end must be greater than start) in {}!",
                 contig, gr.start, gr.end, fp));
         }
@@ -426,13 +426,4 @@ void Pileup::MultiplePileup() {
 
     // TODO: handle the empty output case better
     compressor.finalise();
-
-    return;
-
-    // fai_destroy(this->fai);
-    for (int i = 0; i < BUNDLE_TYPES_COUNT; ++i) {
-        sam_close(this->data[i].fp);
-        sam_hdr_destroy(this->data[i].head);
-    }
-    free(this->data);
 }
