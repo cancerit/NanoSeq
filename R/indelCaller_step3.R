@@ -63,7 +63,7 @@ if (length(args) != 4) {
 genomeFile = args[1]
 vcf_file = args[2]
 bam_file = args[3]
-max_vaf  = args[4]
+max_vaf  = as.numeric(args[4])
 
 if (!file.exists(genomeFile)) {
   stop("Reference file not found : ", genomeFile, call. = FALSE)
