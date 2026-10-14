@@ -1,0 +1,25 @@
+FROM rocker/r-ver:4.4.2
+
+# Install dependencies 
+RUN apt-get -yq update && apt-get install -yq --no-install-recommends \
+	build-essential \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libdeflate-dev 
+
+# Install R dependencies - deepSNV via Bioconductor
+RUN R -q -e 'install.packages("BiocManager", repos = "https://cloud.r-project.org")' \
+    && R -q -e 'BiocManager::install(version = "3.20", ask = FALSE, update = FALSE)' \
+    && R -q -e 'BiocManager::install("deepSNV", ask = FALSE, update = FALSE)'
+ 
+# Make script available
+WORKDIR /scripts
+COPY R/snv_merge_and_vaf_calc.R /scripts
+
+ENV PATH="/scripts:$PATH"
+
+CMD ["/bin/bash"]
