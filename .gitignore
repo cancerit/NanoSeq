@@ -15,3 +15,4 @@ test/test.neat.bam
 test/test.post.bam
 test/variant.test
 test/variant.test.discarded
+.snakemake/

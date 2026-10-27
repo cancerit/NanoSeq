@@ -1,0 +1,39 @@
+configfile: "config.yaml"
+
+
+rule target_neat:
+    input:
+        expand("neat/{sample}.neat.cram", sample=config["samples"]),
+
+
+rule add_read_bundles:
+    input:
+        "samples/{sample}.bam",
+    output:
+        bam="add_read_bundles/{sample}.bam",
+        bai="add_read_bundles/{sample}.bam.bai",
+    shell:
+        """
+        bamaddreadbundles -I {input} -O {output.bam} \
+            && samtools index {output.bam} -o {output.bai}
+        """
+
+
+rule tag_aware_dupmark:
+    input:
+        "add_read_bundles/{sample}.bam",
+    output:
+        "neat/{sample}.neat.cram",
+    shell:
+        """
+        samtools view -hu -f 2 -F 12 {input} | 
+        samtools collate -Ou - | 
+        samtools fixmate -um - - | 
+        samtools sort -u - | 
+        samtools markdup -r -c --output-fmt CRAM --barcode-tag RB - {output}
+        """
+
+rule nanoseq_efficiency:
+    ...
+
+
