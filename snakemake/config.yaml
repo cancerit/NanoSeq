@@ -1,2 +1,8 @@
 samples:
   A: samples/A.bam
+
+# samplesheet tsv
+samplesheet: ""
+
+# Nanoseq container file
+sif: ""
