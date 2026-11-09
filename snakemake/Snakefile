@@ -1,40 +1,82 @@
 configfile: "config.yaml"
 
 
-rule target_neat:
-    input:
-        expand("neat/{sample}.neat.cram", sample=config["samples"]),
+# rule target_neat:
+#     input:
+#         expand("neat/{lane}.neat.cram", lane=config["lanes"]),
 
+
+def get_lane_paths(sample_dir: str, sample_names: list[str]) -> list[str]:
+    from Pathlib import path
+    lanes_per_sample: list[list[Path]] = [Path("{}/{}/".format(sample_dir, sample)).glob("*.bam") for sample in samples]
+    lane_paths: list[str]
+    for pathlist in lanes_per_sample:
+        for path in pathlist:
+            lane_paths.append(str(path))
+    return lane_paths
+    
 
 rule add_read_bundles:
     input:
-        "samples/{sample}.bam",
+        get_lane_paths("lanes", config["samples"]),
     output:
-        bam="add_read_bundles/{sample}.bam",
-        bai="add_read_bundles/{sample}.bam.bai",
-    singularity:
-        config["sig"]
+        "files/{sample}/{lane}.rb.bam",
     shell:
         """
-        bamaddreadbundles -I {input} -O {output.bam} \
-            && samtools index {output.bam} -o {output.bai}
+        bamaddreadbundles --no-filter -I {input} -O {output}
         """
 
 
-rule tag_aware_dupmark:
+rule lane_dupmark:
     input:
-        "add_read_bundles/{sample}.bam",
+        "files/{sample}/{lane}.rb.bam",
+    output:
+        "files/{sample}/{lane}.rb.dupmark.bam",
+    shell:
+        # output will have both samtools and biobambam optical duplicate tags
+        # dt and od respectively...
+        # -d is a guess for the optical duplicate distance.
+        # Not using any compression threads...
+        """
+        samtools collate -Ou {input} | 
+        samtools fixmate -um - - | 
+        samtools sort -u - | 
+        samtools markdup -d 100 -c --output-fmt CRAM --barcode-tag RB - {output}
+        """
+
+
+rule merge_lanes:
+    ...  # TODO
+
+
+rule merged_dupmark:
+    input:
+        "merged/{sample}.bam"
+    output:
+        "merged/{sample}.dupmark.bam"
+    singularity:
+        config["sif"]
+    shell:
+        # additive dupmarking to pick up any cross lane RB duplicates.
+        # collate/fixmate/sort may not be necessary.
+        """
+        samtools collate -Ou {input} | 
+        samtools fixmate -um - - | 
+        samtools sort -u - | 
+        samtools markdup --output-fmt CRAM --barcode-tag RB - {output}
+        """
+
+
+rule make_neat_cram:
+    input:
+        "merged/{sample}.dupmark.bam",
     output:
         "neat/{sample}.neat.cram",
     singularity:
-        config["sig"]
+        config["sif"]
     shell:
         """
-        samtools view -hu -f 2 -F 12 {input} | 
-        samtools collate -Ou - | 
-        samtools fixmate -um - - | 
-        samtools sort -u - | 
-        samtools markdup -r -c --output-fmt CRAM --barcode-tag RB - {output}
+        samtools view --require-flags 2 --exclude-flags 3852 --with-header --cram ---output-fmt-option no_ref -o {output} {input}
         """
 
 
