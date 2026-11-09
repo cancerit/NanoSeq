@@ -1,8 +1,5 @@
-lanes:
-  A: lanes/1.bam
-
 # samplesheet tsv
-samplesheet: ""
+samplesheet: "config/samplesheet.tsv"
 
 # Nanoseq container file
 sif: ""
