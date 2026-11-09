@@ -1,0 +1,11 @@
+executor: lsf-sanger
+
+# wait up to two minutes for results to become available on disk
+latency-wait: 120
+
+retries: 0
+
+use-singularity: true
+singularity-args: "--bind /lustre:/lustre --bind /nfs:/nfs"
+
+keep-incomplete: true

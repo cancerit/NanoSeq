@@ -1,24 +1,24 @@
-configfile: "config.yaml"
+from helpers import helpers
 
+configfile: "config.yaml"
 
 # rule target_neat:
 #     input:
 #         expand("neat/{lane}.neat.cram", lane=config["lanes"]),
 
+samplesheet = helpers.parse_samplesheet(config["samplesheet"])
 
-def get_lane_paths(sample_dir: str, sample_names: list[str]) -> list[str]:
-    from Pathlib import path
-    lanes_per_sample: list[list[Path]] = [Path("{}/{}/".format(sample_dir, sample)).glob("*.bam") for sample in samples]
-    lane_paths: list[str]
-    for pathlist in lanes_per_sample:
-        for path in pathlist:
-            lane_paths.append(str(path))
-    return lane_paths
-    
+rule all:
+    input:
+        expand("neat/{sample}.neat.cram",
+            sample = samplesheet.keys())
+
+def get_lane_path(wildcards):
+    return samplesheet[wildcards.sample][wildcards.lane]
 
 rule add_read_bundles:
     input:
-        get_lane_paths("lanes", config["samples"]),
+        get_lane_path
     output:
         "files/{sample}/{lane}.rb.bam",
     shell:
@@ -44,14 +44,24 @@ rule lane_dupmark:
         samtools markdup -d 100 -c --output-fmt CRAM --barcode-tag RB - {output}
         """
 
+def get_lanes_for_sample(wildcards):
+    return expand("files/{sample}/{lane}.rb.dupmark.bam",
+        sample = wildcards.sample,
+        lane = samplesheet[wildcards.sample].keys())
 
 rule merge_lanes:
-    ...  # TODO
-
+    input:
+        lanes = get_lanes_for_sample
+    output:
+        "merged/{sample}.merged.bam"
+    shell:
+        """
+        echo "TODO"
+        """
 
 rule merged_dupmark:
     input:
-        "merged/{sample}.bam"
+        "merged/{sample}.merged.bam"
     output:
         "merged/{sample}.dupmark.bam"
     singularity:
@@ -80,9 +90,9 @@ rule make_neat_cram:
         """
 
 
-rule nanoseq_efficiency:
-    input:
-    output:
-    shell:
+#rule nanoseq_efficiency:
+#    input:
+#    output:
+#    shell:
 
 
