@@ -1,0 +1,4 @@
+sample_id	lane	path
+PD0001a	1	samples/PD0001a_1.bam
+PD0001a	2	samples/PD0001a_2.bam
+PD0002a	1	samples/PD0002a_1.bam

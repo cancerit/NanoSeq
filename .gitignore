@@ -15,3 +15,13 @@ test/test.neat.bam
 test/test.post.bam
 test/variant.test
 test/variant.test.discarded
+.snakemake/
+
+# python
+__pycache__/
+*.py[cod]
+
+# snakemake workflow outputs (when run from snakemake/)
+snakemake/files/
+snakemake/merged/
+snakemake/neat/

@@ -1,0 +1,126 @@
+from helpers import helpers
+
+configfile: "config/template-config.yaml"
+
+samplesheet = helpers.parse_samplesheet(config["samplesheet"])
+
+rule all:
+    input:
+        expand("merged/{sample}.merged.cram{ext}",
+            sample = samplesheet.keys(), ext = ["", ".crai"]),
+        expand("neat/{sample}.neat.cram{ext}",
+            sample = samplesheet.keys(), ext = ["", ".crai"]),
+
+def get_lane_path(wildcards):
+    return samplesheet[wildcards.sample][wildcards.lane]
+
+rule add_read_bundles:
+    input:
+        get_lane_path
+    output:
+        temp("files/{sample}/{lane}.rb.bam"),
+    resources:
+        mem_mb = config["mem_mb"]["add_read_bundles"],
+    singularity:
+        config["sif"]
+    shell:
+        """
+        bamaddreadbundles --no-filter -I {input} -O {output}
+        """
+
+
+# QUESTION: should the temp() intermediates (lane_dupmark, merged_dupmark
+# outputs) be CRAM or BAM? Space vs Time.
+rule lane_dupmark:
+    input:
+        "files/{sample}/{lane}.rb.bam",
+    output:
+        temp("files/{sample}/{lane}.rb.dupmark.cram"),
+    threads: config["threads"]["lane_dupmark"]
+    resources:
+        mem_mb = config["mem_mb"]["lane_dupmark"],
+    singularity:
+        config["sif"]
+    shell:
+        # output will have both samtools and biobambam optical duplicate tags
+        # dt and od respectively...
+        # -d is a guess for the optical duplicate distance.
+        """
+        samtools collate -@ {threads} -Ou {input} | 
+        samtools fixmate -um - - | 
+        samtools sort -@ {threads} -u - | 
+        samtools markdup -@ {threads} -d 100 -c --output-fmt CRAM,no_ref --barcode-tag RB - {output}
+        """
+
+def get_lanes_for_sample(wildcards):
+    return expand("files/{sample}/{lane}.rb.dupmark.cram",
+        sample = wildcards.sample,
+        lane = samplesheet[wildcards.sample].keys())
+
+rule merge_lanes:
+    input:
+        lanes = get_lanes_for_sample
+    output:
+        cram = "merged/{sample}.merged.cram",
+        crai = "merged/{sample}.merged.cram.crai",
+    params:
+        # sort input paths before merging, as PCAP
+        lanes = lambda wildcards, input: " ".join(sorted(input.lanes))
+    threads: config["threads"]["merge_lanes"]
+    resources:
+        mem_mb = config["mem_mb"]["merge_lanes"],
+    singularity:
+        config["sif"]
+    shell:
+        # equivalent of PCAP merge in canpipe
+        """
+        samtools merge -@ {threads} --output-fmt CRAM,no_ref -o {output.cram} {params.lanes}
+        samtools index -@ {threads} {output.cram} {output.crai}
+        """
+
+rule merged_dupmark:
+    input:
+        "merged/{sample}.merged.cram"
+    output:
+        temp("merged/{sample}.dupmark.cram"),
+    threads: config["threads"]["merged_dupmark"]
+    resources:
+        mem_mb = config["mem_mb"]["merged_dupmark"],
+    singularity:
+        config["sif"]
+    shell:
+        # additive dupmarking to pick up any cross lane RB duplicates.
+        # NOTE: collate/fixmate/sort may not be necessary.
+        """
+        samtools collate -@ {threads} -Ou {input} | 
+        samtools fixmate -um - - | 
+        samtools sort -@ {threads} -u - | 
+        samtools markdup -@ {threads} --output-fmt CRAM,no_ref --barcode-tag RB - {output}
+        """
+
+rule make_neat_cram:
+    input:
+        "merged/{sample}.dupmark.cram",
+    output:
+        cram = "neat/{sample}.neat.cram",
+        crai = "neat/{sample}.neat.cram.crai",
+    threads: config["threads"]["make_neat_cram"]
+    resources:
+        mem_mb = config["mem_mb"]["make_neat_cram"],
+    singularity:
+        config["sif"]
+    shell:
+        # require/exclude flags filter to single read in bundle,
+        # and drops reads not necessary for neat cram output, reducing size
+        """
+        samtools view -@ {threads} --require-flags 2 --exclude-flags 3852 --with-header --cram --output-fmt-option no_ref -o {output.cram} {input}
+        samtools index -@ {threads} {output.cram} {output.crai}
+        """
+
+
+# QUESTION: is nanoseq efficiency preprocessing or analysis? canPipe runs it in
+# the merge (preprocessing) stage (cram_botseq_efficiency). If it belongs here it
+# needs a reference + target BED in config, and the full merged sample for -x
+#   efficiency_nanoseq.pl -d {sample}.neat.cram -x {sample}.cram -r REF -p TARGET_BED -o {sample}.effi
+
+
