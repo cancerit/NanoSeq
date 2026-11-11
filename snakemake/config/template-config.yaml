@@ -1,0 +1,21 @@
+# samplesheet tsv
+samplesheet: "config/samplesheet.tsv"
+
+# Nanoseq container file
+sif: ""
+
+# per-rule resources
+# threads are used for samtools -@ (de)compression threads.
+# bamaddreadbundles is single-threaded so add_read_bundles is not in threads.
+threads:
+  lane_dupmark: 4
+  merge_lanes: 3
+  merged_dupmark: 4
+  make_neat_cram: 2
+
+mem_mb:
+  add_read_bundles: 2000
+  lane_dupmark: 12000
+  merge_lanes: 4000
+  merged_dupmark: 12000
+  make_neat_cram: 2000

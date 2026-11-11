@@ -1,5 +1,0 @@
-# samplesheet tsv
-samplesheet: "config/samplesheet.tsv"
-
-# Nanoseq container file
-sif: ""
